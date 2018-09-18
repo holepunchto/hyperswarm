@@ -7,6 +7,8 @@ const k = crypto.createHash('sha256')
   .update(process.argv[2])
   .digest()
 
+net.discovery.holepunchable((err, yes) => console.log('network is hole punchable?', err, yes))
+
 net.on('connection', function (socket, info) {
   console.log('new connection!', info)
   process.stdin.pipe(socket).pipe(process.stdout)

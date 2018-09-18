@@ -80,9 +80,7 @@ class Swarm extends EventEmitter {
     }
 
     function onconnect () {
-      if (done) return this.destroy()
-      done = true
-      clearTimeout(timeout)
+      if (!finish()) return this.destroy()
 
       if (utp) utp.removeListener('close', onclose)
       tcp.removeListener('close', onclose)
@@ -94,17 +92,18 @@ class Swarm extends EventEmitter {
     }
 
     function ontimeout () {
-      if (done) return
-      done = true
-      clearTimeout(timeout)
-      cb(new Error('Timed out trying to connect to peer'))
+      if (finish()) cb(new Error('Timed out trying to connect to peer'))
     }
 
     function onclose () {
-      if (done) return
+      if (!--missing && finish()) cb(new Error('Could not connect to peer'))
+    }
+
+    function finish () {
+      if (done) return false
       done = true
       clearTimeout(timeout)
-      if (!--missing) cb(new Error('Could not connect to peer'))
+      return true
     }
   }
 
