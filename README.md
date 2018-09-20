@@ -14,21 +14,16 @@ const crypto = require('crypto')
 
 const net = network()
 
+// look for peers listed under this topic
 const topic = crypto.createHash('sha256')
   .update('my-hyperswarm-topic')
   .digest()
 
-// look for peers but dont announce self in the topic
-// (this is ideal when you're a short-lived peer)
+// find & connect to peers
 net.join(topic, {lookup: true})
 
-// announce self but dont look for peers (let peers connect to me)
-// (this is ideal when you're a long-lived peer)
+// announce myself as a connection target
 net.join(topic, {announce: true})
-
-// announce self AND look for peers
-// (TODO this is ideal when?)
-net.join(topic, {announce: true, lookup: true})
 
 net.on('connection', (socket, details) => {
   console.log('new connection!', details)
@@ -63,6 +58,8 @@ Options include:
 
 Join the swarm for the given topic. This will cause peers to be discovered for the topic (`'peer'` event). Connections will automatically be created to those peers (`'connection'` event).
 
+Set `announce` to true if your node is likely to stay online (e.g. more than 30 minutes). TODO when should `lookup` be false? only in the case of superpeers like hashbase, right?
+
  - `topic`. Buffer. The identifier of the peer-group to list under.
  - `options`. Object.
    - `announce`. Boolean. List this peer under the the topic as a connectable target? Defaults to false.
@@ -76,7 +73,7 @@ Leave the swarm for the given topic.
 
 #### `net.connect(peer, (err, socket, details) => {})`
 
-Establish a connection to the given peer.
+Establish a connection to the given peer. You usually won't need to use this function, because hyperswarm connects to found peers automatically.
 
  - `peer`. The object emitted by the `'peer'` event.
  - `cb`. Function.
