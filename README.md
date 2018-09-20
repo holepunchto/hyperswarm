@@ -1,0 +1,124 @@
+# @hyperswarm/network
+
+A high-level API for finding and connecting to peers who are interested in a "topic."
+
+```
+npm install @hyperswarm/network
+```
+
+## Usage
+
+```js
+const network = require('@hyperswarm/network')
+const crypto = require('crypto')
+
+const net = network()
+
+const topic = crypto.createHash('sha256')
+  .update('my-hyperswarm-topic')
+  .digest()
+
+// look for peers but dont announce self in the topic
+// (this is ideal when you're a short-lived peer)
+net.join(topic, {lookup: true})
+
+// announce self but dont look for peers (let peers connect to me)
+// (this is ideal when you're a long-lived peer)
+net.join(topic, {announce: true})
+
+// announce self AND look for peers
+// (TODO this is ideal when?)
+net.join(topic, {announce: true, lookup: true})
+
+net.on('connection', (socket, details) => {
+  console.log('new connection!', details)
+
+  // you can now use the socket as a stream, eg:
+  // process.stdin.pipe(socket).pipe(process.stdout)
+})
+```
+
+## API
+
+#### `net = network([options])`
+
+Create a new network instance
+
+Options include:
+
+```js
+{
+  // Optionally overwrite the default set of bootstrap servers
+  bootstrap: [addresses],
+  // Set to false if this is a long running instance on a server
+  // When running in ephemeral mode (default) you don't join the
+  // DHT but just query it instead.
+  ephemeral: true,
+  // Pass in your own udp/utp socket
+  socket: (a udp or utp socket)
+}
+```
+
+#### `net.join(topic[, options])`
+
+Join the swarm for the given topic. This will cause peers to be discovered for the topic (`'peer'` event). Connections will automatically be created to those peers (`'connection'` event).
+
+ - `topic`. Buffer. The identifier of the peer-group to list under.
+ - `options`. Object.
+   - `announce`. Boolean. List this peer under the the topic as a connectable target? Defaults to false.
+   - `lookup`. Boolean. Look for peers in the topic and attempt to connect to them? If `announce` is false, this automatically becomes true.
+
+#### `net.leave(topic)`
+
+Leave the swarm for the given topic.
+
+ - `topic`. Buffer. The identifier of the peer-group to delist from.
+
+#### `net.connect(peer, (err, socket, details) => {})`
+
+Establish a connection to the given peer.
+
+ - `peer`. The object emitted by the `'peer'` event.
+ - `cb`. Function.
+   - `err`. Error.
+   - `socket`. The established TCP or UTP socket.
+   - `details`. Object describing the connection.
+     - `type`. String. Should be either `'tcp'` or `'utp'`.
+     - `client`. Boolean. If true, the connection was initiated by this node.
+     - `peer`. Object describing the peer. (Will be the same object that was passed into this method.)
+
+#### `net.on('connection', (socket, details) => {})`
+
+A new connection has been created. You should handle this event by using the socket.
+
+ - `socket`. The established TCP or UTP socket.
+ - `details`. Object describing the connection.
+   - `type`. String. Should be either `'tcp'` or `'utp'`.
+   - `client`. Boolean. If true, the connection was initiated by this node.
+   - `peer`. Object describing the peer. Will be null if `client === false`.
+     - `port`. Number.
+     - `host`. String. The IP address of the peer.
+     - `local`. Boolean. Is the peer on the LAN?
+     - `referrer`. Object. The address of the node that informed us of the peer.
+       - `port`. Number.
+       - `host`. String. The IP address of the referrer.
+       - `id`. Buffer.
+     - `topic`. Buffer. The identifier which this peer was discovered under.
+
+#### `net.on('peer', (peer) => {})`
+
+A new peer has been discovered on the network and has been queued for connection.
+
+ - `peer`. Object describing the peer.
+   - `port`. Number.
+   - `host`. String. The IP address of the peer.
+   - `local`. Boolean. Is the peer on the LAN?
+   - `referrer`. Object. The address of the node that informed us of the peer.
+     - `port`. Number.
+     - `host`. String. The IP address of the referrer.
+     - `id`. Buffer.
+   - `topic`. Buffer. The identifier which this peer was discovered under.
+
+#### `net.on('update', () => {})`
+
+TODO describe this
