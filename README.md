@@ -59,8 +59,8 @@ Join the swarm for the given topic. This will cause peers to be discovered for t
 
 The `announce` and `lookup` parameters should be set according to your process' expected behavior and lifetime.
 
- - If your process is "visiting" the topic and not likely to stay long after fetching data, set `lookup: true` and `announce: false`.
- - If your process is "seeding" the topic and likely to stay in the topic, set both `lookup: true` and `announce: true`.
+ - If your process is "visiting" the topic temporarily, set `lookup: true` and `announce: false`.
+ - If your process is "seeding" the topic for a long time, set both `lookup: true` and `announce: true`.
  - If your process is "seeding" the topic and likely to receive a lot of connections (e.g. it runs persistently in the cloud) then set `lookup: false` and `announce: true`.
 
 Parameters:
