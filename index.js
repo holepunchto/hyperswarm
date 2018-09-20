@@ -40,7 +40,7 @@ class Swarm extends EventEmitter {
       ? this.discovery.announce(key, { port: 0, localPort, lookup })
       : this.discovery.lookup(key)
 
-    topic.on('peer', this._onpeer.bind(this))
+    topic.on('peer', (peer) => this._onpeer(peer, key))
     topic.on('update', () => this.emit('update'))
 
     this._topics.set(hex, topic)
@@ -114,7 +114,8 @@ class Swarm extends EventEmitter {
     this.server.listen(this.socket.address().port)
   }
 
-  _onpeer (peer) {
+  _onpeer (peer, topic) {
+    peer.topic = topic
     this.emit('peer', peer)
     this.queue.push(peer)
     this._connectNext() // TODO: don't be this eager
