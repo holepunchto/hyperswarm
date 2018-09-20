@@ -57,7 +57,13 @@ Options include:
 
 Join the swarm for the given topic. This will cause peers to be discovered for the topic (`'peer'` event). Connections will automatically be created to those peers (`'connection'` event).
 
-Set `announce` to true if your node is likely to stay online for more than 20 minutes. TODO when should `lookup` be false? only in the case of superpeers like hashbase, right?
+The `announce` and `lookup` parameters should be set according to your process' expected behavior and lifetime.
+
+ - If your process is "visiting" the topic and not likely to stay long after fetching data, set `lookup: true` and `announce: false`.
+ - If your process is "seeding" the topic and likely to stay in the topic, set both `lookup: true` and `announce: true`.
+ - If your process is "seeding" the topic and likely to receive a lot of connections (e.g. it runs persistently in the cloud) then set `lookup: false` and `announce: true`.
+
+Parameters:
 
  - `topic`. Buffer. The identifier of the peer-group to list under.
  - `options`. Object.
