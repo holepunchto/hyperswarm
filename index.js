@@ -19,8 +19,8 @@ class Swarm extends EventEmitter {
 
     const self = this
 
-    this.server.on('connection', socket => self.emit('connection', socket, { type: 'tcp', client: false }))
-    this.socket.on('connection', socket => self.emit('connection', socket, { type: 'utp', client: false }))
+    this.server.on('connection', socket => self.emit('connection', socket, { type: 'tcp', client: false, peer: null }))
+    this.socket.on('connection', socket => self.emit('connection', socket, { type: 'utp', client: false, peer: null }))
 
     this._bound = false
     this._topics = new Map()
@@ -88,7 +88,7 @@ class Swarm extends EventEmitter {
       if (this === utp) tcp.destroy()
       else if (utp) utp.destroy()
 
-      cb(null, this, { type: this === utp ? 'utp' : 'tcp', client: true })
+      cb(null, this, { type: this === utp ? 'utp' : 'tcp', client: true, peer })
     }
 
     function ontimeout () {
