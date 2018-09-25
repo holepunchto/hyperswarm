@@ -4,7 +4,7 @@
   "description": "The Hyperswarm network stack",
   "main": "index.js",
   "dependencies": {
-    "@hyperswarm/discovery": "0.0.2",
+    "@hyperswarm/discovery": "^1.0.0",
     "utp-native": "^2.0.1"
   },
   "devDependencies": {
