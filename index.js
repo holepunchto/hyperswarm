@@ -3,7 +3,7 @@ const utp = require('utp-native')
 const net = require('net')
 const { EventEmitter } = require('events')
 
-module.exports = opts => new Swarm()
+module.exports = opts => new Swarm(opts)
 
 class Swarm extends EventEmitter {
   constructor (opts) {
