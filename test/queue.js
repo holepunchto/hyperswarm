@@ -1,5 +1,5 @@
 const tape = require('tape')
-const queue = require('../queue')
+const queue = require('../lib/queue')
 
 tape('basic queue', function (t) {
   const q = queue()
@@ -17,17 +17,36 @@ tape('basic queue', function (t) {
 
   q.add({ port: 8001, host: '127.0.0.1' })
 
-  const item = q.shift()
+  const info = q.shift()
 
-  t.same(item.peer, { port: 8001, host: '127.0.0.1' })
+  t.same(info.peer, { port: 8001, host: '127.0.0.1' })
   t.same(q.shift(), null)
-
-  q.requeue(item)
-  t.same(q.shift(), item)
 
   t.end()
 })
 
-tape('ban peer', function (t) {
-  t.end()
+tape('requeue', function (t) {
+  const q = queue({
+    requeue: [ 100, 200, 300 ]
+  })
+
+  q.add({ port: 8080, host: '127.0.0.1' })
+
+  const info = q.shift()
+
+  t.same(q.requeue(info), true)
+  q.once('readable', function () {
+    t.same(q.shift(), info)
+    t.same(q.requeue(info), true)
+    q.once('readable', function () {
+      t.same(q.shift(), info)
+      t.same(q.requeue(info), true)
+      q.once('readable', function () {
+        t.same(q.shift(), info)
+        t.same(q.requeue(info), false)
+        q.destroy()
+        t.end()
+      })
+    })
+  })
 })
