@@ -65,7 +65,7 @@ The `announce` and `lookup` parameters should be set according to your process' 
 
 Parameters:
 
- - `topic`. Buffer. The identifier of the peer-group to list under.
+ - `topic`. Buffer. The identifier of the peer-group to list under. Must be 32 bytes in length.
  - `options`. Object.
    - `announce`. Boolean. List this peer under the the topic as a connectable target? Defaults to false.
    - `lookup`. Boolean. Look for peers in the topic and attempt to connect to them? If `announce` is false, this automatically becomes true.
@@ -74,7 +74,7 @@ Parameters:
 
 Leave the swarm for the given topic.
 
- - `topic`. Buffer. The identifier of the peer-group to delist from.
+ - `topic`. Buffer. The identifier of the peer-group to delist from. Must be 32 bytes in length.
 
 #### `net.connect(peer, (err, socket, details) => {})`
 
