@@ -2,10 +2,10 @@
   "name": "@hyperswarm/network",
   "version": "0.0.3",
   "description": "The Hyperswarm network stack",
-  "main": "index.js",
+  "main": "swarm.js",
   "dependencies": {
     "@hyperswarm/discovery": "^1.1.0",
-    "utp-native": "^2.0.1"
+    "utp-native": "^2.1.3"
   },
   "devDependencies": {
     "standard": "^12.0.1",
