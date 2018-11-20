@@ -28,6 +28,7 @@ class Swarm extends EventEmitter {
 
   join (key, opts) {
     if (!opts) opts = {}
+    checkKey(key)
 
     this._bind()
     this.leave(key)
@@ -47,6 +48,8 @@ class Swarm extends EventEmitter {
   }
 
   leave (key) {
+    checkKey(key)
+
     const hex = key.toString('hex')
     const prev = this._topics.get(hex)
     if (prev) prev.destroy()
@@ -129,6 +132,12 @@ class Swarm extends EventEmitter {
       self.emit('connection', socket, info)
       self._connectNext() // TODO: don't be this eager
     })
+  }
+}
+
+function checkKey (key) {
+  if (!Buffer.isBuffer(key) || key.byteLength !== 32) {
+    throw new Error('Wrong key supplied, key must a 32 bytes Buffer.')
   }
 }
 
