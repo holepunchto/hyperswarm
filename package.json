@@ -1,6 +1,6 @@
 {
   "name": "@hyperswarm/network",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "The Hyperswarm network stack",
   "main": "index.js",
   "dependencies": {
@@ -9,10 +9,11 @@
   },
   "devDependencies": {
     "standard": "^12.0.1",
-    "tape": "^4.9.1"
+    "tape": "^4.9.1",
+    "why-is-node-running": "^2.0.3"
   },
   "scripts": {
-    "test": "standard"
+    "test": "standard && node tests"
   },
   "repository": {
     "type": "git",

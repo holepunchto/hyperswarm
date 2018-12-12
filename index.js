@@ -52,6 +52,25 @@ class Swarm extends EventEmitter {
     if (prev) prev.destroy()
   }
 
+  // This function should close all open handles and requests
+  destroy (cb) {
+    this._topics.forEach(t => {
+      if (t) {
+        this.leave(t)
+      }
+    })
+
+    this.discovery.destroy()
+    this.discovery.dht.destroy()
+    this.discovery.on('close', () => {
+      this.server.close(() => {
+        this.socket.close(() => {
+          if (cb) cb()
+        })
+      })
+    })
+  }
+
   connect (peer, cb) {
     var utp = null
     var missing = 1
