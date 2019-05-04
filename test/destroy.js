@@ -33,13 +33,12 @@ tape('listening and destroy twice', function (assert) {
 
 tape('destroy right away', function (assert) {
   const swarm = network()
-
-  swarm.on('close', function () {
+  assert.doesNotThrow(() => swarm.destroy())
+  const swarm2 = network()
+  swarm2.destroy(function () {
     assert.pass('closed')
     assert.end()
   })
-
-  swarm.destroy()
 })
 
 tape('destroy right away after listen', function (assert) {
