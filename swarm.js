@@ -8,9 +8,10 @@ module.exports = opts => new Swarm(opts)
 class Swarm extends EventEmitter {
   constructor (opts = {}) {
     super()
-    const { bootstrap, ephemeral, socket } = opts
+    const { bootstrap, ephemeral } = opts
     this.network = guts({
-      discovery: { bootstrap, ephemeral, socket },
+      bootstrap,
+      ephemeral,
       bind: () => {
         this.emit('listening')
       },
