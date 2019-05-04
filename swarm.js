@@ -2,7 +2,6 @@
 const peerInfo = require('./lib/peer-info')
 const { EventEmitter } = require('events')
 const assert = require('assert')
-
 const guts = require('@hyperswarm/guts')
 
 const NOT_BOUND = Symbol('NETWORK_NOT_BOUND')
