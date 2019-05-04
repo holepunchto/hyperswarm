@@ -75,7 +75,7 @@ class Swarm extends EventEmitter {
 
     if (this._status === BINDING || this._status === BOUND) {
       this._status = CLOSING
-      this.network.close()
+      this.network.close(cb)
       return
     }
     if (this._status === CLOSING) {
