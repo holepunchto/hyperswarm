@@ -84,7 +84,7 @@ class Swarm extends EventEmitter {
     const domain = network.discovery._domain(key)
     const topics = network.discovery._domains.get(domain)
     for (const topic of topics) {
-      if (Buffer.compare(key, topic.key)) {
+      if (Buffer.compare(key, topic.key) === 0) {
         topic.destroy()
         break
       }
