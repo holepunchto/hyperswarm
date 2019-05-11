@@ -5,6 +5,7 @@
   "main": "swarm.js",
   "dependencies": {
     "@hyperswarm/discovery": "^1.1.0",
+    "hashlru": "^2.3.0",
     "shuffled-priority-queue": "^2.1.0",
     "tap": "^13.1.2",
     "utp-native": "^2.1.3"
