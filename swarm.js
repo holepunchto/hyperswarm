@@ -4,45 +4,63 @@ const peerQueue = require('./lib/queue')
 const { EventEmitter } = require('events')
 const guts = require('@hyperswarm/guts')
 
+const MAX_PEERS_DEFAULT = 16
+const ERR_MISSING_KEY = 'key is required and must be a buffer'
+
 module.exports = opts => new Swarm(opts)
 
 class Swarm extends EventEmitter {
   constructor (opts = {}) {
     super()
-    const { bootstrap, ephemeral } = opts
+    const {
+      maxPeers = MAX_PEERS_DEFAULT,
+      bootstrap,
+      ephemeral
+    } = opts
     const queue = peerQueue()
     const network = guts({
       bootstrap,
       ephemeral,
-      bind: () => {
-        this.emit('listening')
-      },
+      bind: () => this.emit('listening'),
       socket: (socket, isTCP) => {
-        this._connected(socket, isTCP)
+        if (this.peers >= this.maxPeers) return
+        const info = peerInfo(null)
+        info.connected(socket, isTCP)
+        queue.add(info)
+        this.emit('connection', socket, info)
       },
-      close: () => {
-        this.emit('close')
-      }
+      close: () => this.emit('close')
     })
-    const onConnect = (err, socket, isTCP) => {
-      if (err) return // todo, logging?
-      this._connected(socket, isTCP)
-    }
-    queue.on('readable', () => {
-      var peer = queue.shift()
-      while (peer) {
-        network.connect(peer, onConnect)
-        peer = queue.shift()
-      }
-    })
+    queue.on('readable', this._drain(queue))
+    this.peers = 0
+    this.maxPeers = maxPeers
     this.emphemeral = ephemeral !== false
     this.network = network
     this.queue = queue
   }
-  _connected (socket, isTCP) {
-    const info = peerInfo(null)
-    info.connected(socket, isTCP)
-    this.emit('connection', socket, info)
+  _drain (queue) {
+    const onConnect = (info) => (err, socket, isTCP) => {
+      if (err) {
+        this.peers -= 1
+        drain()
+        return
+      }
+      info.connected(socket, isTCP)
+      this.emit('connection', socket, info)
+      socket.on('close', () => {
+        this.peers -= 1
+        queue.remove(info)
+      })
+      drain()
+    }
+    const drain = () => {
+      const info = queue.shift()
+      if (info && this.peers < this.maxPeers) {
+        this.peers += 1
+        this.network.connect(info.peer, onConnect(info))
+      }
+    }
+    return drain
   }
   address () {
     return this.network.address()
@@ -51,38 +69,37 @@ class Swarm extends EventEmitter {
     this.network.bind(port, cb)
   }
   join (key, opts = {}) {
-    const { network, ephemeral } = this
+    const { network } = this
 
-    if (Buffer.isBuffer(key) === false) throw Error('KEY REQUIRED')
+    if (Buffer.isBuffer(key) === false) throw Error(ERR_MISSING_KEY)
 
-    const {
-      announce = ephemeral === false
-    } = opts
-    const {
-      lookup = announce === false
-    } = opts
+    const { announce = false, lookup = true } = opts
 
-    if (announce === false && lookup === false) return
+    if (!announce && !lookup) return
 
-    network.bind()
-
-    if (announce) network.announce(key)
-    if (lookup) {
+    network.bind((err) => {
+      if (err) {
+        this.emit('error', err)
+        return
+      }
       this.leave(key)
-      const topic = this.lookup(key)
+      const topic = announce
+        ? network.announce(key, { lookup })
+        : network.lookup(key)
+
       topic.on('update', () => this.emit('update'))
       topic.on('peer', (peer) => {
         this.emit('peer', peer)
         this.queue.add(peer)
       })
-    }
+    })
   }
   leave (key) {
-    if (Buffer.isBuffer(key) === false) throw Error('KEY REQUIRED')
-
+    if (Buffer.isBuffer(key) === false) throw Error(ERR_MISSING_KEY)
     const { network } = this
     const domain = network.discovery._domain(key)
     const topics = network.discovery._domains.get(domain)
+    if (!topics) return
     for (const topic of topics) {
       if (Buffer.compare(key, topic.key) === 0) {
         topic.destroy()
@@ -92,6 +109,33 @@ class Swarm extends EventEmitter {
   }
   connect (peer, cb) {
     this.network.connect(peer, cb)
+  }
+  connectivity (cb) {
+    this.network.bind((err) => {
+      if (err) {
+        cb(err, {
+          bound: false,
+          boostrapped: false,
+          holepunched: false
+        })
+        return
+      }
+      this.network.discovery.holepunchable((err, holepunchable) => {
+        if (err) {
+          cb(err, {
+            bound: true,
+            boostrapped: false,
+            holepunched: false
+          })
+          return
+        }
+        cb(null, {
+          bound: true,
+          boostrapped: true,
+          holepunched: holepunchable
+        })
+      })
+    })
   }
   destroy (cb) {
     this.network.close(cb)
