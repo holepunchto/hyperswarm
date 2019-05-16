@@ -23,10 +23,8 @@ class Swarm extends EventEmitter {
       ephemeral,
       bind: () => this.emit('listening'),
       socket: (socket, isTCP) => {
-        if (this.peers >= this.maxPeers) return
         const info = peerInfo(null)
         info.connected(socket, isTCP)
-        queue.add(info)
         this.emit('connection', socket, info)
       },
       close: () => this.emit('close')
