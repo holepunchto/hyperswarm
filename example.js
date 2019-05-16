@@ -1,30 +1,42 @@
-const network = require('./')
+'use strict'
+const { inspect } = require('util')
+const swarm = require('./')
 const crypto = require('crypto')
+const net = swarm()
 
-const net = network()
+if (!process.argv[2]) { throw Error('node example.js <topic-key>') }
 
-const k = crypto.createHash('sha256')
+const key = crypto.createHash('sha256')
   .update(process.argv[2])
   .digest()
 
-net.discovery.holepunchable((err, yes) => console.log('network is hole punchable?', err, yes))
+net.connectivity((err, capabilities) => {
+  console.log('network capabilities', capabilities, err || '')
+})
+
+net.join(key, {
+  announce: true,
+  lookup: true
+})
 
 net.on('connection', function (socket, info) {
-  console.log('new connection!', info)
-  process.stdin.pipe(socket).pipe(process.stdout)
-})
+  const {
+    priority,
+    status,
+    retries,
+    peer,
+    client
+  } = info
+  console.log('new connection!', `
+    priority: ${priority}
+    status: ${status}
+    retries: ${retries}
+    client: ${client}
+    peer: ${!peer ? peer : `
+      ${inspect(peer, { indentationLvl: 4 }).slice(2, -2)}
+    `}
+  `)
 
-const announcing = process.argv.indexOf('--announce') > -1
-
-net.join(k, {
-  announce: announcing,
-  lookup: !announcing
-})
-
-process.once('SIGINT', function () {
-  console.log('Shutting down ...')
-  net.discovery.destroy()
-  net.discovery.on('close', function () {
-    process.exit()
-  })
+  if (client) process.stdin.pipe(socket)
+  else socket.pipe(process.stdout)
 })
