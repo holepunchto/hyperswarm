@@ -40,14 +40,18 @@ class Swarm extends EventEmitter {
     const onConnect = (info) => (err, socket, isTCP) => {
       if (err) {
         this.peers -= 1
+        if (!queue.requeue(info)) queue.requeue(info)
         drain()
         return
       }
+      if (info.reconnecting) info.reconnect(false)
       info.connected(socket, isTCP)
       this.emit('connection', socket, info)
       socket.on('close', () => {
         this.peers -= 1
-        queue.remove(info)
+        info.disconnected()
+        info.reconnect(true)
+        if (!queue.requeue(info)) queue.requeue(info)
       })
       drain()
     }
@@ -136,6 +140,7 @@ class Swarm extends EventEmitter {
     })
   }
   destroy (cb) {
+    this.queue.destroy()
     this.network.close(cb)
   }
 }
