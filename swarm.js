@@ -4,7 +4,7 @@ const peerQueue = require('./lib/queue')
 const { EventEmitter } = require('events')
 const guts = require('@hyperswarm/guts')
 
-const MAX_PEERS_DEFAULT = 16
+const MAX_PEERS_DEFAULT = 3
 const ERR_MISSING_KEY = 'key is required and must be a buffer'
 
 module.exports = opts => new Swarm(opts)
@@ -40,27 +40,25 @@ class Swarm extends EventEmitter {
     const onConnect = (info) => (err, socket, isTCP) => {
       if (err) {
         this.peers -= 1
-        if (!queue.requeue(info)) queue.requeue(info)
+        queue.requeue(info)
         drain()
         return
       }
-      if (info.reconnecting) info.reconnect(false)
       info.connected(socket, isTCP)
       this.emit('connection', socket, info)
       socket.on('close', () => {
         this.peers -= 1
         info.disconnected()
-        info.reconnect(true)
-        if (!queue.requeue(info)) queue.requeue(info)
+        queue.requeue(info)
       })
       drain()
     }
     const drain = () => {
+      if (this.peers >= this.maxPeers) return
       const info = queue.shift()
-      if (info && this.peers < this.maxPeers) {
-        this.peers += 1
-        this.network.connect(info.peer, onConnect(info))
-      }
+      if (!info) return 
+      this.peers += 1
+      this.network.connect(info.peer, onConnect(info))
     }
     return drain
   }
