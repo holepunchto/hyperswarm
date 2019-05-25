@@ -115,7 +115,6 @@ test('add does not emit readable when queue is not empty', async ({ is }) => {
   q.destroy()
 })
 
-
 test('remove peer', async ({ is, same }) => {
   const q = queue()
   q.add({ port: 8000, host: '127.0.0.1' })
@@ -154,7 +153,7 @@ test('remove after destroy', async ({ is, same }) => {
   q.remove({ port: 8000, host: '127.0.0.1' })
   // false because we desroyed the queue
   // so it will never call destroy on the peer info
-  is(infoDestroyed, false) 
+  is(infoDestroyed, false)
 })
 
 test('add after peer destroyed', async ({ is }) => {
@@ -242,7 +241,7 @@ test('requeue intervals', async ({ is }) => {
   is(q.shift(), null)
   await timeout(300)
   is(q.shift(), null)
-  await timeout(300) 
+  await timeout(300)
   is(q.shift(), info)
   is(q.requeue(info), false)
   q.destroy()
