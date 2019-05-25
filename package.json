@@ -14,7 +14,8 @@
     "tap": "^14.1.11"
   },
   "scripts": {
-    "test": "tap -R classic test/*.test.js && standard --fix"
+    "test": "tap -R classic test/*.test.js && standard --fix",
+    "cov": "tap -R classic --coverage-report=html test/*.test.js"
   },
   "repository": {
     "type": "git",

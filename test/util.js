@@ -30,4 +30,5 @@ const promisifyMethod = (instance, method) => {
 const immediate = promisify(setImmediate)
 const timeout = promisify(setTimeout)
 const all = Promise.all.bind(Promise)
+
 module.exports = { when, whenify, immediate, timeout, once, promisifyMethod, promisify, all }
