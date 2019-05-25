@@ -345,3 +345,16 @@ test('requeue will be refused if reconnect is disabled', async ({ is }) => {
   info.reconnect(false)
   is(info.requeue(), -1)
 })
+
+test('disconnected clears stream', async ({ is }) => {
+  const info = peerInfo()
+  is(info.firewalled, true)
+  is(info.priority, 2)
+  info.active(true)
+  const stream = PassThrough()
+  const isTCP = false
+  info.connected(stream, isTCP)
+  is(info.stream, stream)
+  info.disconnected()
+  is(info.stream, null)
+})
