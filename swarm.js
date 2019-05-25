@@ -56,7 +56,7 @@ class Swarm extends EventEmitter {
     const drain = () => {
       if (this.peers >= this.maxPeers) return
       const info = queue.shift()
-      if (!info) return 
+      if (!info) return
       this.peers += 1
       this.network.connect(info.peer, onConnect(info))
     }
