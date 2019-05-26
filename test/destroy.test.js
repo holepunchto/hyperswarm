@@ -1,10 +1,10 @@
 'use strict'
 const { test } = require('tap')
 const { once, promisifyMethod } = require('./util')
-const network = require('../')
+const hyperswarm = require('../')
 
 test('listening and destroy', async ({ pass, same }) => {
-  const swarm = network()
+  const swarm = hyperswarm()
   promisifyMethod(swarm, 'listen')
   await swarm.listen()
   pass('swarm is listening')
@@ -14,7 +14,7 @@ test('listening and destroy', async ({ pass, same }) => {
 })
 
 test('listening and destroy twice', async ({ pass, same }) => {
-  const swarm = network()
+  const swarm = hyperswarm()
   promisifyMethod(swarm, 'listen')
   await swarm.listen()
   pass('swarm is listening')
@@ -25,16 +25,16 @@ test('listening and destroy twice', async ({ pass, same }) => {
 })
 
 test('destroy right away', async ({ pass, doesNotThrow }) => {
-  const swarm = network()
+  const swarm = hyperswarm()
   doesNotThrow(() => swarm.destroy())
-  const swarm2 = network()
+  const swarm2 = hyperswarm()
   promisifyMethod(swarm2, 'destroy')
   await swarm2.destroy()
   pass('closed')
 })
 
 test('destroy right away after listen', async ({ pass }) => {
-  const swarm = network()
+  const swarm = hyperswarm()
   swarm.listen()
   swarm.destroy()
   await once(swarm, 'close')

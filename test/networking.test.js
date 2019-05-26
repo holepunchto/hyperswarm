@@ -2,11 +2,11 @@
 
 const { test } = require('tap')
 const { once, promisifyMethod } = require('./util')
-const network = require('../')
+const hyperswarm = require('../')
 const net = require('net')
 
 test('connect directly', async ({ pass, same, is }) => {
-  const swarm = network()
+  const swarm = hyperswarm()
   promisifyMethod(swarm, 'listen')
   await swarm.listen()
   const { port } = swarm.address()
