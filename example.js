@@ -1,8 +1,8 @@
 'use strict'
 const { inspect } = require('util')
-const swarm = require('./')
+const hyperswarm = require('./')
 const crypto = require('crypto')
-const net = swarm()
+const swarm = hyperswarm()
 
 if (!process.argv[2]) { throw Error('node example.js <topic-key>') }
 
@@ -10,16 +10,16 @@ const key = crypto.createHash('sha256')
   .update(process.argv[2])
   .digest()
 
-net.connectivity((err, capabilities) => {
+swarm.connectivity((err, capabilities) => {
   console.log('network capabilities', capabilities, err || '')
 })
 
-net.join(key, {
+swarm.join(key, {
   announce: true,
   lookup: true
 })
 
-net.on('connection', function (socket, info) {
+swarm.on('connection', function (socket, info) {
   const {
     priority,
     status,
