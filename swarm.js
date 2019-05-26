@@ -4,7 +4,7 @@ const peerQueue = require('./lib/queue')
 const { EventEmitter } = require('events')
 const guts = require('@hyperswarm/guts')
 
-const MAX_PEERS_DEFAULT = 3
+const MAX_PEERS_DEFAULT = 16
 const ERR_MISSING_KEY = 'key is required and must be a buffer'
 
 module.exports = opts => new Swarm(opts)
