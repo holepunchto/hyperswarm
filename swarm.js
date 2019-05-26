@@ -6,6 +6,7 @@ const guts = require('@hyperswarm/guts')
 
 const MAX_PEERS_DEFAULT = 16
 const ERR_MISSING_KEY = 'key is required and must be a buffer'
+const ERR_JOIN_OPTS = 'join options must enable lookup, announce or both, but not neither'
 
 module.exports = opts => new Swarm(opts)
 
@@ -32,7 +33,7 @@ class Swarm extends EventEmitter {
     queue.on('readable', this._drain(queue))
     this.peers = 0
     this.maxPeers = maxPeers
-    this.emphemeral = ephemeral !== false
+    this.ephemeral = ephemeral !== false
     this.network = network
     this.queue = queue
   }
@@ -75,8 +76,7 @@ class Swarm extends EventEmitter {
 
     const { announce = false, lookup = true } = opts
 
-    if (!announce && !lookup) return
-
+    if (!announce && !lookup) throw Error(ERR_JOIN_OPTS)
     network.bind((err) => {
       if (err) {
         this.emit('error', err)
@@ -97,6 +97,7 @@ class Swarm extends EventEmitter {
   leave (key) {
     if (Buffer.isBuffer(key) === false) throw Error(ERR_MISSING_KEY)
     const { network } = this
+    if (network.discovery === null) return
     const domain = network.discovery._domain(key)
     const topics = network.discovery._domains.get(domain)
     if (!topics) return
