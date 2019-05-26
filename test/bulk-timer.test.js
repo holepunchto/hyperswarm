@@ -1,6 +1,6 @@
 'use strict'
 const { test } = require('tap')
-const { whenify, immediate, timeout } = require('./util')
+const { whenify, immediate, timeout, done, count } = require('./util')
 const bulkTimer = require('../lib/bulk-timer')
 
 test('bulk timer queue', async ({ is, same }) => {
@@ -12,7 +12,7 @@ test('bulk timer queue', async ({ is, same }) => {
   })
   t.push(1)
   t.push(2)
-  await timer.done()
+  await timer[done]
 })
 
 test('bulk timer queue (async)', async ({ is, same }) => {
@@ -25,13 +25,13 @@ test('bulk timer queue (async)', async ({ is, same }) => {
   t.push(1)
   await immediate
   t.push(2)
-  await timer.done()
+  await timer[done]
 })
 
 test('bulk timer queue different batch', async ({ is, same }) => {
   const timer = whenify(bulkTimer, { asyncOps: 2 })
   const t = timer(100, (batch) => {
-    if (timer.count === 0) {
+    if (timer[count] === 0) {
       is(batch.length, 1)
       same([ 1 ], batch)
       return
@@ -43,7 +43,7 @@ test('bulk timer queue different batch', async ({ is, same }) => {
   t.push(1)
   await timeout(75)
   t.push(2)
-  await timer.done()
+  await timer[done]
 })
 
 test('bulk timer – nothing pending', async ({ is }) => {
