@@ -3,22 +3,22 @@ const { test } = require('tap')
 const { once, promisifyMethod } = require('./util')
 const hyperswarm = require('../')
 
-test('listening and destroy', async ({ pass, same }) => {
+test('listening and destroy', async ({ pass, is }) => {
   const swarm = hyperswarm()
   promisifyMethod(swarm, 'listen')
   await swarm.listen()
   pass('swarm is listening')
-  same(typeof swarm.address().port, 'number')
+  is(typeof swarm.address().port, 'number')
   swarm.destroy()
   await once(swarm, 'close')
 })
 
-test('listening and destroy twice', async ({ pass, same }) => {
+test('listening and destroy twice', async ({ pass, is }) => {
   const swarm = hyperswarm()
   promisifyMethod(swarm, 'listen')
   await swarm.listen()
   pass('swarm is listening')
-  same(typeof swarm.address().port, 'number')
+  is(typeof swarm.address().port, 'number')
   swarm.destroy()
   swarm.destroy()
   await once(swarm, 'close')
