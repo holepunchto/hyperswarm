@@ -30,12 +30,16 @@ const whenify = (fn, { asyncOps } = { asyncOps: 1 }) => {
 const whenifyMethod = (instance, method, opts) => {
   const result = whenify(instance[method].bind(instance), opts)
   instance[method] = result
-  return result
+  return instance
 }
-const promisifyMethod = (instance, method) => {
+const _promisifyMethod = (instance, method) => {
   const result = promisify(instance[method])
   instance[method] = result
-  return result
+  return instance
+}
+const promisifyMethod = (instance, ...methods) => {
+  methods.forEach(_promisifyMethod.bind(null, instance))
+  return instance
 }
 const immediate = promisify(setImmediate)
 const timeout = promisify(setTimeout)
