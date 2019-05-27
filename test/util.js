@@ -1,6 +1,8 @@
 'use strict'
-const dht = require('@hyperswarm/dht')
 const { promisify } = require('util')
+const net = require('net')
+const UTP = require('utp-native')
+const dht = require('@hyperswarm/dht')
 const once = require('events.once')
 const done = Symbol('done')
 const count = Symbol('count')
@@ -55,6 +57,11 @@ async function dhtBootstrap () {
   }
 }
 
+function validSocket (s) {
+  if (!s) return false
+  return (s instanceof net.Socket) || (s._utp && s._utp instanceof UTP)
+}
+
 module.exports = {
   done,
   when,
@@ -66,5 +73,6 @@ module.exports = {
   timeout,
   once,
   count,
-  dhtBootstrap
+  dhtBootstrap,
+  validSocket
 }

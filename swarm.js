@@ -4,7 +4,9 @@ const peerQueue = require('./lib/queue')
 const { EventEmitter } = require('events')
 const guts = require('@hyperswarm/guts')
 
-const MAX_PEERS_DEFAULT = 16
+const MAX_SERVER_SOCKETS = Infinity
+const MAX_CLIENT_SOCKETS = 16
+
 const ERR_MISSING_KEY = 'key is required and must be a buffer'
 const ERR_JOIN_OPTS = 'join options must enable lookup, announce or both, but not neither'
 
@@ -14,7 +16,8 @@ class Swarm extends EventEmitter {
   constructor (opts = {}) {
     super()
     const {
-      maxPeers = MAX_PEERS_DEFAULT,
+      maxServerSockets = MAX_SERVER_SOCKETS,
+      maxClientSockets = MAX_CLIENT_SOCKETS,
       bootstrap,
       ephemeral
     } = opts
@@ -30,9 +33,16 @@ class Swarm extends EventEmitter {
       },
       close: () => this.emit('close')
     })
+
+    if (maxServerSockets !== Infinity) {
+      network.tcp.maxConnections = maxServerSockets
+      network.utp.maxConnections = maxServerSockets
+    }
+
     queue.on('readable', this._drain(queue))
-    this.peers = 0
-    this.maxPeers = maxPeers
+    this.clientSockets = 0
+    this.maxServerSockets = maxServerSockets
+    this.maxClientSockets = maxClientSockets
     this.ephemeral = ephemeral !== false
     this.network = network
     this.queue = queue
@@ -40,7 +50,7 @@ class Swarm extends EventEmitter {
   _drain (queue) {
     const onConnect = (info) => (err, socket, isTCP) => {
       if (err) {
-        this.peers -= 1
+        this.clientSockets -= 1
         queue.requeue(info)
         drain()
         return
@@ -48,17 +58,17 @@ class Swarm extends EventEmitter {
       info.connected(socket, isTCP)
       this.emit('connection', socket, info)
       socket.on('close', () => {
-        this.peers -= 1
+        this.clientSockets -= 1
         info.disconnected()
         queue.requeue(info)
       })
       drain()
     }
     const drain = () => {
-      if (this.peers >= this.maxPeers) return
+      if (this.clientSockets >= this.maxClientSockets) return
       const info = queue.shift()
       if (!info) return
-      this.peers += 1
+      this.clientSockets += 1
       this.network.connect(info.peer, onConnect(info))
     }
     return drain
@@ -88,19 +98,21 @@ class Swarm extends EventEmitter {
         : network.lookup(key)
 
       topic.on('update', () => this.emit('update'))
-      topic.on('peer', (peer) => {
-        this.emit('peer', peer)
-        this.queue.add(peer)
-      })
+      if (lookup) {
+        topic.on('peer', (peer) => {
+          this.emit('peer', peer)
+          this.queue.add(peer)
+        })
+      }
     })
   }
   leave (key) {
     if (Buffer.isBuffer(key) === false) throw Error(ERR_MISSING_KEY)
     const { network } = this
-    if (network.discovery === null) return
     const domain = network.discovery._domain(key)
     const topics = network.discovery._domains.get(domain)
     if (!topics) return
+
     for (const topic of topics) {
       if (Buffer.compare(key, topic.key) === 0) {
         topic.destroy()
