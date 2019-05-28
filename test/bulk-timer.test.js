@@ -23,7 +23,7 @@ test('bulk timer queue (async)', async ({ is, same }) => {
     t.destroy()
   })
   t.push(1)
-  await immediate
+  await immediate()
   t.push(2)
   await timer[done]
 })
