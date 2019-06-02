@@ -15,6 +15,7 @@ const ERR_JOIN_OPTS = 'join options must enable lookup, announce or both, but no
 const kDrain = Symbol('hyperswarm.drain')
 const kIncrPeerCount = Symbol('hyperswarm.incrPeerCount')
 const kDecrPeerCount = Symbol('hyperswarm.decrPeerCount')
+const kQueue = Symbol('hyperswarm.queue')
 
 module.exports = opts => new Swarm(opts)
 
@@ -25,7 +26,6 @@ class Swarm extends EventEmitter {
       maxServerSockets = MAX_SERVER_SOCKETS,
       maxClientSockets = MAX_CLIENT_SOCKETS,
       maxPeers = MAX_PEERS,
-
       bootstrap,
       ephemeral
     } = opts
@@ -54,17 +54,21 @@ class Swarm extends EventEmitter {
     network.utp.maxConnections = maxServerSockets
 
     queue.on('readable', this[kDrain](queue))
+
     this.destroyed = false
     this.clientSockets = 0
     this.serverSockets = 0
     this.peers = 0
+
     this.maxPeers = maxPeers
-    this.acceptingPeers = this.peers < maxPeers
     this.maxServerSockets = maxServerSockets
     this.maxClientSockets = maxClientSockets
+
+    this.open = this.peers < this.maxPeers
     this.ephemeral = ephemeral !== false
+
     this.network = network
-    this.queue = queue
+    this[kQueue] = queue
   }
   [kDrain] (queue) {
     const onConnect = (info) => (err, socket, isTCP) => {
@@ -99,16 +103,16 @@ class Swarm extends EventEmitter {
   }
   [kIncrPeerCount] () {
     this.peers += 1
-    this.acceptingPeers = this.peers < this.maxPeers
-    if (this.acceptingPeers === false) {
+    this.open = this.peers < this.maxPeers
+    if (this.open === false) {
       this.network.tcp.maxConnections = -1
       this.network.utp.maxConnections = -1
     }
   }
   [kDecrPeerCount] () {
     this.peers -= 1
-    if (this.acceptingPeers) return
-    this.acceptingPeers = this.peers < this.maxPeers
+    if (this.open) return
+    this.open = this.peers < this.maxPeers
     this.network.tcp.maxConnections = this.maxServerSockets
     this.network.utp.maxConnections = this.maxServerSockets
   }
@@ -143,7 +147,7 @@ class Swarm extends EventEmitter {
       if (lookup) {
         topic.on('peer', (peer) => {
           this.emit('peer', peer)
-          this.queue.add(peer)
+          this[kQueue].add(peer)
         })
       }
     })
@@ -197,7 +201,7 @@ class Swarm extends EventEmitter {
   }
   destroy (cb) {
     this.destroyed = true
-    this.queue.destroy()
+    this[kQueue].destroy()
     this.network.close(cb)
   }
 }

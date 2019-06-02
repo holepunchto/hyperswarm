@@ -1,6 +1,7 @@
 'use strict'
 const { EventEmitter } = require('events')
 const { randomBytes } = require('crypto')
+const { NetworkResource } = require('@hyperswarm/guts')
 const { test } = require('tap')
 const { once, done, promisifyMethod, whenifyMethod, dhtBootstrap, validSocket, timeout } = require('./util')
 const hyperswarm = require('../swarm')
@@ -13,6 +14,40 @@ test('default ephemerality', async ({ is }) => {
   await swarm.listen()
   is(swarm.network.discovery.dht.ephemeral, true)
   swarm.destroy()
+})
+
+test('maxClientSockets defaults to 16', async ({ is }) => {
+  const swarm = hyperswarm()
+  const { maxClientSockets } = swarm
+  is(maxClientSockets, 16)
+  swarm.destroy()
+})
+
+test('maxServerSockets defaults to Infinity', async ({ is }) => {
+  const swarm = hyperswarm()
+  const { maxServerSockets } = swarm
+  is(maxServerSockets, Infinity)
+  swarm.destroy()
+})
+
+test('maxPeers defaults to 24', async ({ is }) => {
+  const swarm = hyperswarm()
+  const { maxPeers } = swarm
+  is(maxPeers, 24)
+  swarm.destroy()
+})
+
+test('destroyed property', async ({ is }) => {
+  const swarm = hyperswarm()
+  swarm.listen()
+  is(swarm.destroyed, false)
+  swarm.destroy()
+  is(swarm.destroyed, true)
+})
+
+test('network property', async ({ is }) => {
+  const swarm = hyperswarm()
+  is(swarm.network instanceof NetworkResource, true)
 })
 
 test('ephemeral option', async ({ is }) => {
@@ -35,27 +70,6 @@ test('bootstrap option', async ({ is }) => {
   is(swarm.network.discovery.dht.bootstrapNodes[0].port, port)
   swarm.destroy()
   closeDht()
-})
-
-test('maxClientSockets defaults to 16', async ({ is }) => {
-  const swarm = hyperswarm()
-  const { maxClientSockets } = swarm
-  is(maxClientSockets, 16)
-  swarm.destroy()
-})
-
-test('maxServerSockets defaults to Infinity', async ({ is }) => {
-  const swarm = hyperswarm()
-  const { maxServerSockets } = swarm
-  is(maxServerSockets, Infinity)
-  swarm.destroy()
-})
-
-test('maxPeers defaults to 24', async ({ is }) => {
-  const swarm = hyperswarm()
-  const { maxPeers } = swarm
-  is(maxPeers, 24)
-  swarm.destroy()
 })
 
 test('emits listening event when bound', async ({ pass }) => {
@@ -685,11 +699,13 @@ test('allows a maximum amount of peers (maxPeers option - client sockets)', asyn
     lookup: true
   })
   is(swarm.peers, 0)
+  is(swarm.open, true)
   await once(swarm, 'listening')
   for (var c = 0; c < maxPeers; c++) {
     await once(swarm, 'connection')
   }
   is(swarm.peers, maxPeers)
+  is(swarm.open, false)
 
   const swarm2 = hyperswarm({ bootstrap })
   swarm2.join(key, {
@@ -702,6 +718,7 @@ test('allows a maximum amount of peers (maxPeers option - client sockets)', asyn
   })
   await timeout(200) // allow time for a potential connection event
   is(swarm.peers, maxPeers)
+  is(swarm.open, false)
   swarm2.destroy()
   swarm.leave(key)
   swarm.destroy()
@@ -714,7 +731,10 @@ test('allows a maximum amount of peers (maxPeers option - client sockets)', asyn
 
 test('allows a maximum amount of peers (maxPeers option - server sockets)', async ({ is, fail }) => {
   const { bootstrap, closeDht } = await dhtBootstrap()
-  const swarm = hyperswarm({ bootstrap })
+  const swarm = hyperswarm({
+    bootstrap,
+    maxPeers: 8
+  })
   const key = randomBytes(32)
   swarm.join(key, {
     announce: true,
@@ -723,6 +743,9 @@ test('allows a maximum amount of peers (maxPeers option - server sockets)', asyn
   const swarms = []
   await once(swarm, 'listening')
   const { maxPeers } = swarm
+  is(maxPeers, 8)
+  is(swarm.peers, 0)
+  is(swarm.open, true)
   for (var i = 0; i < maxPeers; i++) {
     const s = hyperswarm({ bootstrap })
     swarms.push(s)
@@ -733,7 +756,8 @@ test('allows a maximum amount of peers (maxPeers option - server sockets)', asyn
     await once(s, 'listening')
     await once(swarm, 'connection')
   }
-
+  is(swarm.peers, maxPeers)
+  is(swarm.open, false)
   const swarm2 = hyperswarm({ bootstrap })
   swarm2.join(key, {
     announce: false,
@@ -742,6 +766,8 @@ test('allows a maximum amount of peers (maxPeers option - server sockets)', asyn
   await once(swarm2, 'listening')
   swarm.once('connection', () => fail('connection should not be emitted after max peers is reached'))
   await timeout(150) // allow time for a potential connection event
+  is(swarm.peers, maxPeers)
+  is(swarm.open, false)
   swarm2.destroy()
   swarm.leave(key)
   swarm.destroy()
@@ -762,6 +788,8 @@ test('allows a maximum amount of peers (maxPeers option - client sockets and ser
   const { maxPeers } = swarm // default amount of maxPeers is 24
   const clientPeers = maxPeers / 2
   const lookupPeers = maxPeers / 2
+  is(swarm.peers, 0)
+  is(swarm.open, true)
   for (var i = 0; i < clientPeers; i++) {
     const s = hyperswarm({ bootstrap })
     swarms.push(s)
@@ -771,18 +799,19 @@ test('allows a maximum amount of peers (maxPeers option - client sockets and ser
     })
     await once(s, 'listening')
   }
-
   swarm.join(key, {
     announce: true,
     lookup: true
   })
   is(swarm.peers, 0)
+  is(swarm.open, true)
   await once(swarm, 'listening')
   for (var c = 0; c < clientPeers; c++) {
     await once(swarm, 'connection')
   }
 
   is(swarm.peers, clientPeers)
+  is(swarm.open, true)
 
   for (var n = 0; n < lookupPeers; n++) {
     const s = hyperswarm({ bootstrap })
@@ -794,7 +823,10 @@ test('allows a maximum amount of peers (maxPeers option - client sockets and ser
     await once(s, 'listening')
     await once(swarm, 'connection')
   }
+
   is(swarm.peers, maxPeers)
+  is(swarm.open, false)
+
   const swarm2 = hyperswarm({ bootstrap })
   swarm2.join(key, {
     announce: true,
@@ -806,6 +838,7 @@ test('allows a maximum amount of peers (maxPeers option - client sockets and ser
   })
   await timeout(200) // allow time for a potential connection event
   is(swarm.peers, maxPeers)
+  is(swarm.open, false)
   swarm2.destroy()
   swarm.leave(key)
   swarm.destroy()
@@ -826,6 +859,8 @@ test('maxPeers option sets the maximum amount of peers that a swarm can connect 
   const swarms = []
   const { maxPeers } = swarm
   is(maxPeers, 8)
+  is(swarm.peers, 0)
+  is(swarm.open, true)
   const announcingPeers = maxPeers / 2
   const lookupPeers = maxPeers / 2
   for (var i = 0; i < announcingPeers; i++) {
@@ -843,12 +878,14 @@ test('maxPeers option sets the maximum amount of peers that a swarm can connect 
     lookup: true
   })
   is(swarm.peers, 0)
+  is(swarm.open, true)
   await once(swarm, 'listening')
   for (var c = 0; c < announcingPeers; c++) {
     await once(swarm, 'connection')
   }
 
   is(swarm.peers, announcingPeers)
+  is(swarm.open, true)
 
   for (var n = 0; n < lookupPeers; n++) {
     const s = hyperswarm({ bootstrap })
@@ -861,6 +898,8 @@ test('maxPeers option sets the maximum amount of peers that a swarm can connect 
     await once(swarm, 'connection')
   }
   is(swarm.peers, maxPeers)
+  is(swarm.open, false)
+
   const swarm2 = hyperswarm({ bootstrap })
   swarm2.join(key, {
     announce: true,
@@ -872,6 +911,8 @@ test('maxPeers option sets the maximum amount of peers that a swarm can connect 
   })
   await timeout(200) // allow time for a potential connection event
   is(swarm.peers, maxPeers)
+  is(swarm.open, false)
+
   swarm2.destroy()
   swarm.leave(key)
   swarm.destroy()
@@ -893,6 +934,8 @@ test('after maxPeers is exceeded, new peers can connect once existing peers have
   const swarms = []
   const { maxPeers } = swarm
   is(maxPeers, 8)
+  is(swarm.peers, 0)
+  is(swarm.open, true)
   const announcingPeers = maxPeers / 2
   const lookupPeers = maxPeers / 2
   for (var i = 0; i < announcingPeers; i++) {
@@ -916,6 +959,7 @@ test('after maxPeers is exceeded, new peers can connect once existing peers have
   }
 
   is(swarm.peers, announcingPeers)
+  is(swarm.open, true)
 
   for (var n = 0; n < lookupPeers; n++) {
     const s = hyperswarm({ bootstrap })
@@ -928,6 +972,8 @@ test('after maxPeers is exceeded, new peers can connect once existing peers have
     await once(swarm, 'connection')
   }
   is(swarm.peers, maxPeers)
+  is(swarm.open, false)
+
   swarms[0].destroy()
   await once(swarms[0], 'close')
   await once(swarm, 'disconnection')
@@ -941,6 +987,7 @@ test('after maxPeers is exceeded, new peers can connect once existing peers have
   await once(swarm, 'connection')
 
   is(swarm.peers, maxPeers)
+  is(swarm.open, false)
 
   swarm2.destroy()
   swarm.leave(key)
