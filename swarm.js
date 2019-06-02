@@ -27,9 +27,9 @@ class Swarm extends EventEmitter {
       maxClientSockets = MAX_CLIENT_SOCKETS,
       maxPeers = MAX_PEERS,
       bootstrap,
-      ephemeral
+      ephemeral,
+      queue = {}
     } = opts
-    const queue = peerQueue()
 
     const network = guts({
       bootstrap,
@@ -53,8 +53,6 @@ class Swarm extends EventEmitter {
     network.tcp.maxConnections = maxServerSockets
     network.utp.maxConnections = maxServerSockets
 
-    queue.on('readable', this[kDrain](queue))
-
     this.destroyed = false
     this.clientSockets = 0
     this.serverSockets = 0
@@ -68,7 +66,8 @@ class Swarm extends EventEmitter {
     this.ephemeral = ephemeral !== false
 
     this.network = network
-    this[kQueue] = queue
+    this[kQueue] = peerQueue(queue)
+    this[kQueue].on('readable', this[kDrain](this[kQueue]))
   }
   [kDrain] (queue) {
     const onConnect = (info) => (err, socket, isTCP) => {
