@@ -1,4 +1,5 @@
 'use strict'
+const { randomBytes } = require('crypto')
 const { test } = require('tap')
 const { once, promisifyMethod } = require('./util')
 const hyperswarm = require('../')
@@ -39,4 +40,50 @@ test('destroy right away after listen', async ({ pass }) => {
   swarm.destroy()
   await once(swarm, 'close')
   pass('closed')
+})
+
+test('address after destroy', async ({ throws }) => {
+  const swarm = hyperswarm()
+  swarm.listen()
+  swarm.destroy()
+  throws(() => swarm.address(), Error('swarm has been destroyed'))
+})
+
+test('listen after destroy', async ({ throws }) => {
+  const swarm = hyperswarm()
+  swarm.listen()
+  swarm.destroy()
+  throws(() => swarm.listen(), Error('swarm has been destroyed'))
+})
+
+test('join after destroy', async ({ throws }) => {
+  const swarm = hyperswarm()
+  swarm.listen()
+  swarm.destroy()
+  throws(() => {
+    const key = randomBytes(32)
+    swarm.join(key)
+  }, Error('swarm has been destroyed'))
+})
+
+test('connect after destroy', async ({ throws }) => {
+  const swarm = hyperswarm()
+  swarm.listen()
+  swarm.destroy()
+  throws(() => {
+    const peer = {
+      host: '127.0.0.1',
+      port: 8080
+    }
+    swarm.connect(peer, () => {})
+  }, Error('swarm has been destroyed'))
+})
+
+test('connectivity after destroy', async ({ throws }) => {
+  const swarm = hyperswarm()
+  swarm.listen()
+  swarm.destroy()
+  throws(() => {
+    swarm.connectivity(() => {})
+  }, Error('swarm has been destroyed'))
 })

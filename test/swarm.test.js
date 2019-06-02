@@ -37,6 +37,27 @@ test('bootstrap option', async ({ is }) => {
   closeDht()
 })
 
+test('maxClientSockets defaults to 16', async ({ is }) => {
+  const swarm = hyperswarm()
+  const { maxClientSockets } = swarm
+  is(maxClientSockets, 16)
+  swarm.destroy()
+})
+
+test('maxServerSockets defaults to Infinity', async ({ is }) => {
+  const swarm = hyperswarm()
+  const { maxServerSockets } = swarm
+  is(maxServerSockets, Infinity)
+  swarm.destroy()
+})
+
+test('maxPeers defaults to 24', async ({ is }) => {
+  const swarm = hyperswarm()
+  const { maxPeers } = swarm
+  is(maxPeers, 24)
+  swarm.destroy()
+})
+
 test('emits listening event when bound', async ({ pass }) => {
   const swarm = hyperswarm()
   swarm.listen()
@@ -444,7 +465,64 @@ test('emits connection event upon being connected to by a peer', async ({ is }) 
   closeDht()
 })
 
-test('connects up to a maximum amount of peers', async ({ is, fail }) => {
+test('emits disconnection event upon disconnecting from a peer', async ({ is }) => {
+  const { bootstrap, closeDht } = await dhtBootstrap()
+  const swarm1 = hyperswarm({ bootstrap })
+  const swarm2 = hyperswarm({ bootstrap })
+  const key = randomBytes(32)
+  swarm1.join(key, {
+    announce: true,
+    lookup: false
+  })
+  await once(swarm1, 'listening')
+  swarm2.join(key, {
+    announce: false,
+    lookup: true
+  })
+  await once(swarm2, 'listening')
+  const [ peer ] = await once(swarm2, 'peer')
+  await once(swarm2, 'connection')
+  swarm1.leave(key)
+  swarm1.destroy()
+  const [ socket, info ] = await once(swarm2, 'disconnection')
+  is(validSocket(socket), true)
+  is(info.peer, peer)
+  is(info.client, true)
+  swarm2.leave(key)
+  swarm2.destroy()
+  closeDht()
+})
+
+test('emits disconnection event upon being disconnected from by a peer', async ({ is }) => {
+  const { bootstrap, closeDht } = await dhtBootstrap()
+  const swarm1 = hyperswarm({ bootstrap })
+  const swarm2 = hyperswarm({ bootstrap })
+  const key = randomBytes(32)
+  swarm1.join(key, {
+    announce: true,
+    lookup: false
+  })
+  await once(swarm1, 'listening')
+  swarm2.join(key, {
+    announce: false,
+    lookup: true
+  })
+  await once(swarm2, 'listening')
+  await once(swarm1, 'connection')
+  await once(swarm2, 'connection')
+  swarm2.leave(key)
+  swarm2.destroy()
+  await once(swarm2, 'close')
+  const [ socket, info ] = await once(swarm1, 'disconnection')
+  is(validSocket(socket), true)
+  is(info.peer, null)
+  is(info.client, false)
+  swarm1.leave(key)
+  swarm1.destroy()
+  closeDht()
+})
+
+test('connects up to a maximum amount of client sockets (maxClientSockets default)', async ({ is, fail }) => {
   const { bootstrap, closeDht } = await dhtBootstrap()
   const swarm = hyperswarm({ bootstrap })
   const key = randomBytes(32)
@@ -492,7 +570,7 @@ test('connects up to a maximum amount of peers', async ({ is, fail }) => {
   closeDht()
 })
 
-test('maxClientSockets option controls maximum amount of peers that can be connected to', async ({ is, fail }) => {
+test('maxClientSockets option controls maximum amount of client sockets', async ({ is, fail }) => {
   const { bootstrap, closeDht } = await dhtBootstrap()
   const swarm = hyperswarm({ bootstrap, maxClientSockets: 9 })
   const key = randomBytes(32)
@@ -542,7 +620,7 @@ test('maxClientSockets option controls maximum amount of peers that can be conne
   closeDht()
 })
 
-test('maxServerSockets option controls maximum incoming peers connections', async ({ is, fail }) => {
+test('maxServerSockets option controls maximum incoming sockets', async ({ is, fail }) => {
   const { bootstrap, closeDht } = await dhtBootstrap()
   const swarm = hyperswarm({ bootstrap, maxServerSockets: 9 })
   const key = randomBytes(32)
@@ -583,16 +661,395 @@ test('maxServerSockets option controls maximum incoming peers connections', asyn
   closeDht()
 })
 
-test('maxClientSockets defaults to 16', async ({ is }) => {
-  const swarm = hyperswarm()
-  const { maxClientSockets } = swarm
-  is(maxClientSockets, 16)
+test('allows a maximum amount of peers (maxPeers option - client sockets)', async ({ is, fail }) => {
+  const { bootstrap, closeDht } = await dhtBootstrap()
+  const swarm = hyperswarm({
+    bootstrap,
+    maxClientSockets: 32 // increase client socket beyond max peers count
+  })
+  const key = randomBytes(32)
+  const swarms = []
+  const { maxPeers } = swarm // default amount of maxPeers is 24
+  for (var i = 0; i < maxPeers; i++) {
+    const s = hyperswarm({ bootstrap })
+    swarms.push(s)
+    s.join(key, {
+      announce: true,
+      lookup: false
+    })
+    await once(s, 'listening')
+  }
+
+  swarm.join(key, {
+    announce: false,
+    lookup: true
+  })
+  is(swarm.peers, 0)
+  await once(swarm, 'listening')
+  for (var c = 0; c < maxPeers; c++) {
+    await once(swarm, 'connection')
+  }
+  is(swarm.peers, maxPeers)
+
+  const swarm2 = hyperswarm({ bootstrap })
+  swarm2.join(key, {
+    announce: true,
+    lookup: false
+  })
+  await once(swarm2, 'listening')
+  swarm.once('connection', () => {
+    fail('connection should not be emitted after max peers is reached')
+  })
+  await timeout(200) // allow time for a potential connection event
+  is(swarm.peers, maxPeers)
+  swarm2.destroy()
+  swarm.leave(key)
   swarm.destroy()
+  for (const s of swarms) {
+    s.leave(key)
+    s.destroy()
+  }
+  closeDht()
 })
 
-test('maxServerSockets defaults to Infinity', async ({ is }) => {
-  const swarm = hyperswarm()
-  const { maxServerSockets } = swarm
-  is(maxServerSockets, Infinity)
+test('allows a maximum amount of peers (maxPeers option - server sockets)', async ({ is, fail }) => {
+  const { bootstrap, closeDht } = await dhtBootstrap()
+  const swarm = hyperswarm({ bootstrap })
+  const key = randomBytes(32)
+  swarm.join(key, {
+    announce: true,
+    lookup: false
+  })
+  const swarms = []
+  await once(swarm, 'listening')
+  const { maxPeers } = swarm
+  for (var i = 0; i < maxPeers; i++) {
+    const s = hyperswarm({ bootstrap })
+    swarms.push(s)
+    s.join(key, {
+      announce: false,
+      lookup: true
+    })
+    await once(s, 'listening')
+    await once(swarm, 'connection')
+  }
+
+  const swarm2 = hyperswarm({ bootstrap })
+  swarm2.join(key, {
+    announce: false,
+    lookup: true
+  })
+  await once(swarm2, 'listening')
+  swarm.once('connection', () => fail('connection should not be emitted after max peers is reached'))
+  await timeout(150) // allow time for a potential connection event
+  swarm2.destroy()
+  swarm.leave(key)
   swarm.destroy()
+  for (const s of swarms) {
+    s.leave(key)
+    s.destroy()
+  }
+  closeDht()
+})
+
+test('allows a maximum amount of peers (maxPeers option - client sockets and server sockets)', async ({ is, fail }) => {
+  const { bootstrap, closeDht } = await dhtBootstrap()
+  const swarm = hyperswarm({
+    bootstrap
+  })
+  const key = randomBytes(32)
+  const swarms = []
+  const { maxPeers } = swarm // default amount of maxPeers is 24
+  const clientPeers = maxPeers / 2
+  const lookupPeers = maxPeers / 2
+  for (var i = 0; i < clientPeers; i++) {
+    const s = hyperswarm({ bootstrap })
+    swarms.push(s)
+    s.join(key, {
+      announce: true,
+      lookup: false
+    })
+    await once(s, 'listening')
+  }
+
+  swarm.join(key, {
+    announce: true,
+    lookup: true
+  })
+  is(swarm.peers, 0)
+  await once(swarm, 'listening')
+  for (var c = 0; c < clientPeers; c++) {
+    await once(swarm, 'connection')
+  }
+
+  is(swarm.peers, clientPeers)
+
+  for (var n = 0; n < lookupPeers; n++) {
+    const s = hyperswarm({ bootstrap })
+    swarms.push(s)
+    s.join(key, {
+      announce: false,
+      lookup: true
+    })
+    await once(s, 'listening')
+    await once(swarm, 'connection')
+  }
+  is(swarm.peers, maxPeers)
+  const swarm2 = hyperswarm({ bootstrap })
+  swarm2.join(key, {
+    announce: true,
+    lookup: false
+  })
+  await once(swarm2, 'listening')
+  swarm.once('connection', () => {
+    fail('connection should not be emitted after max peers is reached')
+  })
+  await timeout(200) // allow time for a potential connection event
+  is(swarm.peers, maxPeers)
+  swarm2.destroy()
+  swarm.leave(key)
+  swarm.destroy()
+  for (const s of swarms) {
+    s.leave(key)
+    s.destroy()
+  }
+  closeDht()
+})
+
+test('maxPeers option sets the maximum amount of peers that a swarm can connect to be or be connected to', async ({ is, fail }) => {
+  const { bootstrap, closeDht } = await dhtBootstrap()
+  const swarm = hyperswarm({
+    bootstrap,
+    maxPeers: 8
+  })
+  const key = randomBytes(32)
+  const swarms = []
+  const { maxPeers } = swarm
+  is(maxPeers, 8)
+  const announcingPeers = maxPeers / 2
+  const lookupPeers = maxPeers / 2
+  for (var i = 0; i < announcingPeers; i++) {
+    const s = hyperswarm({ bootstrap })
+    swarms.push(s)
+    s.join(key, {
+      announce: true,
+      lookup: false
+    })
+    await once(s, 'listening')
+  }
+
+  swarm.join(key, {
+    announce: true,
+    lookup: true
+  })
+  is(swarm.peers, 0)
+  await once(swarm, 'listening')
+  for (var c = 0; c < announcingPeers; c++) {
+    await once(swarm, 'connection')
+  }
+
+  is(swarm.peers, announcingPeers)
+
+  for (var n = 0; n < lookupPeers; n++) {
+    const s = hyperswarm({ bootstrap })
+    swarms.push(s)
+    s.join(key, {
+      announce: false,
+      lookup: true
+    })
+    await once(s, 'listening')
+    await once(swarm, 'connection')
+  }
+  is(swarm.peers, maxPeers)
+  const swarm2 = hyperswarm({ bootstrap })
+  swarm2.join(key, {
+    announce: true,
+    lookup: false
+  })
+  await once(swarm2, 'listening')
+  swarm.once('connection', () => {
+    fail('connection should not be emitted after max peers is reached')
+  })
+  await timeout(200) // allow time for a potential connection event
+  is(swarm.peers, maxPeers)
+  swarm2.destroy()
+  swarm.leave(key)
+  swarm.destroy()
+  for (const s of swarms) {
+    s.leave(key)
+    s.destroy()
+  }
+  closeDht()
+})
+
+test('after maxPeers is exceeded, new peers can connect once existing peers have disconnected and peer count is below threshhold again', async ({ is, fail }) => {
+  const { bootstrap, closeDht } = await dhtBootstrap()
+  const swarm = hyperswarm({
+    bootstrap,
+    maxPeers: 8
+  })
+
+  const key = randomBytes(32)
+  const swarms = []
+  const { maxPeers } = swarm
+  is(maxPeers, 8)
+  const announcingPeers = maxPeers / 2
+  const lookupPeers = maxPeers / 2
+  for (var i = 0; i < announcingPeers; i++) {
+    const s = hyperswarm({ bootstrap })
+    swarms.push(s)
+    s.join(key, {
+      announce: true,
+      lookup: false
+    })
+    await once(s, 'listening')
+  }
+
+  swarm.join(key, {
+    announce: true,
+    lookup: true
+  })
+  is(swarm.peers, 0)
+  await once(swarm, 'listening')
+  for (var c = 0; c < announcingPeers; c++) {
+    await once(swarm, 'connection')
+  }
+
+  is(swarm.peers, announcingPeers)
+
+  for (var n = 0; n < lookupPeers; n++) {
+    const s = hyperswarm({ bootstrap })
+    swarms.push(s)
+    s.join(key, {
+      announce: false,
+      lookup: true
+    })
+    await once(s, 'listening')
+    await once(swarm, 'connection')
+  }
+  is(swarm.peers, maxPeers)
+  swarms[0].destroy()
+  await once(swarms[0], 'close')
+  await once(swarm, 'disconnection')
+  is(swarm.peers, maxPeers - 1)
+  const swarm2 = hyperswarm({ bootstrap })
+  swarm2.join(key, {
+    announce: false,
+    lookup: true
+  })
+  await once(swarm2, 'listening')
+  await once(swarm, 'connection')
+
+  is(swarm.peers, maxPeers)
+
+  swarm2.destroy()
+  swarm.leave(key)
+  swarm.destroy()
+  for (const s of swarms) {
+    s.leave(key)
+    s.destroy()
+  }
+  closeDht()
+})
+
+test('after maxClientSockets is exceeded, client sockets can connect to peers after client socket count is below threshhold again', async ({ is, fail }) => {
+  const { bootstrap, closeDht } = await dhtBootstrap()
+  const swarm = hyperswarm({
+    bootstrap,
+    maxClientSockets: 8
+  })
+
+  const key = randomBytes(32)
+  const swarms = []
+  const { maxClientSockets } = swarm
+  is(maxClientSockets, 8)
+  for (var i = 0; i < maxClientSockets + 1; i++) {
+    const s = hyperswarm({ bootstrap })
+    swarms.push(s)
+    s.join(key, {
+      announce: true,
+      lookup: false
+    })
+    await once(s, 'listening')
+  }
+
+  swarm.join(key, {
+    announce: false,
+    lookup: true
+  })
+  is(swarm.clientSockets, 0)
+  await once(swarm, 'listening')
+  for (var c = 0; c < maxClientSockets; c++) {
+    await once(swarm, 'connection')
+  }
+  is(swarm.clientSockets, maxClientSockets)
+  const peer = swarms.shift()
+  peer.destroy()
+  await once(peer, 'close')
+  await once(swarm, 'disconnection')
+  is(swarm.clientSockets, maxClientSockets - 1)
+  // should automatically connect to the extra announcing peer
+  await once(swarm, 'connection')
+
+  is(swarm.clientSockets, maxClientSockets)
+
+  swarm.leave(key)
+  swarm.destroy()
+  for (const s of swarms) {
+    s.leave(key)
+    s.destroy()
+  }
+  closeDht()
+})
+
+test('after maxServerSockets is exceeded, new incoming sockets are refused until server socket count is below threshhold again', async ({ is, fail }) => {
+  const { bootstrap, closeDht } = await dhtBootstrap()
+  const swarm = hyperswarm({
+    bootstrap,
+    maxServerSockets: 8
+  })
+
+  const key = randomBytes(32)
+  const swarms = []
+  const { maxServerSockets } = swarm
+  is(maxServerSockets, 8)
+  swarm.join(key, {
+    announce: true,
+    lookup: false
+  })
+  is(swarm.serverSockets, 0)
+  await once(swarm, 'listening')
+  for (var n = 0; n < maxServerSockets; n++) {
+    const s = hyperswarm({ bootstrap })
+    swarms.push(s)
+    s.join(key, {
+      announce: false,
+      lookup: true
+    })
+    await once(s, 'listening')
+    await once(swarm, 'connection')
+  }
+  is(swarm.serverSockets, maxServerSockets)
+  swarms[0].destroy()
+  await once(swarms[0], 'close')
+  await once(swarm, 'disconnection')
+  is(swarm.peers, maxServerSockets - 1)
+  const swarm2 = hyperswarm({ bootstrap })
+  swarm2.join(key, {
+    announce: false,
+    lookup: true
+  })
+  await once(swarm2, 'listening')
+  await once(swarm, 'connection')
+
+  is(swarm.serverSockets, maxServerSockets)
+
+  swarm2.destroy()
+  swarm.leave(key)
+  swarm.destroy()
+  for (const s of swarms) {
+    s.leave(key)
+    s.destroy()
+  }
+  closeDht()
 })
