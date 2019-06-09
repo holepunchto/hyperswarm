@@ -61,6 +61,8 @@ function validSocket (s) {
   if (!s) return false
   return (s instanceof net.Socket) || (s._utp && s._utp instanceof UTP)
 }
+validSocket.TCP = net.Socket
+validSocket.UTP = UTP
 
 module.exports = {
   done,
