@@ -2,7 +2,7 @@
 const { PassThrough } = require('stream')
 const peerInfo = require('../lib/peer-info')
 const { test } = require('tap')
-const { once } = require('./util')
+const { once } = require('nonsynchronous')
 
 test('default state', async ({ is }) => {
   const info = peerInfo()

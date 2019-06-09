@@ -1,6 +1,6 @@
 'use strict'
 const { test } = require('tap')
-const { done, whenifyMethod, promisifyMethod } = require('./util')
+const { done, whenifyMethod, promisifyMethod } = require('nonsynchronous')
 const hyperswarm = require('../')
 
 test('when unable to bind', async ({ is }) => {
