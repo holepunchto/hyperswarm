@@ -1,7 +1,7 @@
 'use strict'
 const { randomBytes } = require('crypto')
 const { test } = require('tap')
-const { once, promisifyMethod } = require('./util')
+const { once, promisifyMethod } = require('nonsynchronous')
 const hyperswarm = require('../')
 
 test('listening and destroy', async ({ pass, is }) => {

@@ -1,6 +1,6 @@
 'use strict'
 const { test } = require('tap')
-const { whenify, immediate, timeout, done, count } = require('./util')
+const { whenify, immediate, timeout, done, count } = require('nonsynchronous')
 const bulkTimer = require('../lib/bulk-timer')
 
 test('bulk timer queue', async ({ is, same }) => {

@@ -2,7 +2,8 @@
 const { EventEmitter } = require('events')
 const { randomBytes } = require('crypto')
 const { test } = require('tap')
-const { once, dhtBootstrap, timeout } = require('./util')
+const { once, timeout } = require('nonsynchronous')
+const { dhtBootstrap } = require('./util')
 const hyperswarm = require('../swarm')
 const net = require('net')
 

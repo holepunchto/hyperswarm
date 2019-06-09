@@ -1,7 +1,8 @@
 'use strict'
 const { randomBytes } = require('crypto')
 const { test } = require('tap')
-const { once, dhtBootstrap, timeout } = require('./util')
+const { once, timeout } = require('nonsynchronous')
+const { dhtBootstrap } = require('./util')
 const hyperswarm = require('../swarm')
 
 test('connects up to a maximum amount of client sockets (maxClientSockets default)', async ({ is, fail }) => {

@@ -1,6 +1,6 @@
 'use strict'
 const { test } = require('tap')
-const { once, when, immediate, timeout } = require('./util')
+const { once, when, immediate, timeout } = require('nonsynchronous')
 const { PassThrough } = require('stream')
 const queue = require('../lib/queue')
 
