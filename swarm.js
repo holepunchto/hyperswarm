@@ -98,7 +98,7 @@ class Swarm extends EventEmitter {
       if (!info) return
       this.clientSockets += 1
       this[kIncrPeerCount]()
-      this.network.connect(info.peer, onConnect(info))
+      this.connect(info.peer, onConnect(info))
     }
     return drain
   }
@@ -114,8 +114,13 @@ class Swarm extends EventEmitter {
     this.peers -= 1
     if (this.open) return
     this.open = this.peers < this.maxPeers
-    this.network.tcp.maxConnections = this.maxServerSockets
-    this.network.utp.maxConnections = this.maxServerSockets
+    // note: defensive conditional, to the best of knowledge
+    // and after some investigation, else branch should never happen
+    /* istanbul ignore else */
+    if (this.open === true) {
+      this.network.tcp.maxConnections = this.maxServerSockets
+      this.network.utp.maxConnections = this.maxServerSockets
+    }
   }
   address () {
     if (this.destroyed) throw Error(ERR_DESTROYED)
