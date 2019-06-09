@@ -5,7 +5,7 @@
   "main": "swarm.js",
   "dependencies": {
     "@hyperswarm/discovery": "^1.1.0",
-    "@hyperswarm/guts": "0.0.0",
+    "@hyperswarm/guts": "1.0.0",
     "shuffled-priority-queue": "^2.1.0",
     "utp-native": "^2.1.3"
   },
