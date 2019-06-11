@@ -5,6 +5,13 @@ const { once, timeout } = require('nonsynchronous')
 const { dhtBootstrap } = require('./util')
 const hyperswarm = require('../swarm')
 
+test('maxPeers defaults to 24', async ({ is }) => {
+  const swarm = hyperswarm()
+  const { maxPeers } = swarm
+  is(maxPeers, 24)
+  swarm.destroy()
+})
+
 test('allows a maximum amount of peers (maxPeers option - client sockets)', async ({ is, fail }) => {
   const { bootstrap, closeDht } = await dhtBootstrap()
   const swarm = hyperswarm({

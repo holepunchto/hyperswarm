@@ -5,7 +5,7 @@ const { EventEmitter } = require('events')
 const guts = require('@hyperswarm/guts')
 
 const MAX_SERVER_SOCKETS = Infinity
-const MAX_CLIENT_SOCKETS = 16
+const MAX_CLIENT_SOCKETS = Infinity
 const MAX_PEERS = 24
 
 const ERR_DESTROYED = 'swarm has been destroyed'
