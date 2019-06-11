@@ -7,6 +7,13 @@ const { dhtBootstrap } = require('./util')
 const hyperswarm = require('../swarm')
 const net = require('net')
 
+test('maxServerSockets defaults to Infinity', async ({ is }) => {
+  const swarm = hyperswarm()
+  const { maxServerSockets } = swarm
+  is(maxServerSockets, Infinity)
+  swarm.destroy()
+})
+
 test('maxServerSockets option controls maximum incoming sockets', async ({ is, fail }) => {
   const { bootstrap, closeDht } = await dhtBootstrap()
   const swarm = hyperswarm({ bootstrap, maxServerSockets: 9 })

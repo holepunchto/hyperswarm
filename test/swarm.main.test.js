@@ -17,27 +17,6 @@ test('default ephemerality', async ({ is }) => {
   swarm.destroy()
 })
 
-test('maxClientSockets defaults to 16', async ({ is }) => {
-  const swarm = hyperswarm()
-  const { maxClientSockets } = swarm
-  is(maxClientSockets, 16)
-  swarm.destroy()
-})
-
-test('maxServerSockets defaults to Infinity', async ({ is }) => {
-  const swarm = hyperswarm()
-  const { maxServerSockets } = swarm
-  is(maxServerSockets, Infinity)
-  swarm.destroy()
-})
-
-test('maxPeers defaults to 24', async ({ is }) => {
-  const swarm = hyperswarm()
-  const { maxPeers } = swarm
-  is(maxPeers, 24)
-  swarm.destroy()
-})
-
 test('destroyed property', async ({ is }) => {
   const swarm = hyperswarm()
   swarm.listen()

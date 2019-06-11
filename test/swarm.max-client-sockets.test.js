@@ -5,52 +5,11 @@ const { once, timeout } = require('nonsynchronous')
 const { dhtBootstrap } = require('./util')
 const hyperswarm = require('../swarm')
 
-test('connects up to a maximum amount of client sockets (maxClientSockets default)', async ({ is, fail }) => {
-  const { bootstrap, closeDht } = await dhtBootstrap()
-  const swarm = hyperswarm({ bootstrap })
-  const key = randomBytes(32)
-  const swarms = []
-  const { maxClientSockets } = swarm // default amount of maxClientSockets is 16
-  for (var i = 0; i < maxClientSockets; i++) {
-    const s = hyperswarm({ bootstrap })
-    swarms.push(s)
-    s.join(key, {
-      announce: true,
-      lookup: false
-    })
-    await once(s, 'listening')
-  }
-
-  swarm.join(key, {
-    announce: false,
-    lookup: true
-  })
-  is(swarm.clientSockets, 0)
-  await once(swarm, 'listening')
-  for (var c = 0; c < maxClientSockets; c++) {
-    await once(swarm, 'connection')
-  }
-  is(swarm.clientSockets, maxClientSockets)
-
-  const swarm2 = hyperswarm({ bootstrap })
-  swarm2.join(key, {
-    announce: true,
-    lookup: false
-  })
-  await once(swarm2, 'listening')
-  swarm.once('connection', () => {
-    fail('connection should not be emitted after max peers is reached')
-  })
-  await timeout(200) // allow time for a potential connection event
-  is(swarm.clientSockets, maxClientSockets)
-  swarm2.destroy()
-  swarm.leave(key)
+test('maxClientSockets defaults to Infinity', async ({ is }) => {
+  const swarm = hyperswarm()
+  const { maxClientSockets } = swarm
+  is(maxClientSockets, Infinity)
   swarm.destroy()
-  for (const s of swarms) {
-    s.leave(key)
-    s.destroy()
-  }
-  closeDht()
 })
 
 test('maxClientSockets option controls maximum amount of client sockets', async ({ is, fail }) => {
