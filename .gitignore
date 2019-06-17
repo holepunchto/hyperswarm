@@ -1,2 +1,6 @@
 node_modules
 sandbox.js
+sandbox
+.nyc_output
+coverage
+*.0x
