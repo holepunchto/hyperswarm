@@ -151,4 +151,4 @@ A new peer has been discovered on the network and has been queued for connection
 
 #### `swarm.on('updated', ({ key }) => {})`
 
-Emitted once a discovery cycle for a particular topic completed. The topic can be identified by the `key` property of the emitted object. After this event the peer will wait for period of between 5 and 10 minutes before looking for new peers on that topic again.
+Emitted once a discovery cycle for a particular topic has completed. The topic can be identified by the `key` property of the emitted object. After this event the peer will wait for period of between 5 and 10 minutes before looking for new peers on that topic again.
