@@ -1,30 +1,30 @@
-# @hyperswarm/network
+# hyperswarm
 
 A high-level API for finding and connecting to peers who are interested in a "topic."
 
 ```
-npm install @hyperswarm/network
+npm install hyperswarm
 ```
 
 ## Usage
 
 ```js
-const network = require('@hyperswarm/network')
+const hyperswarm = require('hyperswarm')
 const crypto = require('crypto')
 
-const net = network()
+const swarm = hyperswarm()
 
 // look for peers listed under this topic
 const topic = crypto.createHash('sha256')
   .update('my-hyperswarm-topic')
   .digest()
 
-net.join(topic, {
+swarm.join(topic, {
   lookup: true, // find & connect to peers
   announce: true // optional- announce self as a connection target
 })
 
-net.on('connection', (socket, details) => {
+swarm.on('connection', (socket, details) => {
   console.log('new connection!', details)
 
   // you can now use the socket as a stream, eg:
@@ -34,7 +34,7 @@ net.on('connection', (socket, details) => {
 
 ## API
 
-#### `net = network([options])`
+#### `swarm = hyperswarm([options])`
 
 Create a new network instance
 
@@ -48,12 +48,40 @@ Options include:
   // When running in ephemeral mode (default) you don't join the
   // DHT but just query it instead.
   ephemeral: true,
-  // Pass in your own udp/utp socket
-  socket: (a udp or utp socket)
+  // total amount of peers that this peer will connect to
+  maxPeers: 24,
+  // set to a number to restrict the amount of server socket
+  // based peer connections, unrestricted by default.
+  // setting to 0 is the same as Infinity, to disallowe server
+  // connections set to -1
+  maxServerSockets: Infinity,
+  // set to a number to restrict the amount of client sockets
+  // based peer connections, unrestricted by default.
+  maxClientSockets: Infinity,
+  // configure peer management behaviour 
+  queue = {
+    // an array of backoff times, in millieconds
+    // every time a failing peer connection is retried
+    // it will wait for specified milliseconds based on the
+    // retry count, until it reaches the end of the requeue
+    // array at which time the peer is considered unresponsive
+    // and retry attempts cease
+    requeue = [ 1000, 5000, 15000 ],
+    // configure when to forget certain peer characteristics
+    // and treat them as fresh peer connections again
+    forget = {
+      // how long to wait before forgetting that a peer
+      // has become unresponsive
+      unresponsive: 7500,
+      // how long to wait before fogetting that a peer 
+      // has been banned
+      banned: Infinity
+    }
+  }
 }
 ```
 
-#### `net.join(topic[, options])`
+#### `swarm.join(topic[, options])`
 
 Join the swarm for the given topic. This will cause peers to be discovered for the topic (`'peer'` event). Connections will automatically be created to those peers (`'connection'` event).
 
@@ -70,13 +98,13 @@ Parameters:
    - `announce`. Boolean. List this peer under the the topic as a connectable target? Defaults to false.
    - `lookup`. Boolean. Look for peers in the topic and attempt to connect to them? If `announce` is false, this automatically becomes true.
 
-#### `net.leave(topic)`
+#### `swarm.leave(topic)`
 
 Leave the swarm for the given topic.
 
  - `topic`. Buffer. The identifier of the peer-group to delist from. Must be 32 bytes in length.
 
-#### `net.connect(peer, (err, socket, details) => {})`
+#### `swarm.connect(peer, (err, socket, details) => {})`
 
 Establish a connection to the given peer. You usually won't need to use this function, because hyperswarm connects to found peers automatically.
 
@@ -89,7 +117,7 @@ Establish a connection to the given peer. You usually won't need to use this fun
      - `client`. Boolean. If true, the connection was initiated by this node.
      - `peer`. Object describing the peer. (Will be the same object that was passed into this method.)
 
-#### `net.on('connection', (socket, details) => {})`
+#### `swarm.on('connection', (socket, details) => {})`
 
 A new connection has been created. You should handle this event by using the socket.
 
@@ -107,7 +135,7 @@ A new connection has been created. You should handle this event by using the soc
        - `id`. Buffer.
      - `topic`. Buffer. The identifier which this peer was discovered under.
 
-#### `net.on('peer', (peer) => {})`
+#### `swarm.on('peer', (peer) => {})`
 
 A new peer has been discovered on the network and has been queued for connection.
 
@@ -121,6 +149,6 @@ A new peer has been discovered on the network and has been queued for connection
      - `id`. Buffer.
    - `topic`. Buffer. The identifier which this peer was discovered under.
 
-#### `net.on('update', () => {})`
+#### `swarm.on('updated', ({ key }) => {})`
 
-TODO describe this
+Emitted once a discovery cycle for a particular topic has completed. The topic can be identified by the `key` property of the emitted object. After this event the peer will wait for period of between 5 and 10 minutes before looking for new peers on that topic again.

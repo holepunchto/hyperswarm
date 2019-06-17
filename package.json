@@ -1,7 +1,7 @@
 {
-  "name": "@hyperswarm/network",
+  "name": "hyperswarm",
   "version": "0.0.4",
-  "description": "The Hyperswarm network stack",
+  "description": "A distributed networking stack for connecting peers",
   "main": "swarm.js",
   "dependencies": {
     "@hyperswarm/discovery": "^1.1.0",
@@ -22,12 +22,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/hyperswarm/network.git"
+    "url": "https://github.com/hyperswarm/hyperswarm.git"
   },
   "author": "Mathias Buus (@mafintosh)",
+  "contributors": [
+    "David Mark Clements (@davidmarkclem)"
+  ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/hyperswarm/network/issues"
+    "url": "https://github.com/hyperswarm/hyperswarm/issues"
   },
-  "homepage": "https://github.com/hyperswarm/network"
+  "homepage": "https://github.com/hyperswarm/hyperswarm"
 }
