@@ -16,6 +16,7 @@ const kDrain = Symbol('hyperswarm.drain')
 const kIncrPeerCount = Symbol('hyperswarm.incrPeerCount')
 const kDecrPeerCount = Symbol('hyperswarm.decrPeerCount')
 const kQueue = Symbol('hyperswarm.queue')
+const kLeave = Symbol('hyperswarm.leave')
 
 module.exports = opts => new Swarm(opts)
 
@@ -143,7 +144,7 @@ class Swarm extends EventEmitter {
         this.emit('error', err)
         return
       }
-      this.leave(key)
+      this[kLeave](key)
       const topic = announce
         ? network.announce(key, { lookup })
         : network.lookup(key)
@@ -160,23 +161,28 @@ class Swarm extends EventEmitter {
   leave (key) {
     if (Buffer.isBuffer(key) === false) throw Error(ERR_MISSING_KEY)
     if (this.destroyed) return
-    const { network } = this
 
-    network.bind((err) => {
+    this.network.bind((err) => {
       if (err) return // don't emit this, as we are leaving anyway
-
-      const domain = network.discovery._domain(key)
-      const topics = network.discovery._domains.get(domain)
-      if (!topics) return
-
-      for (const topic of topics) {
-        if (Buffer.compare(key, topic.key) === 0) {
-          topic.destroy()
-          break
-        }
-      }
+      this[kLeave](key)
     })
   }
+
+  [kLeave] (key) {
+    const { network } = this
+
+    const domain = network.discovery._domain(key)
+    const topics = network.discovery._domains.get(domain)
+    if (!topics) return
+
+    for (const topic of topics) {
+      if (Buffer.compare(key, topic.key) === 0) {
+        topic.destroy()
+        break
+      }
+    }
+  }
+
   connect (peer, cb) {
     if (this.destroyed) throw Error(ERR_DESTROYED)
     this.network.connect(peer, cb)
