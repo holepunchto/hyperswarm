@@ -143,7 +143,7 @@ test('join - emits update event when topic updates', async ({ pass }) => {
   swarm.join(key)
   await once(swarm, 'listening')
   process.nextTick(() => topic.emit('update'))
-  await once(swarm, 'update')
+  await once(swarm, 'updated')
   pass('event emitted')
   swarm.destroy()
 })
@@ -219,8 +219,8 @@ test('leave - missing key', async ({ throws }) => {
 
 test('leave destroys the topic for a given pre-existing key', async ({ is }) => {
   const swarm = hyperswarm()
-  const key = Buffer.concat([Buffer.alloc(20), Buffer.from('key1')])
-  const key2 = Buffer.concat([Buffer.alloc(20), Buffer.from('key2')])
+  const key = Buffer.concat([Buffer.alloc(28), Buffer.from('key1')])
+  const key2 = Buffer.concat([Buffer.alloc(28), Buffer.from('key2')])
   const { lookup } = swarm.network
   var topicDestroyed = false
   var topic = null
@@ -236,6 +236,7 @@ test('leave destroys the topic for a given pre-existing key', async ({ is }) => 
     return destroy.call(topic)
   }
   swarm.leave(key)
+  await once(swarm, 'leave')
   is(topicDestroyed, true)
   swarm.destroy()
 })

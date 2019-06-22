@@ -156,6 +156,7 @@ class Swarm extends EventEmitter {
           this[kQueue].add(peer)
         })
       }
+      this.emit('join', key, opts)
     })
   }
   leave (key) {
@@ -165,6 +166,7 @@ class Swarm extends EventEmitter {
     this.network.bind((err) => {
       if (err) return // don't emit this, as we are leaving anyway
       this[kLeave](key)
+      this.emit('leave', key)
     })
   }
 

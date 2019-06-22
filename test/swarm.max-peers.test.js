@@ -90,8 +90,10 @@ test('allows a maximum amount of peers (maxPeers option - server sockets)', asyn
       announce: false,
       lookup: true
     })
-    await once(s, 'listening')
-    await once(swarm, 'connection')
+    await Promise.all([
+      once(s, 'listening'),
+      once(swarm, 'connection')
+    ])
   }
   is(swarm.peers, maxPeers)
   is(swarm.open, false)
@@ -157,8 +159,10 @@ test('allows a maximum amount of peers (maxPeers option - client sockets and ser
       announce: false,
       lookup: true
     })
-    await once(s, 'listening')
-    await once(swarm, 'connection')
+    await Promise.all([
+      await once(s, 'listening'),
+      await once(swarm, 'connection')
+    ])
   }
 
   is(swarm.peers, maxPeers)
@@ -231,8 +235,10 @@ test('maxPeers option sets the maximum amount of peers that a swarm can connect 
       announce: false,
       lookup: true
     })
-    await once(s, 'listening')
-    await once(swarm, 'connection')
+    await Promise.all([
+      once(s, 'listening'),
+      once(swarm, 'connection')
+    ])
   }
   is(swarm.peers, maxPeers)
   is(swarm.open, false)
@@ -305,23 +311,30 @@ test('after maxPeers is exceeded, new peers can connect once existing peers have
       announce: false,
       lookup: true
     })
-    await once(s, 'listening')
-    await once(swarm, 'connection')
+    await Promise.all([
+      once(s, 'listening'),
+      once(swarm, 'connection')
+    ])
   }
   is(swarm.peers, maxPeers)
   is(swarm.open, false)
 
   swarms[0].destroy()
-  await once(swarms[0], 'close')
-  await once(swarm, 'disconnection')
+  await Promise.all([
+    once(swarms[0], 'close'),
+    once(swarm, 'disconnection')
+  ])
+
   is(swarm.peers, maxPeers - 1)
   const swarm2 = hyperswarm({ bootstrap })
   swarm2.join(key, {
     announce: false,
     lookup: true
   })
-  await once(swarm2, 'listening')
-  await once(swarm, 'connection')
+  await Promise.all([
+    once(swarm2, 'listening'),
+    once(swarm, 'connection')
+  ])
 
   is(swarm.peers, maxPeers)
   is(swarm.open, false)
