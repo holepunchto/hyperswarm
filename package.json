@@ -18,7 +18,8 @@
   },
   "scripts": {
     "test": "tap -j 1 -R classic test/*.test.js && standard --fix",
-    "cov": "tap -j 1 -R classic --coverage-report=html test/*.test.js"
+    "cov": "tap -j 1 -R classic --coverage-report=html test/*.test.js",
+    "ci": "standard && npm test"
   },
   "repository": {
     "type": "git",
