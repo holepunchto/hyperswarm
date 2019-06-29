@@ -14,7 +14,7 @@
     "events.once": "^2.0.2",
     "nonsynchronous": "^1.0.0",
     "standard": "^12.0.1",
-    "tap": "^14.1.11"
+    "tap": "^14.3.1"
   },
   "scripts": {
     "test": "tap -j 1 -R classic test/*.test.js && standard --fix",
