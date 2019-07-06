@@ -117,7 +117,7 @@ test('maxServerSockets is actually a soft limit, the absolute hard limit is doub
     peer.referrer = {}
     return add.call(this, peer)
   }
-  delete require.cache[require.resolve('@hyperswarm/guts')]
+  delete require.cache[require.resolve('@hyperswarm/network')]
   const { connect } = net
   net.connect = () => {
     // zombie client socket so that utp always wins
@@ -178,7 +178,7 @@ test('maxServerSockets is actually a soft limit, the absolute hard limit is doub
 
   delete require.cache[require.resolve('../lib/queue')]
   delete require.cache[require.resolve('..')]
-  delete require.cache[require.resolve('@hyperswarm/guts')]
+  delete require.cache[require.resolve('@hyperswarm/network')]
   net.connect = connect
   hyperswarm = require('../swarm')
 

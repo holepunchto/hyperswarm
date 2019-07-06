@@ -1,7 +1,7 @@
 'use strict'
 const { EventEmitter } = require('events')
 const { randomBytes } = require('crypto')
-const { NetworkResource } = require('@hyperswarm/guts')
+const { NetworkResource } = require('@hyperswarm/network')
 const { test } = require('tap')
 const { once, done, promisifyMethod, whenifyMethod } = require('nonsynchronous')
 const { dhtBootstrap, validSocket } = require('./util')

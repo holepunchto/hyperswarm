@@ -2,7 +2,7 @@
 const peerInfo = require('./lib/peer-info')
 const peerQueue = require('./lib/queue')
 const { EventEmitter } = require('events')
-const guts = require('@hyperswarm/guts')
+const network = require('@hyperswarm/network')
 
 const MAX_SERVER_SOCKETS = Infinity
 const MAX_CLIENT_SOCKETS = Infinity
@@ -32,7 +32,7 @@ class Swarm extends EventEmitter {
       queue = {}
     } = opts
 
-    const network = guts({
+    this.network = network({
       bootstrap,
       ephemeral,
       bind: () => this.emit('listening'),
@@ -51,8 +51,8 @@ class Swarm extends EventEmitter {
       close: () => this.emit('close')
     })
 
-    network.tcp.maxConnections = maxServerSockets
-    network.utp.maxConnections = maxServerSockets
+    this.network.tcp.maxConnections = maxServerSockets
+    this.network.utp.maxConnections = maxServerSockets
 
     this.destroyed = false
     this.clientSockets = 0
@@ -66,7 +66,6 @@ class Swarm extends EventEmitter {
     this.open = this.peers < this.maxPeers
     this.ephemeral = ephemeral !== false
 
-    this.network = network
     this[kQueue] = peerQueue(queue)
     this[kQueue].on('readable', this[kDrain](this[kQueue]))
   }
