@@ -149,6 +149,14 @@ A new peer has been discovered on the network and has been queued for connection
      - `id`. Buffer.
    - `topic`. Buffer. The identifier which this peer was discovered under.
 
-#### `swarm.on('updated', ({ key }) => {})`
+#### `swarm.on('updated', (key) => {})`
 
 Emitted once a discovery cycle for a particular topic has completed. The topic can be identified by the `key` property of the emitted object. After this event the peer will wait for period of between 5 and 10 minutes before looking for new peers on that topic again.
+
+#### `swarm.on('join', (key, opts) => {})`
+
+Once a topic has been sucessfully joined this event is emitted with the key for the joined topic and the options object that was passed to join for this particular key.
+
+#### `swarm.on('leave', (key) => {})`
+
+Emitted with the relevant topics key, when a topic has been succesfully left.
