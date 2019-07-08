@@ -148,7 +148,7 @@ class Swarm extends EventEmitter {
         ? network.announce(key, { lookup })
         : network.lookup(key)
 
-      topic.on('update', () => this.emit('updated', { key }))
+      topic.on('update', () => this.emit('updated', key))
       if (lookup) {
         topic.on('peer', (peer) => {
           this.emit('peer', peer)
