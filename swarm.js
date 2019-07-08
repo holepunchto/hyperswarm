@@ -163,7 +163,11 @@ class Swarm extends EventEmitter {
     if (this.destroyed) return
 
     this.network.bind((err) => {
-      if (err) return // don't emit this, as we are leaving anyway
+      if (err) {
+        // swallow any errors but don't emit, as we are leaving anyway
+        // don't return early unless discovery is unavailable
+      }
+      if (!this.network.discovery) return
       this[kLeave](key)
       this.emit('leave', key)
     })

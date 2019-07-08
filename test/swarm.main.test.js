@@ -82,7 +82,7 @@ test('join automatically binds', async ({ is }) => {
   const swarm = hyperswarm()
   var bind = false
   swarm.network.bind = () => (bind = true)
-  swarm.join(Buffer.from('key'))
+  swarm.join(randomBytes(32))
   is(bind, true)
   swarm.destroy()
 })
@@ -91,7 +91,7 @@ test('join – emits error event when failing to bind', async ({ is }) => {
   const swarm = hyperswarm()
   const fauxError = Error('problem binding')
   swarm.network.bind = (cb) => process.nextTick(cb, fauxError)
-  swarm.join(Buffer.from('key'))
+  swarm.join(randomBytes(32))
   const err = await once(swarm, 'error')
   is(err, fauxError)
   swarm.destroy()
@@ -100,7 +100,7 @@ test('join – emits error event when failing to bind', async ({ is }) => {
 test('join – default options', async ({ is }) => {
   const swarm = hyperswarm()
   var lookupKey = null
-  const key = Buffer.from('key')
+  const key = randomBytes(32)
   swarm.network.lookup = (key) => {
     lookupKey = key
     return new EventEmitter()
@@ -114,7 +114,7 @@ test('join – default options', async ({ is }) => {
 test('join - announce: false, lookup: true', async ({ is }) => {
   const swarm = hyperswarm()
   var lookupKey = null
-  const key = Buffer.from('key')
+  const key = randomBytes(32)
   swarm.network.lookup = (key) => {
     lookupKey = key
     return new EventEmitter()
@@ -127,7 +127,7 @@ test('join - announce: false, lookup: true', async ({ is }) => {
 
 test('join - announce: false, lookup: false', async ({ throws }) => {
   const swarm = hyperswarm()
-  const key = Buffer.from('key')
+  const key = randomBytes(32)
   throws(
     () => swarm.join(key, { announce: false, lookup: false }),
     Error('join options must enable lookup, announce or both, but not neither')
@@ -137,7 +137,7 @@ test('join - announce: false, lookup: false', async ({ throws }) => {
 
 test('join - emits update event when topic updates', async ({ pass }) => {
   const swarm = hyperswarm()
-  const key = Buffer.from('key')
+  const key = randomBytes(32)
   const topic = new EventEmitter()
   swarm.network.lookup = () => topic
   swarm.join(key)
@@ -150,7 +150,7 @@ test('join - emits update event when topic updates', async ({ pass }) => {
 
 test('join - emits peer event when topic recieves peer', async ({ pass, is }) => {
   const swarm = hyperswarm()
-  const key = Buffer.from('key')
+  const key = randomBytes(32)
   const topic = new EventEmitter()
   const fauxPeer = { port: 8080, host: '127.0.0.1', local: true, referrer: null, topic: key }
   swarm.network.lookup = () => topic
@@ -168,7 +168,7 @@ test('join - emits peer event when topic recieves peer', async ({ pass, is }) =>
 test('join - announce: true, lookup: false', async ({ is, fail }) => {
   const swarm = hyperswarm()
   var announceKey = null
-  const key = Buffer.from('key')
+  const key = randomBytes(32)
   const topic = new EventEmitter()
   const fauxPeer = { port: 8080, host: '127.0.0.1', local: true, referrer: null, topic: key }
   swarm.network.announce = (key) => {
@@ -190,7 +190,7 @@ test('join - announce: true, lookup: false', async ({ is, fail }) => {
 test('join - announce: true, lookup: true', async ({ is }) => {
   const swarm = hyperswarm()
   var announceKey = null
-  const key = Buffer.from('key')
+  const key = randomBytes(32)
   const topic = new EventEmitter()
   const fauxPeer = { port: 8080, host: '127.0.0.1', local: true, referrer: null, topic: key }
   swarm.network.announce = (key) => {
@@ -208,6 +208,30 @@ test('join - announce: true, lookup: true', async ({ is }) => {
   swarm.destroy()
 })
 
+test('leave before bind complete', async ({ doesNotThrow }) => {
+  const swarm = hyperswarm()
+  const key = randomBytes(32)
+  swarm.join(key)
+  doesNotThrow(() => swarm.leave(key))
+  await once(swarm, 'leave')
+  doesNotThrow(() => swarm.destroy())
+})
+
+test('leave before bind complete, bind error after leave ignored', async ({ doesNotThrow }) => {
+  const swarm = hyperswarm()
+  const key = randomBytes(32)
+  swarm.join(key)
+  swarm.network.bind = (cb, port = cb) => {
+    cb(Error('test'))
+  }
+  doesNotThrow(() => swarm.leave(key))
+  await Promise.race([
+    once(swarm, 'leave'),
+    once(swarm, 'listening')
+  ])
+  doesNotThrow(() => swarm.destroy())
+})
+
 test('leave - missing key', async ({ throws }) => {
   const swarm = hyperswarm()
   promisifyMethod(swarm, 'listen')
@@ -219,8 +243,8 @@ test('leave - missing key', async ({ throws }) => {
 
 test('leave destroys the topic for a given pre-existing key', async ({ is }) => {
   const swarm = hyperswarm()
-  const key = Buffer.concat([Buffer.alloc(28), Buffer.from('key1')])
-  const key2 = Buffer.concat([Buffer.alloc(28), Buffer.from('key2')])
+  const key = Buffer.concat([Buffer.alloc(28), randomBytes(32)])
+  const key2 = Buffer.concat([Buffer.alloc(28), randomBytes(32)])
   const { lookup } = swarm.network
   var topicDestroyed = false
   var topic = null
@@ -243,8 +267,8 @@ test('leave destroys the topic for a given pre-existing key', async ({ is }) => 
 
 test('leave does not throw when a given key was never joined', async ({ doesNotThrow }) => {
   const swarm = hyperswarm()
-  const key = Buffer.from('key1')
-  const key2 = Buffer.from('key2')
+  const key = randomBytes(32)
+  const key2 = randomBytes(32)
   swarm.join(key)
   await once(swarm, 'listening')
   doesNotThrow(() => swarm.leave(key2))
@@ -253,7 +277,7 @@ test('leave does not throw when a given key was never joined', async ({ doesNotT
 
 test('joining the same topic twice will leave the topic before rejoining', async ({ is }) => {
   const swarm = hyperswarm()
-  const key = Buffer.from('key')
+  const key = randomBytes(32)
   const { lookup } = swarm.network
   var topicDestroyed = false
   var topic = null
