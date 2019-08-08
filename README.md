@@ -135,6 +135,14 @@ A new connection has been created. You should handle this event by using the soc
        - `id`. Buffer.
      - `topic`. Buffer. The identifier which this peer was discovered under.
 
+#### `swarm.on('disconnection', (socket, details) => {})`
+
+A connection has been dropped.
+
+#### `swarm.connections`
+
+A set of all the active connections.
+
 #### `swarm.on('peer', (peer) => {})`
 
 A new peer has been discovered on the network and has been queued for connection.
