@@ -65,7 +65,7 @@ class Swarm extends EventEmitter {
 
     this.open = this.peers < this.maxPeers
     this.ephemeral = ephemeral !== false
-    this.connections = network.sockets
+    this.connections = this.network.sockets
 
     this[kQueue] = peerQueue(queue)
     this[kQueue].on('readable', this[kDrain](this[kQueue]))
