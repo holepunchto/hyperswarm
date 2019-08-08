@@ -533,8 +533,10 @@ test('connections tracks active connections count correctly', async ({ is }) => 
   })
   await once(swarm2, 'listening')
   is(swarm2.connections.size, 0)
-  await once(swarm2, 'peer')
-  await once(swarm2, 'connection')
+  await Promise.all([
+    once(swarm2, 'peer'),
+    once(swarm2, 'connection')
+  ])
   is(swarm2.connections.size, 1)
   swarm1.leave(key)
   swarm1.destroy()
