@@ -516,3 +516,33 @@ test('emits disconnection event upon being disconnected from by a peer', async (
   swarm1.destroy()
   closeDht()
 })
+
+test('connections tracks active connections count correctly', async ({ is }) => {
+  const { bootstrap, closeDht } = await dhtBootstrap()
+  const swarm1 = hyperswarm({ bootstrap })
+  const swarm2 = hyperswarm({ bootstrap })
+  const key = randomBytes(32)
+  swarm1.join(key, {
+    announce: true,
+    lookup: false
+  })
+  await once(swarm1, 'listening')
+  swarm2.join(key, {
+    announce: false,
+    lookup: true
+  })
+  await once(swarm2, 'listening')
+  is(swarm2.connections.size, 0)
+  await Promise.all([
+    once(swarm2, 'peer'),
+    once(swarm2, 'connection')
+  ])
+  is(swarm2.connections.size, 1)
+  swarm1.leave(key)
+  swarm1.destroy()
+  await once(swarm2, 'disconnection')
+  is(swarm2.connections.size, 0)
+  swarm2.leave(key)
+  swarm2.destroy()
+  closeDht()
+})
