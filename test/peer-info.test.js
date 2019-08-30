@@ -383,10 +383,9 @@ test('backoff increases retries and alters priority of client peers', async ({ i
   is(info.backoff(), false)
   is(info.retries, 4)
   is(info.priority, 1)
-  info.connected(stream, isTCP)
-  is(info.update(), true)
-  is(info.retries, 0)
-  is(info.priority, 2)
+  is(info.backoff(), false)
+  is(info.retries, 5)
+  is(info.priority, 1)
 })
 
 test('backoff is a no-op on server peers', async ({ is }) => {
