@@ -17,7 +17,7 @@ test('add / shift', async ({ is, same }) => {
 
 test('requeue', async ({ is }) => {
   const q = queue({
-    requeue: [ 100, 200, 300 ]
+    requeue: [ 100, 200, 300 ],
   })
 
   q.add({ port: 8080, host: '127.0.0.1' })
@@ -34,6 +34,36 @@ test('requeue', async ({ is }) => {
   await once(q, 'readable')
   is(q.shift(), info)
   is(q.requeue(info), false)
+
+  q.destroy()
+})
+
+test('requeue forget unresponsive', async ({ is }) => {
+  const q = queue({
+    requeue: [ 100, 200, 300 ],
+    forget: { unresponsive: 100 },
+  })
+
+  q.add({ port: 8080, host: '127.0.0.1' })
+
+  const info = q.shift()
+
+  is(q.requeue(info), true)
+  await once(q, 'readable')
+  is(q.shift(), info)
+  is(q.requeue(info), true)
+  await once(q, 'readable')
+  is(q.shift(), info)
+  is(q.requeue(info), true)
+  await once(q, 'readable')
+  is(q.shift(), info)
+  is(q.requeue(info), false)
+
+  // Check that the info gets purged from the queue
+  is(q._infos.size, 1)
+  await timeout(200)
+  is(q._infos.size, 0)
+
   q.destroy()
 })
 
