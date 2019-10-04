@@ -2,7 +2,9 @@
 const { inspect } = require('util')
 const hyperswarm = require('./')
 const crypto = require('crypto')
-const swarm = hyperswarm()
+const swarm = hyperswarm({
+  announceLocalAddress: true
+})
 
 if (!process.argv[2]) { throw Error('node example.js <topic-key>') }
 

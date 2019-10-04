@@ -35,6 +35,7 @@ class Swarm extends EventEmitter {
     this.network = network({
       bootstrap,
       ephemeral,
+      announceLocalAddress: !!opts.announceLocalAddress,
       bind: () => this.emit('listening'),
       socket: (socket, isTCP) => {
         const info = peerInfo(null)
