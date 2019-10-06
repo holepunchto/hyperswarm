@@ -17,7 +17,7 @@ test('add / shift', async ({ is, same }) => {
 
 test('requeue', async ({ is }) => {
   const q = queue({
-    requeue: [ 100, 200, 300 ],
+    requeue: [ 100, 200, 300 ]
   })
 
   q.add({ port: 8080, host: '127.0.0.1' })
@@ -41,7 +41,7 @@ test('requeue', async ({ is }) => {
 test('requeue forget unresponsive', async ({ is }) => {
   const q = queue({
     requeue: [ 100, 200, 300 ],
-    forget: { unresponsive: 100 },
+    forget: { unresponsive: 100 }
   })
 
   q.add({ port: 8080, host: '127.0.0.1' })
