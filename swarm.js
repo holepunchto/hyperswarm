@@ -196,7 +196,8 @@ class Swarm extends EventEmitter {
       if (err) {
         cb(err, {
           bound: false,
-          boostrapped: false,
+          boostrapped: false, // todo remove in next major
+          bootstrapped: false,
           holepunched: false
         })
         return
@@ -205,14 +206,16 @@ class Swarm extends EventEmitter {
         if (err) {
           cb(err, {
             bound: true,
-            boostrapped: false,
+            boostrapped: false, // todo remove in next major
+            bootstrapped: false,
             holepunched: false
           })
           return
         }
         cb(null, {
           bound: true,
-          boostrapped: true,
+          boostrapped: true, // todo remove in next major
+          bootstrapped: true,
           holepunched: holepunchable
         })
       })
