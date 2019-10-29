@@ -2,7 +2,7 @@
 const { EventEmitter } = require('events')
 const { randomBytes } = require('crypto')
 const { NetworkResource } = require('@hyperswarm/network')
-const { test } = require('tap')
+const { test, only } = require('tap')
 const { once, done, promisifyMethod, whenifyMethod } = require('nonsynchronous')
 const { dhtBootstrap, validSocket } = require('./util')
 const hyperswarm = require('../swarm')
@@ -543,6 +543,58 @@ test('connections tracks active connections count correctly', async ({ is }) => 
   await once(swarm2, 'disconnection')
   is(swarm2.connections.size, 0)
   swarm2.leave(key)
+  swarm2.destroy()
+  closeDht()
+})
+
+only('can connect to 20 peers for different topics', async ({ ok }) => {
+  const { bootstrap, closeDht } = await dhtBootstrap()
+  const swarm1 = hyperswarm({ bootstrap })
+  const swarm2 = hyperswarm({ bootstrap })
+
+  const numTopics = 25
+  const keys = []
+
+  for (let i = 0; i < numTopics; i++) {
+    const key = randomBytes(32)
+    keys.push(key)
+    swarm1.join(key, {
+      announce: true,
+      lookup: false
+    })
+    swarm2.join(key, {
+      announce: false,
+      lookup: true
+    })
+  }
+
+  const keySet = new Set(keys.map(k => k.toString('hex')))
+  const failTimer = setTimeout(() => {
+    throw new Error('Did not establish connections in time.')
+  }, 5000)
+
+  const infos = await new Promise((resolve) => {
+    const infos = []
+    swarm2.on('connection', (socket, info) => {
+      infos.push(info)
+      if (infos.length === numTopics) {
+        clearTimeout(failTimer)
+        return resolve(infos)
+      }
+    })
+  })
+
+  for (const { peer } of infos) {
+    const keyString = peer.topic.toString('hex')
+    ok(keySet.has(keyString))
+    keySet.delete(keyString)
+  }
+
+  for (const key of keys) {
+    swarm1.leave(key)
+    swarm2.leave(key)
+  }
+  swarm1.destroy()
   swarm2.destroy()
   closeDht()
 })
