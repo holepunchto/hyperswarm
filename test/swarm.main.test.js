@@ -2,7 +2,7 @@
 const { EventEmitter } = require('events')
 const { randomBytes } = require('crypto')
 const { NetworkResource } = require('@hyperswarm/network')
-const { test, only } = require('tap')
+const { test, skip } = require('tap')
 const { once, done, promisifyMethod, whenifyMethod } = require('nonsynchronous')
 const { dhtBootstrap, validSocket } = require('./util')
 const hyperswarm = require('../swarm')
@@ -547,7 +547,7 @@ test('connections tracks active connections count correctly', async ({ is }) => 
   closeDht()
 })
 
-only('can connect to 20 peers for different topics', async ({ ok }) => {
+skip('can connect to 20 peers for different topics', async ({ ok }) => {
   const { bootstrap, closeDht } = await dhtBootstrap()
   const swarm1 = hyperswarm({ bootstrap })
   const swarm2 = hyperswarm({ bootstrap })
