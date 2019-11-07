@@ -76,7 +76,9 @@ Options include:
       // how long to wait before fogetting that a peer 
       // has been banned
       banned: Infinity
-    }
+    },
+    // attempt to reuse existing connections between peers across multiple topics
+    multiplex: false
   }
 }
 ```
@@ -125,6 +127,7 @@ A new connection has been created. You should handle this event by using the soc
  - `details`. Object describing the connection.
    - `type`. String. Should be either `'tcp'` or `'utp'`.
    - `client`. Boolean. If true, the connection was initiated by this node.
+   - `topics`. Array. The list of topics associated with this connection (when `multiplex: true`)
    - `peer`. Object describing the peer. Will be null if `client === false`.
      - `port`. Number.
      - `host`. String. The IP address of the peer.
@@ -134,6 +137,8 @@ A new connection has been created. You should handle this event by using the soc
        - `host`. String. The IP address of the referrer.
        - `id`. Buffer.
      - `topic`. Buffer. The identifier which this peer was discovered under.
+     
+The `details` argument is a `PeerInfo` object, which will emit events of the form `details.on('topic', topic => ...)` when the `multiplex` flag is `true`.
 
 #### `swarm.on('disconnection', (socket, details) => {})`
 
