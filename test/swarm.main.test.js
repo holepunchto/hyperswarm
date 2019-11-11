@@ -2,7 +2,7 @@
 const { EventEmitter } = require('events')
 const { randomBytes } = require('crypto')
 const { NetworkResource } = require('@hyperswarm/network')
-const { test } = require('tap')
+const { test, skip, only } = require('tap')
 const { once, done, promisifyMethod, whenifyMethod } = require('nonsynchronous')
 const { dhtBootstrap, validSocket } = require('./util')
 const hyperswarm = require('../swarm')
@@ -545,4 +545,77 @@ test('connections tracks active connections count correctly', async ({ is }) => 
   swarm2.leave(key)
   swarm2.destroy()
   closeDht()
+})
+
+only('can multiplex 100 topics over the same connection', async ({ same }) => {
+  const { bootstrap, closeDht } = await dhtBootstrap()
+  const swarm1 = hyperswarm({ bootstrap, maxPeers: 20, queue: { multiplex: true } })
+  const swarm2 = hyperswarm({ bootstrap, maxPeers: 20, queue: { multiplex: true } })
+
+  const numTopics = 100
+  var topics = []
+
+  // Announce all topics.
+  for (let i = 0; i < numTopics; i++) {
+    const topic = randomBytes(32)
+    topics.push(topic)
+    swarm1.join(topic, {
+      announce: true,
+      lookup: false
+    })
+  }
+
+  // Start listening for new connections, and briefly wait to flush the DHT.
+  const emittedTopicsPromise = listenForConnections(swarm2)
+  await new Promise(resolve => setTimeout(resolve, 100))
+
+  // Join all topics on the receiving end.
+  for (let i = 0; i < numTopics; i++) {
+    swarm2.join(topics[i], {
+      announce: false,
+      lookup: true
+    })
+  }
+
+  const topicSet = new Set(topics.map(t => t.toString('hex')))
+  const failTimer = setTimeout(() => {
+    throw new Error('Did not establish connections in time.')
+  }, 5000)
+  const emittedTopics = await emittedTopicsPromise
+
+  for (const topic of topics) {
+    const topicString = topic.toString('hex')
+    if (topicSet.has(topicString)) topicSet.delete(topicString)
+  }
+  same(topicSet.size, 0)
+
+  for (const topic of topics) {
+    swarm1.leave(topic)
+    swarm2.leave(topic)
+  }
+  swarm1.destroy()
+  swarm2.destroy()
+  closeDht()
+
+  function listenForConnections (swarm) {
+    const emittedTopics = []
+    return new Promise(resolve => {
+      swarm.on('connection', (socket, info) => {
+        for (let topic of info.topics) {
+          pushTopic(topic)
+        }
+        info.on('topic', topic => {
+          pushTopic(topic)
+        })
+        function pushTopic (topic) {
+          emittedTopics.push(topic)
+          if (topics.length === numTopics) {
+            clearTimeout(failTimer)
+            info.removeAllListeners('topic')
+            return resolve(emittedTopics)
+          }
+        }
+      })
+    })
+  }
 })

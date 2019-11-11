@@ -82,6 +82,37 @@ test('peers with same details are deduped', async ({ is, same }) => {
   is(q.shift(), null)
 })
 
+test('peers with same host/port but different topics are not deduped', async ({ same }) => {
+  const q = queue()
+
+  // add once
+  q.add({ port: 8000, host: '127.0.0.1', topic: Buffer.from('hello') })
+
+  // add twice
+  q.add({ port: 8000, host: '127.0.0.1', topic: Buffer.from('world') })
+
+  const { peer: peer1 } = q.shift()
+  const { peer: peer2 } = q.shift()
+
+  same(peer1, { port: 8000, host: '127.0.0.1', topic: Buffer.from('hello') })
+  same(peer2, { port: 8000, host: '127.0.0.1', topic: Buffer.from('world') })
+})
+
+test('peers with same host/port and different topics are deduped when multiplex: true', async ({ same, is }) => {
+  const q = queue({ multiplex: true })
+
+  // add once
+  q.add({ port: 8000, host: '127.0.0.1', topic: Buffer.from('hello') })
+
+  // add twice
+  q.add({ port: 8000, host: '127.0.0.1', topic: Buffer.from('world') })
+
+  const { peer } = q.shift()
+
+  same(peer, { port: 8000, host: '127.0.0.1', topic: Buffer.from('hello') })
+  is(q.shift(), null)
+})
+
 test('requeue after destroy', async ({ is }) => {
   const q = queue({
     requeue: [ 100, 200, 300 ]
