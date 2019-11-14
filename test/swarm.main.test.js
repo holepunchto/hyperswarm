@@ -2,7 +2,7 @@
 const { EventEmitter } = require('events')
 const { randomBytes } = require('crypto')
 const { NetworkResource } = require('@hyperswarm/network')
-const { test, skip, only } = require('tap')
+const { test, only } = require('tap')
 const { once, done, promisifyMethod, whenifyMethod } = require('nonsynchronous')
 const { dhtBootstrap, validSocket } = require('./util')
 const hyperswarm = require('../swarm')
@@ -566,7 +566,7 @@ only('can multiplex 100 topics over the same connection', async ({ same }) => {
   }
 
   // Start listening for new connections, and briefly wait to flush the DHT.
-  const emittedTopicsPromise = listenForConnections(swarm2)
+  listenForConnections(swarm2)
   await new Promise(resolve => setTimeout(resolve, 100))
 
   // Join all topics on the receiving end.
@@ -581,7 +581,6 @@ only('can multiplex 100 topics over the same connection', async ({ same }) => {
   const failTimer = setTimeout(() => {
     throw new Error('Did not establish connections in time.')
   }, 5000)
-  const emittedTopics = await emittedTopicsPromise
 
   for (const topic of topics) {
     const topicString = topic.toString('hex')
