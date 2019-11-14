@@ -91,8 +91,14 @@ test('peers with same host/port but different topics are not deduped', async ({ 
   // add twice
   q.add({ port: 8000, host: '127.0.0.1', topic: Buffer.from('world') })
 
-  const { peer: peer1 } = q.shift()
-  const { peer: peer2 } = q.shift()
+  let { peer: peer1 } = q.shift()
+  let { peer: peer2 } = q.shift()
+
+  if (peer1.topic.equals(Buffer.from('world'))) {
+    const tmp = peer2
+    peer2 = peer1
+    peer1 = tmp
+  }
 
   same(peer1, { port: 8000, host: '127.0.0.1', topic: Buffer.from('hello') })
   same(peer2, { port: 8000, host: '127.0.0.1', topic: Buffer.from('world') })
