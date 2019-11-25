@@ -29,6 +29,7 @@ class Swarm extends EventEmitter {
       maxPeers = MAX_PEERS,
       bootstrap,
       ephemeral,
+      validatePeer = () => true,
       queue = {}
     } = opts
 
@@ -67,6 +68,8 @@ class Swarm extends EventEmitter {
     this.open = this.peers < this.maxPeers
     this.ephemeral = ephemeral !== false
     this.connections = this.network.sockets
+
+    this.validatePeer = validatePeer
 
     this[kQueue] = peerQueue(queue)
     this[kQueue].on('readable', this[kDrain](this[kQueue]))
@@ -153,6 +156,10 @@ class Swarm extends EventEmitter {
       topic.on('update', () => this.emit('updated', { key }))
       if (lookup) {
         topic.on('peer', (peer) => {
+          if (!this.validatePeer(peer)) {
+            this.emit('peer-rejected', peer)
+            return
+          }
           this.emit('peer', peer)
           this[kQueue].add(peer)
         })

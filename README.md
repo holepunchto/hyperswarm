@@ -58,6 +58,8 @@ Options include:
   // set to a number to restrict the amount of client sockets
   // based peer connections, unrestricted by default.
   maxClientSockets: Infinity,
+  // apply a filter before connecting to the peer
+  validatePeer: (peer) => true,
   // configure peer management behaviour
   queue = {
     // an array of backoff times, in millieconds
@@ -173,6 +175,20 @@ A set of all the active connections.
 #### `swarm.on('peer', (peer) => {})`
 
 A new peer has been discovered on the network and has been queued for connection.
+
+ - `peer`. Object describing the peer.
+   - `port`. Number.
+   - `host`. String. The IP address of the peer.
+   - `local`. Boolean. Is the peer on the LAN?
+   - `referrer`. Object. The address of the node that informed us of the peer.
+     - `port`. Number.
+     - `host`. String. The IP address of the referrer.
+     - `id`. Buffer.
+   - `topic`. Buffer. The identifier which this peer was discovered under.
+
+#### `swarm.on('peer-rejected', (peer) => {})`
+
+A peer has been rejected as a connection candidate.
 
  - `peer`. Object describing the peer.
    - `port`. Number.
