@@ -38,7 +38,7 @@ class Swarm extends EventEmitter {
       announceLocalAddress: !!opts.announceLocalAddress,
       bind: () => this.emit('listening'),
       socket: (socket, isTCP) => {
-        const info = peerInfo(null)
+        const info = peerInfo(null, this[kQueue])
         info.connected(socket, isTCP)
         this.emit('connection', socket, info)
         this.serverSockets += 1
