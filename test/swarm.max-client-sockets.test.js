@@ -6,7 +6,7 @@ const { dhtBootstrap } = require('./util')
 const hyperswarm = require('../swarm')
 
 test('maxClientSockets defaults to Infinity', async ({ is }) => {
-  const swarm = hyperswarm()
+  const swarm = hyperswarm({ bootstrap: [] })
   const { maxClientSockets } = swarm
   is(maxClientSockets, Infinity)
   swarm.destroy()
@@ -57,9 +57,8 @@ test('maxClientSockets option controls maximum amount of client sockets', async 
   swarm.destroy()
   for (const s of swarms) {
     s.leave(key)
-    s.destroy()
   }
-  closeDht()
+  closeDht(...swarms)
 })
 
 test('after maxClientSockets is exceeded, client sockets can connect to peers after client socket count is below threshhold again', async ({ is, fail }) => {
@@ -107,7 +106,6 @@ test('after maxClientSockets is exceeded, client sockets can connect to peers af
   swarm.destroy()
   for (const s of swarms) {
     s.leave(key)
-    s.destroy()
   }
-  closeDht()
+  closeDht(...swarms)
 })

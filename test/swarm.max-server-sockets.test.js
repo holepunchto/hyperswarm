@@ -1,5 +1,4 @@
 'use strict'
-const { EventEmitter } = require('events')
 const { randomBytes } = require('crypto')
 const { test } = require('tap')
 const { once, timeout } = require('nonsynchronous')
@@ -8,7 +7,7 @@ const hyperswarm = require('../swarm')
 const net = require('net')
 
 test('maxServerSockets defaults to Infinity', async ({ is }) => {
-  const swarm = hyperswarm()
+  const swarm = hyperswarm({ bootstrap: [] })
   const { maxServerSockets } = swarm
   is(maxServerSockets, Infinity)
   swarm.destroy()
@@ -45,14 +44,11 @@ test('maxServerSockets option controls maximum incoming sockets', async ({ is, f
   await once(swarm2, 'listening')
   swarm.once('connection', () => fail('connection should not be emitted after max peers is reached'))
   await timeout(150) // allow time for a potential connection event
-  swarm2.destroy()
   swarm.leave(key)
-  swarm.destroy()
   for (const s of swarms) {
     s.leave(key)
-    s.destroy()
   }
-  closeDht()
+  closeDht(swarm, swarm2, ...swarms)
 })
 
 test('after maxServerSockets is exceeded, new incoming sockets are refused until server socket count is below threshhold again', async ({ is, fail }) => {
@@ -97,14 +93,11 @@ test('after maxServerSockets is exceeded, new incoming sockets are refused until
 
   is(swarm.serverSockets, maxServerSockets)
 
-  swarm2.destroy()
   swarm.leave(key)
-  swarm.destroy()
   for (const s of swarms) {
     s.leave(key)
-    s.destroy()
   }
-  closeDht()
+  closeDht(swarm, swarm2, ...swarms)
 })
 
 test('maxServerSockets is actually a soft limit, the absolute hard limit is double maxServerSockets', async ({ is, fail }) => {
@@ -135,6 +128,7 @@ test('maxServerSockets is actually a soft limit, the absolute hard limit is doub
   const swarms = []
   const { maxServerSockets } = swarm
   is(maxServerSockets, 4)
+  swarm.on('connection', c => c.write('hi'))
   swarm.join(key, {
     announce: true,
     lookup: false
@@ -152,28 +146,9 @@ test('maxServerSockets is actually a soft limit, the absolute hard limit is doub
     // fake holepunch ability
     s.network.discovery.holepunch = (peer, cb) => setImmediate(cb)
     // fake utp connection
-    s.network.utp.connect = (port, host) => {
-      const ee = new EventEmitter()
-      ee.destroy = (cb) => {
-        if (cb) ee.once('close', cb)
-        ee.emit('close')
-      }
-      // filter out multiple connect attempts
-      if (host === '127.0.0.1') return ee
-      process.nextTick(() => {
-        ee.emit('connect')
-        const conn = new EventEmitter()
-        conn.destroy = (cb) => {
-          if (cb) ee.once('close', cb)
-          ee.emit('close')
-        }
-        swarm.network.utp.emit('connection', conn)
-      })
-      return ee
-    }
-
     await once(swarm, 'connection')
   }
+
   is(swarm.serverSockets, maxServerSockets)
 
   delete require.cache[require.resolve('../lib/queue')]
@@ -181,7 +156,6 @@ test('maxServerSockets is actually a soft limit, the absolute hard limit is doub
   delete require.cache[require.resolve('@hyperswarm/network')]
   net.connect = connect
   hyperswarm = require('../swarm')
-
   for (var c = 0; c < maxServerSockets; c++) {
     const s = hyperswarm({ bootstrap })
     swarms.push(s)
@@ -202,18 +176,18 @@ test('maxServerSockets is actually a soft limit, the absolute hard limit is doub
     lookup: false
   })
   await once(swarm2, 'listening')
-  swarm.once('connection', () => {
+
+  swarm.once('connection', (_, info) => {
     fail('connection should not be emitted after double max server connections is reached')
   })
   await timeout(200)
   is(swarm.serverSockets, maxServerSockets * 2) // hard server conn limit
   swarm2.leave(key)
-  swarm2.destroy()
   swarm.leave(key)
-  swarm.destroy()
   for (const s of swarms) {
     s.leave(key)
-    s.destroy()
   }
-  closeDht()
+
+  closeDht(swarm, swarm2, ...swarms)
+  setImmediate(() => process.exit(0)) // haxx exit the process so we don't have to wait for utp timeouts ... maybe something we can improve in utp?
 })

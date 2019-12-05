@@ -5,13 +5,30 @@ const dht = require('@hyperswarm/dht')
 const { once } = require('nonsynchronous')
 
 async function dhtBootstrap () {
-  const node = dht()
+  const node = dht({
+    bootstrap: [],
+    ephemeral: true
+  })
+  node.listen()
   await once(node, 'listening')
   const { port } = node.address()
   return {
     port,
     bootstrap: [`127.0.0.1:${port}`],
-    closeDht: () => node.destroy()
+    closeDht (...others) {
+      let missing = 1
+
+      for (const n of others) {
+        missing++
+        n.destroy(done)
+      }
+      done()
+
+      function done () {
+        if (--missing) return
+        node.destroy()
+      }
+    }
   }
 }
 

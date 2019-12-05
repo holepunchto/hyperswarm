@@ -86,7 +86,6 @@ test('after maxPeers is exceeded, new peers can connect once existing peers have
   swarm.destroy()
   for (const s of swarms) {
     s.leave(key)
-    s.destroy()
   }
-  closeDht()
+  closeDht(...swarms)
 })

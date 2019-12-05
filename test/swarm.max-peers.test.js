@@ -6,7 +6,7 @@ const { dhtBootstrap } = require('./util')
 const hyperswarm = require('../swarm')
 
 test('maxPeers defaults to 24', async ({ is }) => {
-  const swarm = hyperswarm()
+  const swarm = hyperswarm({ bootstrap: [] })
   const { maxPeers } = swarm
   is(maxPeers, 24)
   swarm.destroy()
@@ -56,14 +56,11 @@ test('allows a maximum amount of peers (maxPeers option - client sockets)', asyn
   await timeout(200) // allow time for a potential connection event
   is(swarm.peers, maxPeers)
   is(swarm.open, false)
-  swarm2.destroy()
   swarm.leave(key)
-  swarm.destroy()
   for (const s of swarms) {
     s.leave(key)
-    s.destroy()
   }
-  closeDht()
+  closeDht(swarm, swarm2, ...swarms)
 })
 
 test('allows a maximum amount of peers (maxPeers option - server sockets)', async ({ is, fail }) => {
@@ -107,14 +104,11 @@ test('allows a maximum amount of peers (maxPeers option - server sockets)', asyn
   await timeout(150) // allow time for a potential connection event
   is(swarm.peers, maxPeers)
   is(swarm.open, false)
-  swarm2.destroy()
   swarm.leave(key)
-  swarm.destroy()
   for (const s of swarms) {
     s.leave(key)
-    s.destroy()
   }
-  closeDht()
+  closeDht(swarm, swarm2, ...swarms)
 })
 
 test('allows a maximum amount of peers (maxPeers option - client sockets and server sockets)', async ({ is, fail }) => {
@@ -180,14 +174,11 @@ test('allows a maximum amount of peers (maxPeers option - client sockets and ser
   await timeout(200) // allow time for a potential connection event
   is(swarm.peers, maxPeers)
   is(swarm.open, false)
-  swarm2.destroy()
   swarm.leave(key)
-  swarm.destroy()
   for (const s of swarms) {
     s.leave(key)
-    s.destroy()
   }
-  closeDht()
+  closeDht(swarm, swarm2, ...swarms)
 })
 
 test('maxPeers option sets the maximum amount of peers that a swarm can connect to be or be connected to', async ({ is, fail }) => {
@@ -256,12 +247,9 @@ test('maxPeers option sets the maximum amount of peers that a swarm can connect 
   is(swarm.peers, maxPeers)
   is(swarm.open, false)
 
-  swarm2.destroy()
   swarm.leave(key)
-  swarm.destroy()
   for (const s of swarms) {
     s.leave(key)
-    s.destroy()
   }
-  closeDht()
+  closeDht(swarm, swarm2, ...swarms)
 })

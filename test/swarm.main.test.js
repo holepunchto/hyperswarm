@@ -2,14 +2,16 @@
 const { EventEmitter } = require('events')
 const { randomBytes } = require('crypto')
 const { NetworkResource } = require('@hyperswarm/network')
-const { test, only } = require('tap')
+const { test } = require('tap')
 const { once, done, promisifyMethod, whenifyMethod } = require('nonsynchronous')
 const { dhtBootstrap, validSocket } = require('./util')
 const hyperswarm = require('../swarm')
 const net = require('net')
 
 test('default ephemerality', async ({ is }) => {
-  const swarm = hyperswarm()
+  const swarm = hyperswarm({
+    bootstrap: []
+  })
   is(swarm.ephemeral, true)
   promisifyMethod(swarm, 'listen')
   await swarm.listen()
@@ -18,7 +20,9 @@ test('default ephemerality', async ({ is }) => {
 })
 
 test('destroyed property', async ({ is }) => {
-  const swarm = hyperswarm()
+  const swarm = hyperswarm({
+    bootstrap: []
+  })
   swarm.listen()
   is(swarm.destroyed, false)
   swarm.destroy()
@@ -26,13 +30,17 @@ test('destroyed property', async ({ is }) => {
 })
 
 test('network property', async ({ is }) => {
-  const swarm = hyperswarm()
+  const swarm = hyperswarm({
+    bootstrap: []
+  })
   is(swarm.network instanceof NetworkResource, true)
+  swarm.destroy()
 })
 
 test('ephemeral option', async ({ is }) => {
   const swarm = hyperswarm({
-    ephemeral: false
+    ephemeral: false,
+    bootstrap: []
   })
   is(swarm.ephemeral, false)
   promisifyMethod(swarm, 'listen')
@@ -48,12 +56,11 @@ test('bootstrap option', async ({ is }) => {
   await swarm.listen()
   is(swarm.network.discovery.dht.bootstrapNodes.length, 1)
   is(swarm.network.discovery.dht.bootstrapNodes[0].port, port)
-  swarm.destroy()
-  closeDht()
+  closeDht(swarm)
 })
 
 test('emits listening event when bound', async ({ pass }) => {
-  const swarm = hyperswarm()
+  const swarm = hyperswarm({ bootstrap: [] })
   swarm.listen()
   await once(swarm, 'listening')
   pass('event emitted')
@@ -61,7 +68,7 @@ test('emits listening event when bound', async ({ pass }) => {
 })
 
 test('emits close event when destroyed', async ({ pass }) => {
-  const swarm = hyperswarm()
+  const swarm = hyperswarm({ bootstrap: [] })
   promisifyMethod(swarm, 'listen')
   await swarm.listen()
   swarm.destroy()
@@ -70,7 +77,7 @@ test('emits close event when destroyed', async ({ pass }) => {
 })
 
 test('join - missing key', async ({ throws }) => {
-  const swarm = hyperswarm()
+  const swarm = hyperswarm({ bootstrap: [] })
   promisifyMethod(swarm, 'listen')
   await swarm.listen()
   throws(() => swarm.join(), Error('key is required and must be a buffer'))
@@ -79,7 +86,7 @@ test('join - missing key', async ({ throws }) => {
 })
 
 test('join automatically binds', async ({ is }) => {
-  const swarm = hyperswarm()
+  const swarm = hyperswarm({ bootstrap: [] })
   var bind = false
   swarm.network.bind = () => (bind = true)
   swarm.join(Buffer.from('key'))
@@ -88,7 +95,7 @@ test('join automatically binds', async ({ is }) => {
 })
 
 test('join – emits error event when failing to bind', async ({ is }) => {
-  const swarm = hyperswarm()
+  const swarm = hyperswarm({ bootstrap: [] })
   const fauxError = Error('problem binding')
   swarm.network.bind = (cb) => process.nextTick(cb, fauxError)
   swarm.join(Buffer.from('key'))
@@ -98,7 +105,7 @@ test('join – emits error event when failing to bind', async ({ is }) => {
 })
 
 test('join – default options', async ({ is }) => {
-  const swarm = hyperswarm()
+  const swarm = hyperswarm({ bootstrap: [] })
   var lookupKey = null
   const key = Buffer.from('key')
   swarm.network.lookup = (key) => {
@@ -112,7 +119,7 @@ test('join – default options', async ({ is }) => {
 })
 
 test('join - announce: false, lookup: true', async ({ is }) => {
-  const swarm = hyperswarm()
+  const swarm = hyperswarm({ bootstrap: [] })
   var lookupKey = null
   const key = Buffer.from('key')
   swarm.network.lookup = (key) => {
@@ -126,7 +133,7 @@ test('join - announce: false, lookup: true', async ({ is }) => {
 })
 
 test('join - announce: false, lookup: false', async ({ throws }) => {
-  const swarm = hyperswarm()
+  const swarm = hyperswarm({ bootstrap: [] })
   const key = Buffer.from('key')
   throws(
     () => swarm.join(key, { announce: false, lookup: false }),
@@ -136,7 +143,7 @@ test('join - announce: false, lookup: false', async ({ throws }) => {
 })
 
 test('join - emits update event when topic updates', async ({ pass }) => {
-  const swarm = hyperswarm()
+  const swarm = hyperswarm({ bootstrap: [] })
   const key = Buffer.from('key')
   const topic = new EventEmitter()
   swarm.network.lookup = () => topic
@@ -148,25 +155,28 @@ test('join - emits update event when topic updates', async ({ pass }) => {
   swarm.destroy()
 })
 
-test('join - emits peer event when topic recieves peer', async ({ pass, is }) => {
-  const swarm = hyperswarm()
+test('join - emits peer event when topic recieves peer', async ({ plan, pass, is }) => {
+  plan(2)
+
+  const swarm = hyperswarm({ bootstrap: [] })
   const key = Buffer.from('key')
   const topic = new EventEmitter()
   const fauxPeer = { port: 8080, host: '127.0.0.1', local: true, referrer: null, topic: key }
   swarm.network.lookup = () => topic
   swarm.join(key)
   await once(swarm, 'listening')
-  process.nextTick(() => {
-    topic.emit('peer', fauxPeer)
+
+  swarm.once('peer', function (peer) {
+    pass('event emitted')
+    is(peer, fauxPeer)
+    swarm.destroy()
   })
-  const [ peer ] = await once(swarm, 'peer')
-  pass('event emitted')
-  is(peer, fauxPeer)
-  swarm.destroy()
+
+  topic.emit('peer', fauxPeer)
 })
 
 test('join - announce: true, lookup: false', async ({ is, fail }) => {
-  const swarm = hyperswarm()
+  const swarm = hyperswarm({ bootstrap: [] })
   var announceKey = null
   const key = Buffer.from('key')
   const topic = new EventEmitter()
@@ -187,29 +197,33 @@ test('join - announce: true, lookup: false', async ({ is, fail }) => {
   swarm.destroy()
 })
 
-test('join - announce: true, lookup: true', async ({ is }) => {
-  const swarm = hyperswarm()
+test('join - announce: true, lookup: true', async ({ plan, is }) => {
+  plan(2)
+
+  const swarm = hyperswarm({ bootstrap: [] })
   var announceKey = null
   const key = Buffer.from('key')
   const topic = new EventEmitter()
   const fauxPeer = { port: 8080, host: '127.0.0.1', local: true, referrer: null, topic: key }
   swarm.network.announce = (key) => {
     announceKey = key
+    topic.key = key
     return topic
   }
   swarm.join(key, { announce: true, lookup: true })
   await once(swarm, 'listening')
-  process.nextTick(() => {
-    topic.emit('peer', fauxPeer)
+
+  swarm.once('peer', function (peer) {
+    is(peer, fauxPeer)
+    is(announceKey, key)
+    swarm.destroy()
   })
-  const [ peer ] = await once(swarm, 'peer')
-  is(peer, fauxPeer)
-  is(announceKey, key)
-  swarm.destroy()
+
+  topic.emit('peer', fauxPeer)
 })
 
 test('leave - missing key', async ({ throws }) => {
-  const swarm = hyperswarm()
+  const swarm = hyperswarm({ bootstrap: [] })
   promisifyMethod(swarm, 'listen')
   await swarm.listen()
   throws(() => swarm.leave(), Error('key is required and must be a buffer'))
@@ -218,7 +232,7 @@ test('leave - missing key', async ({ throws }) => {
 })
 
 test('leave destroys the topic for a given pre-existing key', async ({ is }) => {
-  const swarm = hyperswarm()
+  const swarm = hyperswarm({ bootstrap: [] })
   const key = Buffer.concat([Buffer.alloc(28), Buffer.from('key1')])
   const key2 = Buffer.concat([Buffer.alloc(28), Buffer.from('key2')])
   const { lookup } = swarm.network
@@ -242,7 +256,7 @@ test('leave destroys the topic for a given pre-existing key', async ({ is }) => 
 })
 
 test('leave does not throw when a given key was never joined', async ({ doesNotThrow }) => {
-  const swarm = hyperswarm()
+  const swarm = hyperswarm({ bootstrap: [] })
   const key = Buffer.from('key1')
   const key2 = Buffer.from('key2')
   swarm.join(key)
@@ -252,7 +266,7 @@ test('leave does not throw when a given key was never joined', async ({ doesNotT
 })
 
 test('joining the same topic twice will leave the topic before rejoining', async ({ is }) => {
-  const swarm = hyperswarm()
+  const swarm = hyperswarm({ bootstrap: [] })
   const key = Buffer.from('key')
   const { lookup } = swarm.network
   var topicDestroyed = false
@@ -274,7 +288,7 @@ test('joining the same topic twice will leave the topic before rejoining', async
 })
 
 test('connect to a swarm with a plain TCP client', async ({ pass, same, is }) => {
-  const swarm = hyperswarm()
+  const swarm = hyperswarm({ bootstrap: [] })
   promisifyMethod(swarm, 'listen')
   await swarm.listen()
   const { port } = swarm.address()
@@ -298,8 +312,8 @@ test('connect to a swarm with a plain TCP client', async ({ pass, same, is }) =>
 })
 
 test('connect two peers directly', async ({ is }) => {
-  const swarm1 = hyperswarm()
-  const swarm2 = hyperswarm()
+  const swarm1 = hyperswarm({ bootstrap: [] })
+  const swarm2 = hyperswarm({ bootstrap: [] })
   swarm1.listen()
   await once(swarm1, 'listening')
 
@@ -344,9 +358,7 @@ test('connect two peers using join (announcing peer and lookup peer)', async ({ 
   is(peer, connectingPeer)
   peer1.leave(key)
   peer2.leave(key)
-  peer1.destroy()
-  peer2.destroy()
-  closeDht()
+  closeDht(peer1, peer2)
 })
 
 test('connect two peers using join (announcing peer and announcing + lookup peer)', async ({ is }) => {
@@ -373,9 +385,7 @@ test('connect two peers using join (announcing peer and announcing + lookup peer
   is(peer, connectingPeer)
   peer1.leave(key)
   peer2.leave(key)
-  peer1.destroy()
-  peer2.destroy()
-  closeDht()
+  closeDht(peer1, peer2)
 })
 
 test('connect two peers using join (both announcing + lookup peers)', async ({ is }) => {
@@ -402,9 +412,7 @@ test('connect two peers using join (both announcing + lookup peers)', async ({ i
   is(peer, connectingPeer)
   peer1.leave(key)
   peer2.leave(key)
-  peer1.destroy()
-  peer2.destroy()
-  closeDht()
+  closeDht(peer1, peer2)
 })
 
 test('emits connection event upon connecting to a peer', async ({ is }) => {
@@ -429,9 +437,7 @@ test('emits connection event upon connecting to a peer', async ({ is }) => {
   is(info.client, true)
   swarm1.leave(key)
   swarm2.leave(key)
-  swarm1.destroy()
-  swarm2.destroy()
-  closeDht()
+  closeDht(swarm1, swarm2)
 })
 
 test('emits connection event upon being connected to by a peer', async ({ is }) => {
@@ -455,9 +461,7 @@ test('emits connection event upon being connected to by a peer', async ({ is }) 
   is(info.client, false)
   swarm1.leave(key)
   swarm2.leave(key)
-  swarm1.destroy()
-  swarm2.destroy()
-  closeDht()
+  closeDht(swarm1, swarm2)
 })
 
 test('emits disconnection event upon disconnecting from a peer', async ({ is }) => {
@@ -484,8 +488,7 @@ test('emits disconnection event upon disconnecting from a peer', async ({ is }) 
   is(info.peer, peer)
   is(info.client, true)
   swarm2.leave(key)
-  swarm2.destroy()
-  closeDht()
+  closeDht(swarm2)
 })
 
 test('emits disconnection event upon being disconnected from by a peer', async ({ is }) => {
@@ -513,8 +516,7 @@ test('emits disconnection event upon being disconnected from by a peer', async (
   is(info.peer, null)
   is(info.client, false)
   swarm1.leave(key)
-  swarm1.destroy()
-  closeDht()
+  closeDht(swarm1)
 })
 
 test('connections tracks active connections count correctly', async ({ is }) => {
@@ -543,11 +545,10 @@ test('connections tracks active connections count correctly', async ({ is }) => 
   await once(swarm2, 'disconnection')
   is(swarm2.connections.size, 0)
   swarm2.leave(key)
-  swarm2.destroy()
-  closeDht()
+  closeDht(swarm2)
 })
 
-only('can multiplex 100 topics over the same connection', async ({ same }) => {
+test('can multiplex 100 topics over the same connection', async ({ same }) => {
   const { bootstrap, closeDht } = await dhtBootstrap()
   const swarm1 = hyperswarm({ bootstrap, maxPeers: 20, queue: { multiplex: true } })
   const swarm2 = hyperswarm({ bootstrap, maxPeers: 20, queue: { multiplex: true } })
@@ -566,7 +567,7 @@ only('can multiplex 100 topics over the same connection', async ({ same }) => {
   }
 
   // Start listening for new connections, and briefly wait to flush the DHT.
-  listenForConnections(swarm2)
+  const l = listenForConnections(swarm2)
   await new Promise(resolve => setTimeout(resolve, 100))
 
   // Join all topics on the receiving end.
@@ -578,37 +579,36 @@ only('can multiplex 100 topics over the same connection', async ({ same }) => {
   }
 
   const topicSet = new Set(topics.map(t => t.toString('hex')))
-  const failTimer = setTimeout(() => {
-    throw new Error('Did not establish connections in time.')
-  }, 5000)
 
   for (const topic of topics) {
     const topicString = topic.toString('hex')
     if (topicSet.has(topicString)) topicSet.delete(topicString)
   }
   same(topicSet.size, 0)
+  await l
 
-  for (const topic of topics) {
-    swarm1.leave(topic)
-    swarm2.leave(topic)
-  }
-  swarm1.destroy()
-  swarm2.destroy()
-  closeDht()
+  closeDht(swarm1, swarm2)
 
   function listenForConnections (swarm) {
     const emittedTopics = []
-    return new Promise(resolve => {
+
+    return new Promise((resolve, reject) => {
+      const failTimer = setTimeout(() => {
+        reject(new Error('Did not establish connections in time.'))
+      }, 5000)
+
       swarm.on('connection', (socket, info) => {
         for (let topic of info.topics) {
           pushTopic(topic)
         }
+
         info.on('topic', topic => {
           pushTopic(topic)
         })
+
         function pushTopic (topic) {
           emittedTopics.push(topic)
-          if (topics.length === numTopics) {
+          if (emittedTopics.length === numTopics) {
             clearTimeout(failTimer)
             info.removeAllListeners('topic')
             return resolve(emittedTopics)
