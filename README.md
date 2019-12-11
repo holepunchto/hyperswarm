@@ -59,7 +59,7 @@ Options include:
   // based peer connections, unrestricted by default.
   maxClientSockets: Infinity,
   // optional restrictions before connecting to the peer
-  whitelist: (peer) => true,
+  validatePeer: (peer) => true,
   // configure peer management behaviour 
   queue = {
     // an array of backoff times, in millieconds
