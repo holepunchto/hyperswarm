@@ -164,7 +164,7 @@ A new peer has been discovered on the network and has been queued for connection
      - `id`. Buffer.
    - `topic`. Buffer. The identifier which this peer was discovered under.
 
-#### `swarm.on('peer-rejected', (peer, details) => {})`
+#### `swarm.on('peer-rejected', (peer) => {})`
 
 A peer has been rejected as a connection candidate.
 
@@ -177,8 +177,6 @@ A peer has been rejected as a connection candidate.
      - `host`. String. The IP address of the referrer.
      - `id`. Buffer.
    - `topic`. Buffer. The identifier which this peer was discovered under.
- - `details`. Object describing the rejection.
-   - `reason`. String. Should be `'whitelist'`.
 
 #### `swarm.on('updated', ({ key }) => {})`
 

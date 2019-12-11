@@ -157,7 +157,7 @@ class Swarm extends EventEmitter {
       if (lookup) {
         topic.on('peer', (peer) => {
           if (!this.whitelist(peer)) {
-            this.emit('peer-rejected', peer, { reason: 'whitelist' })
+            this.emit('peer-rejected', peer)
             return
           }
           this.emit('peer', peer)
