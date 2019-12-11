@@ -58,7 +58,7 @@ Options include:
   // set to a number to restrict the amount of client sockets
   // based peer connections, unrestricted by default.
   maxClientSockets: Infinity,
-  // optional restrictions before connecting to the peer
+  // apply a filter before connecting to the peer
   validatePeer: (peer) => true,
   // configure peer management behaviour 
   queue = {
