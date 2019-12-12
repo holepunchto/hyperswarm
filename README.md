@@ -58,7 +58,7 @@ Options include:
   // set to a number to restrict the amount of client sockets
   // based peer connections, unrestricted by default.
   maxClientSockets: Infinity,
-  // configure peer management behaviour 
+  // configure peer management behaviour
   queue = {
     // an array of backoff times, in millieconds
     // every time a failing peer connection is retried
@@ -73,7 +73,7 @@ Options include:
       // how long to wait before forgetting that a peer
       // has become unresponsive
       unresponsive: 7500,
-      // how long to wait before fogetting that a peer 
+      // how long to wait before fogetting that a peer
       // has been banned
       banned: Infinity
     },
@@ -119,12 +119,12 @@ Establish a connection to the given peer. You usually won't need to use this fun
      - `client`. Boolean. If true, the connection was initiated by this node.
      - `peer`. Object describing the peer. (Will be the same object that was passed into this method.)
 
-#### `swarm.on('connection', (socket, details) => {})`
+#### `swarm.on('connection', (socket, info) => {})`
 
 A new connection has been created. You should handle this event by using the socket.
 
  - `socket`. The established TCP or UTP socket.
- - `details`. Object describing the connection.
+ - `info`. Object describing the connection.
    - `type`. String. Should be either `'tcp'` or `'utp'`.
    - `client`. Boolean. If true, the connection was initiated by this node.
    - `topics`. Array. The list of topics associated with this connection (when `multiplex: true`)
@@ -137,10 +137,32 @@ A new connection has been created. You should handle this event by using the soc
        - `host`. String. The IP address of the referrer.
        - `id`. Buffer.
      - `topic`. Buffer. The identifier which this peer was discovered under.
-     
+
 The `details` argument is a `PeerInfo` object, which will emit events of the form `details.on('topic', topic => ...)` when the `multiplex` flag is `true`.
 
-#### `swarm.on('disconnection', (socket, details) => {})`
+#### `info.ban()`
+
+Call this to ban this peer. Makes the swarm stop connecting to it.
+
+#### `info.backoff()`
+
+Call this to make the swarm backoff reconnecting to this peer.
+Can be called multiple times to backoff more.
+
+#### `dropped = info.deduplicate(localIdBuffer, remoteIdBuffer)`
+
+Use this method to deduplicate connections.
+
+When two swarms both announce and do lookups on the same topic you'll get duplicate connections
+between them (one client connection and one server connection each).
+
+If you exchange some sort of peer id between them you can use this method to make Hyperswarm
+deduplicate those connection (ie drop one of them deterministically).
+
+If it returns true then this current connection was dropped due to deduplication and is auto removed.
+Only call this once per connection.
+
+#### `swarm.on('disconnection', (socket, info) => {})`
 
 A connection has been dropped.
 

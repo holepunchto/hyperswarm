@@ -618,3 +618,36 @@ test('can multiplex 100 topics over the same connection', async ({ same }) => {
     })
   }
 })
+
+test('can dedup connections', async ({ same, end }) => {
+  const { bootstrap, closeDht } = await dhtBootstrap()
+  const swarm1 = hyperswarm({ bootstrap, maxPeers: 20, queue: { multiplex: true } })
+  const swarm2 = hyperswarm({ bootstrap, maxPeers: 20, queue: { multiplex: true } })
+
+  swarm1.on('connection', (socket, info) => {
+    socket.write('b')
+    socket.once('data', function (id) {
+      info.deduplicate(Buffer.from('b'), id)
+    })
+    socket.on('error', () => {})
+  })
+  swarm2.on('connection', (socket, info) => {
+    socket.write('a')
+    socket.once('data', function (id) {
+      info.deduplicate(Buffer.from('a'), id)
+    })
+    socket.on('error', () => {})
+  })
+
+  const topic = randomBytes(32)
+
+  swarm1.join(topic, { announce: true, lookup: true })
+  swarm2.join(topic, { announce: true, lookup: true })
+
+  await new Promise(resolve => setTimeout(resolve, 100))
+
+  same(swarm1.connections.size, 1)
+  same(swarm1.connections.size, 1)
+
+  closeDht(swarm1, swarm2)
+})
