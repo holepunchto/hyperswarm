@@ -68,7 +68,6 @@ class Swarm extends EventEmitter {
     this.maxClientSockets = maxClientSockets
 
     this.open = this.peers < this.maxPeers
-    this.ephemeral = ephemeral !== false
     this.connections = this.network.sockets
 
     this.validatePeer = validatePeer
@@ -77,6 +76,11 @@ class Swarm extends EventEmitter {
     this[kQueue] = peerQueue(queue)
     this[kQueue].on('readable', this[kDrain](this[kQueue]))
   }
+
+  get ephemeral () {
+    return this.network.ephemeral
+  }
+
   [kDrain] (queue) {
     const onAttempt = () => {
       for (let i = 0; i < this[kFlush].length; i++) {

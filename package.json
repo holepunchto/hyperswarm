@@ -4,8 +4,7 @@
   "description": "A distributed networking stack for connecting peers",
   "main": "swarm.js",
   "dependencies": {
-    "@hyperswarm/discovery": "^1.1.0",
-    "@hyperswarm/network": "^1.1.2",
+    "@hyperswarm/network": "git+https://github.com/hyperswarm/network.git#adaptive-ephemerality",
     "shuffled-priority-queue": "^2.1.0",
     "utp-native": "^2.1.3"
   },
