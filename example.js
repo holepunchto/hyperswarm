@@ -19,6 +19,8 @@ swarm.connectivity((err, capabilities) => {
 swarm.join(key, {
   announce: true,
   lookup: true
+}, function () {
+  console.log('fully joined...')
 })
 
 swarm.on('connection', function (socket, info) {

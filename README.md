@@ -85,7 +85,7 @@ Options include:
 }
 ```
 
-#### `swarm.join(topic[, options])`
+#### `swarm.join(topic[, options, onjoin])`
 
 Join the swarm for the given topic. This will cause peers to be discovered for the topic (`'peer'` event). Connections will automatically be created to those peers (`'connection'` event).
 
@@ -101,12 +101,14 @@ Parameters:
  - `options`. Object.
    - `announce`. Boolean. List this peer under the the topic as a connectable target? Defaults to false.
    - `lookup`. Boolean. Look for peers in the topic and attempt to connect to them? If `announce` is false, this automatically becomes true.
+ - `onjoin`. A function that is called when your topic has been fully announced to the local network and the DHT.
 
-#### `swarm.leave(topic)`
+#### `swarm.leave(topic[, onleave])`
 
 Leave the swarm for the given topic.
 
  - `topic`. Buffer. The identifier of the peer-group to delist from. Must be 32 bytes in length.
+ - `onleave`. A function that is called when your topic has been fully unannounced to the local network and the DHT.
 
 #### `swarm.connect(peer, (err, socket, details) => {})`
 

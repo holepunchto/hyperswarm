@@ -134,8 +134,10 @@ class Swarm extends EventEmitter {
     if (this.destroyed) throw Error(ERR_DESTROYED)
     this.network.bind(port, cb)
   }
-  join (key, opts = {}) {
+  join (key, opts = {}, onjoin) {
     if (this.destroyed) throw Error(ERR_DESTROYED)
+    if (typeof opts === 'function') return this.join(key, {}, opts)
+
     const { network } = this
 
     if (Buffer.isBuffer(key) === false) throw Error(ERR_MISSING_KEY)
@@ -153,7 +155,13 @@ class Swarm extends EventEmitter {
         ? network.announce(key, { lookup })
         : network.lookup(key)
 
-      topic.on('update', () => this.emit('updated', { key }))
+      topic.on('update', () => {
+        this.emit('updated', { key })
+        if (onjoin) {
+          onjoin()
+          onjoin = null
+        }
+      })
       if (lookup) {
         topic.on('peer', (peer) => {
           if (!this.validatePeer(peer)) {
@@ -167,18 +175,18 @@ class Swarm extends EventEmitter {
       this.emit('join', key, opts)
     })
   }
-  leave (key) {
+  leave (key, onleave) {
     if (Buffer.isBuffer(key) === false) throw Error(ERR_MISSING_KEY)
     if (this.destroyed) return
 
     this.network.bind((err) => {
       if (err) return // don't emit this, as we are leaving anyway
-      this[kLeave](key)
+      this[kLeave](key, onleave)
       this.emit('leave', key)
     })
   }
 
-  [kLeave] (key) {
+  [kLeave] (key, onleave) {
     const { network } = this
 
     const domain = network.discovery._domain(key)
@@ -188,6 +196,7 @@ class Swarm extends EventEmitter {
     for (const topic of topics) {
       if (Buffer.compare(key, topic.key) === 0) {
         topic.destroy()
+        if (onleave) topic.once('close', onleave)
         break
       }
     }
