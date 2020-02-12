@@ -98,11 +98,21 @@ class Swarm extends EventEmitter {
     const drain = () => {
       if (this.open === false) return
       if (this.clientSockets >= this.maxClientSockets) return
-      const info = queue.shift()
-      if (!info) return
-      this.clientSockets += 1
-      this[kIncrPeerCount]()
-      this.connect(info.peer, onConnect(info))
+
+      while (true) {
+        const info = queue.shift()
+        if (!info) return
+
+        if (info.peer.topic) { // only connect to active topics ...
+          const domain = this.network.discovery._domain(info.peer.topic)
+          if (!this.network.discovery._domains.has(domain)) continue
+        }
+
+        this.clientSockets += 1
+        this[kIncrPeerCount]()
+        this.connect(info.peer, onConnect(info))
+        return
+      }
     }
     return drain
   }
