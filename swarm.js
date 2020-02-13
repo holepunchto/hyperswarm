@@ -17,6 +17,7 @@ const kIncrPeerCount = Symbol('hyperswarm.incrPeerCount')
 const kDecrPeerCount = Symbol('hyperswarm.decrPeerCount')
 const kQueue = Symbol('hyperswarm.queue')
 const kLeave = Symbol('hyperswarm.leave')
+const kFlush = Symbol('hyperswarm.flush')
 
 module.exports = opts => new Swarm(opts)
 
@@ -71,10 +72,18 @@ class Swarm extends EventEmitter {
 
     this.validatePeer = validatePeer
 
+    this[kFlush] = []
     this[kQueue] = peerQueue(queue)
     this[kQueue].on('readable', this[kDrain](this[kQueue]))
   }
   [kDrain] (queue) {
+    const flush = () => {
+      if (!this[kFlush].length) return
+      const cbs = this[kFlush]
+      this[kFlush] = []
+      for (const cb of cbs) cb()
+    }
+
     const onConnect = (info) => (err, socket, isTCP) => {
       if (err) {
         this.clientSockets -= 1
@@ -92,12 +101,13 @@ class Swarm extends EventEmitter {
         info.disconnected()
         queue.requeue(info)
         setImmediate(drain)
+        if (this[kFlush].length && !queue.untried) flush()
       })
       drain()
     }
     const drain = () => {
       if (this.open === false) return
-      if (this.clientSockets >= this.maxClientSockets) return
+      if (this.clientSockets >= this.maxClientSockets) return flush()
 
       while (true) {
         const info = queue.shift()
@@ -193,6 +203,16 @@ class Swarm extends EventEmitter {
       if (err) return // don't emit this, as we are leaving anyway
       this[kLeave](key, onleave)
       this.emit('leave', key)
+    })
+  }
+  flush (cb) {
+    this.network.bind((err) => {
+      if (err) return cb(err)
+      this.network.discovery.flush(() => {
+        console.log(this[kQueue].untried)
+        if (this[kQueue].untried === 0 || this.clientSockets >= this.maxClientSockets) cb()
+        else this[kFlush].push(cb)
+      })
     })
   }
 
