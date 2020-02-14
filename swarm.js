@@ -111,7 +111,7 @@ class Swarm extends EventEmitter {
     }
     const drain = () => {
       if (this.open === false) return
-      if (this.clientSockets >= this.maxClientSockets) return flush()
+      if (this.clientSockets >= this.maxClientSockets) return
 
       while (true) {
         const info = queue.shift()
