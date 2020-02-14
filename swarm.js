@@ -77,19 +77,23 @@ class Swarm extends EventEmitter {
     this[kQueue].on('readable', this[kDrain](this[kQueue]))
   }
   [kDrain] (queue) {
-    const flush = () => {
-      if (!this[kFlush].length) return
-      const cbs = this[kFlush]
-      this[kFlush] = []
-      for (const cb of cbs) cb()
+    const onAttempt = () => {
+      for (let i = 0; i < this[kFlush].length; i++) {
+        if (this.clientSockets >= this.maxClientSockets || --this[kFlush][i][0] <= 0) {
+          const cb = this[kFlush][i][1]
+          this[kFlush][i--] = this[kFlush][this[kFlush].length - 1]
+          this[kFlush].pop()
+          cb(null)
+        }
+      }
     }
-
     const onConnect = (info) => (err, socket, isTCP) => {
       if (err) {
         this.clientSockets -= 1
         this[kDecrPeerCount]()
         queue.requeue(info)
         drain()
+        onAttempt()
         return
       }
       info.connected(socket, isTCP)
@@ -101,9 +105,9 @@ class Swarm extends EventEmitter {
         info.disconnected()
         queue.requeue(info)
         setImmediate(drain)
-        if (this[kFlush].length && !queue.untried) flush()
       })
       drain()
+      onAttempt()
     }
     const drain = () => {
       if (this.open === false) return
@@ -115,7 +119,10 @@ class Swarm extends EventEmitter {
 
         if (info.peer.topic) { // only connect to active topics ...
           const domain = this.network.discovery._domain(info.peer.topic)
-          if (!this.network.discovery._domains.has(domain)) continue
+          if (!this.network.discovery._domains.has(domain)) {
+            onAttempt()
+            continue
+          }
         }
 
         this.clientSockets += 1
@@ -206,12 +213,13 @@ class Swarm extends EventEmitter {
     })
   }
   flush (cb) {
+    if (this.destroyed) throw Error(ERR_DESTROYED)
     this.network.bind((err) => {
       if (err) return cb(err)
       this.network.discovery.flush(() => {
-        console.log(this[kQueue].untried)
-        if (this[kQueue].untried === 0 || this.clientSockets >= this.maxClientSockets) cb()
-        else this[kFlush].push(cb)
+        const prio = this[kQueue].prioritised
+        if (prio === 0 || this.clientSockets >= this.maxClientSockets) cb()
+        else this[kFlush].push([prio, cb])
       })
     })
   }
@@ -271,6 +279,10 @@ class Swarm extends EventEmitter {
     this.destroyed = true
     this[kQueue].destroy()
     this.network.close(cb)
+
+    const flush = this[kFlush]
+    this[kFlush] = []
+    for (const [_, cb] of flush) cb(Error(ERR_DESTROYED))
   }
 }
 
