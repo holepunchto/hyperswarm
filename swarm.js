@@ -58,7 +58,7 @@ class Swarm extends EventEmitter {
     this.network.utp.maxConnections = maxServerSockets
 
     this.destroyed = false
-    this.clientsInflight = 0
+    this.prioritisedInflight = 0
     this.clientSockets = 0
     this.serverSockets = 0
     this.peers = 0
@@ -88,8 +88,8 @@ class Swarm extends EventEmitter {
         }
       }
     }
-    const onConnect = (info) => (err, socket, isTCP) => {
-      this.clientsInflight -= 1
+    const onConnect = (info, prioritised) => (err, socket, isTCP) => {
+      if (prioritised) this.prioritisedInflight -= 1
       if (err) {
         this.clientSockets -= 1
         this[kDecrPeerCount]()
@@ -127,10 +127,10 @@ class Swarm extends EventEmitter {
           }
         }
 
-        this.clientsInflight += 1
+        if (info.prioritised) this.prioritisedInflight += 1
         this.clientSockets += 1
         this[kIncrPeerCount]()
-        this.connect(info.peer, onConnect(info))
+        this.connect(info.peer, onConnect(info, info.prioritised))
         return
       }
     }
@@ -217,7 +217,7 @@ class Swarm extends EventEmitter {
     this.network.bind((err) => {
       if (err) return cb(err)
       this.network.discovery.flush(() => {
-        const prio = this[kQueue].prioritised + this.clientsInflight
+        const prio = this[kQueue].prioritised + this.prioritisedInflight
         if (prio === 0 || this.clientSockets >= this.maxClientSockets) cb()
         else this[kFlush].push([prio, cb])
       })
