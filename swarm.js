@@ -239,7 +239,14 @@ class Swarm extends EventEmitter {
       }
     }
   }
-
+  remoteAddress () {
+    const disc = this.network.discovery
+    return disc && disc.dht.remoteAddress()
+  }
+  holepunchable () {
+    const disc = this.network.discovery
+    return disc && disc.dht.remoteAddress()
+  }
   connect (peer, cb) {
     if (this.destroyed) throw Error(ERR_DESTROYED)
     this.network.connect(peer, cb)
