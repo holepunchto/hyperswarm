@@ -282,7 +282,7 @@ class Swarm extends EventEmitter {
 
     const flush = this[kFlush]
     this[kFlush] = []
-    for (const [_, cb] of flush) cb(Error(ERR_DESTROYED))
+    for (const [, cb] of flush) cb(Error(ERR_DESTROYED))
   }
 }
 
