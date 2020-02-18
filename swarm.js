@@ -245,7 +245,7 @@ class Swarm extends EventEmitter {
   }
   holepunchable () {
     const disc = this.network.discovery
-    return disc && disc.dht.remoteAddress()
+    return disc && disc.dht.holepunchable()
   }
   connect (peer, cb) {
     if (this.destroyed) throw Error(ERR_DESTROYED)
