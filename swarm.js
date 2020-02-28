@@ -77,10 +77,6 @@ class Swarm extends EventEmitter {
     this[kQueue].on('readable', this[kDrain](this[kQueue]))
   }
 
-  get ephemeral () {
-    return this.network.ephemeral
-  }
-
   [kDrain] (queue) {
     const onAttempt = () => {
       for (let i = 0; i < this[kFlush].length; i++) {
