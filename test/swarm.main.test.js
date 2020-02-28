@@ -12,7 +12,6 @@ test('default ephemerality', async ({ is }) => {
   const swarm = hyperswarm({
     bootstrap: []
   })
-  is(swarm.ephemeral, true)
   promisifyMethod(swarm, 'listen')
   await swarm.listen()
   is(swarm.network.discovery.dht.ephemeral, true)
@@ -42,7 +41,6 @@ test('ephemeral option', async ({ is }) => {
     ephemeral: false,
     bootstrap: []
   })
-  is(swarm.ephemeral, false)
   promisifyMethod(swarm, 'listen')
   await swarm.listen()
   is(swarm.network.discovery.dht.ephemeral, false)
