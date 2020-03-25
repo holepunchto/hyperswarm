@@ -112,6 +112,11 @@ Leave the swarm for the given topic.
  - `topic`. Buffer. The identifier of the peer-group to delist from. Must be 32 bytes in length.
  - `onleave`. A function that is called when your topic has been fully unannounced to the local network and the DHT.
 
+#### `obj = swarm.status(topic)`
+
+Returns an object indicating wheather a topic is being announced or performing a lookup,
+or `null` if the topic is unknown
+
 #### `swarm.connect(peer, (err, socket, details) => {})`
 
 Establish a connection to the given peer. You usually won't need to use this function, because hyperswarm connects to found peers automatically.

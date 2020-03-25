@@ -18,6 +18,7 @@ const kDecrPeerCount = Symbol('hyperswarm.decrPeerCount')
 const kQueue = Symbol('hyperswarm.queue')
 const kLeave = Symbol('hyperswarm.leave')
 const kFlush = Symbol('hyperswarm.flush')
+const kStatus = Symbol('hyperswarm.statuses')
 
 module.exports = opts => new Swarm(opts)
 
@@ -72,6 +73,7 @@ class Swarm extends EventEmitter {
 
     this.validatePeer = validatePeer
 
+    this[kStatus] = new Map()
     this[kFlush] = []
     this[kQueue] = peerQueue(queue)
     this[kQueue].on('readable', this[kDrain](this[kQueue]))
@@ -164,6 +166,9 @@ class Swarm extends EventEmitter {
     if (this.destroyed) throw Error(ERR_DESTROYED)
     this.network.bind(port, cb)
   }
+  status (key) {
+    return this[kStatus].get(key.toString('hex')) || null
+  }
   join (key, opts = {}, onjoin) {
     if (this.destroyed) throw Error(ERR_DESTROYED)
     if (typeof opts === 'function') return this.join(key, {}, opts)
@@ -175,6 +180,8 @@ class Swarm extends EventEmitter {
     const { announce = false, lookup = true } = opts
 
     if (!announce && !lookup) throw Error(ERR_JOIN_OPTS)
+
+    this[kStatus].set(key.toString('hex'), { announce, lookup })
     network.bind((err) => {
       if (err) {
         this.emit('error', err)
@@ -206,6 +213,7 @@ class Swarm extends EventEmitter {
     if (Buffer.isBuffer(key) === false) throw Error(ERR_MISSING_KEY)
     if (this.destroyed) return
 
+    this[kStatus].delete(key.toString('hex'))
     this.network.bind((err) => {
       if (err) return // don't emit this, as we are leaving anyway
       this[kLeave](key, onleave)
@@ -286,6 +294,7 @@ class Swarm extends EventEmitter {
     this.destroyed = true
     this[kQueue].destroy()
     this.network.close(cb)
+    this[kStatus].clear()
 
     const flush = this[kFlush]
     this[kFlush] = []
