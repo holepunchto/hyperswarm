@@ -504,8 +504,7 @@ test('emits disconnection event upon being disconnected from by a peer', async (
     lookup: true
   })
   await once(swarm2, 'listening')
-  await once(swarm1, 'connection')
-  await once(swarm2, 'connection')
+  await Promise.all([once(swarm1, 'connection'), once(swarm2, 'connection')])
   swarm2.leave(key)
   swarm2.destroy()
   await once(swarm2, 'close')
