@@ -1,7 +1,7 @@
 'use strict'
 const { randomBytes } = require('crypto')
 const { test } = require('tap')
-const { once } = require('nonsynchronous')
+const { once, promisifyMethod } = require('nonsynchronous')
 const { dhtBootstrap } = require('./util')
 const hyperswarm = require('../swarm')
 
@@ -45,7 +45,6 @@ test('after maxPeers is exceeded, new peers can connect once existing peers have
 
   is(swarm.peers, announcingPeers)
   is(swarm.open, true)
-
   for (var n = 0; n < lookupPeers; n++) {
     const s = hyperswarm({ bootstrap })
     swarms.push(s)
@@ -60,13 +59,11 @@ test('after maxPeers is exceeded, new peers can connect once existing peers have
   }
   is(swarm.peers, maxPeers)
   is(swarm.open, false)
-
   swarms[0].destroy()
   await Promise.all([
     once(swarms[0], 'close'),
     once(swarm, 'disconnection')
   ])
-
   is(swarm.peers, maxPeers - 1)
   const swarm2 = hyperswarm({ bootstrap })
   swarm2.join(key, {
@@ -77,15 +74,15 @@ test('after maxPeers is exceeded, new peers can connect once existing peers have
     once(swarm2, 'listening'),
     once(swarm, 'connection')
   ])
-
   is(swarm.peers, maxPeers)
   is(swarm.open, false)
-
-  swarm2.destroy()
+  promisifyMethod(swarm2, 'destroy')
+  await swarm2.destroy()
   swarm.leave(key)
-  swarm.destroy()
+  promisifyMethod(swarm, 'destroy')
+  await swarm.destroy()
   for (const s of swarms) {
     s.leave(key)
   }
-  closeDht(...swarms)
+  await closeDht(...swarms)
 })

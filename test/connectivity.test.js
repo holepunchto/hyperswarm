@@ -31,7 +31,8 @@ test('when able to bind but unable to bootstrap', async ({ is }) => {
     is(holepunched, false)
   })
   await swarm.connectivity[done]
-  swarm.destroy()
+  promisifyMethod(swarm, 'destroy')
+  await swarm.destroy()
 })
 
 test('when able to bind and bootstrap but unable to holepunch', async ({ is }) => {
@@ -47,7 +48,8 @@ test('when able to bind and bootstrap but unable to holepunch', async ({ is }) =
     is(holepunched, false)
   })
   await swarm.connectivity[done]
-  swarm.destroy()
+  promisifyMethod(swarm, 'destroy')
+  await swarm.destroy()
 })
 
 test('when able to bind, bootstrap and holepunch', async ({ is }) => {
@@ -63,5 +65,6 @@ test('when able to bind, bootstrap and holepunch', async ({ is }) => {
     is(holepunched, true)
   })
   await swarm.connectivity[done]
-  swarm.destroy()
+  promisifyMethod(swarm, 'destroy')
+  await swarm.destroy()
 })

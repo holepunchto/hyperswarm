@@ -1,7 +1,7 @@
 'use strict'
 const { randomBytes } = require('crypto')
 const { test } = require('tap')
-const { once, timeout } = require('nonsynchronous')
+const { once, timeout, promisifyMethod } = require('nonsynchronous')
 const { dhtBootstrap } = require('./util')
 const hyperswarm = require('../swarm')
 
@@ -9,7 +9,8 @@ test('maxClientSockets defaults to Infinity', async ({ is }) => {
   const swarm = hyperswarm({ bootstrap: [] })
   const { maxClientSockets } = swarm
   is(maxClientSockets, Infinity)
-  swarm.destroy()
+  promisifyMethod(swarm, 'destroy')
+  await swarm.destroy()
 })
 
 test('maxClientSockets option controls maximum amount of client sockets', async ({ is, fail }) => {
@@ -58,7 +59,7 @@ test('maxClientSockets option controls maximum amount of client sockets', async 
   for (const s of swarms) {
     s.leave(key)
   }
-  closeDht(...swarms)
+  await closeDht(...swarms)
 })
 
 test('after maxClientSockets is exceeded, client sockets can connect to peers after client socket count is below threshhold again', async ({ is, fail }) => {
@@ -103,9 +104,10 @@ test('after maxClientSockets is exceeded, client sockets can connect to peers af
   is(swarm.clientSockets, maxClientSockets)
 
   swarm.leave(key)
-  swarm.destroy()
+  promisifyMethod(swarm, 'destroy')
+  await swarm.destroy()
   for (const s of swarms) {
     s.leave(key)
   }
-  closeDht(...swarms)
+  await closeDht(...swarms)
 })

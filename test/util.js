@@ -2,7 +2,7 @@
 const net = require('net')
 const UTP = require('utp-native')
 const dht = require('@hyperswarm/dht')
-const { once } = require('nonsynchronous')
+const { once, promisifyMethod } = require('nonsynchronous')
 
 async function dhtBootstrap () {
   const node = dht({
@@ -15,19 +15,13 @@ async function dhtBootstrap () {
   return {
     port,
     bootstrap: [`127.0.0.1:${port}`],
-    closeDht (...others) {
-      let missing = 1
-
-      for (const n of others) {
-        missing++
-        n.destroy(done)
+    async closeDht (...nodes) {
+      for (const n of nodes) {
+        promisifyMethod(n, 'destroy')
+        await n.destroy()
       }
-      done()
-
-      function done () {
-        if (--missing) return
-        node.destroy()
-      }
+      node.destroy()
+      await once(node, 'close')
     }
   }
 }

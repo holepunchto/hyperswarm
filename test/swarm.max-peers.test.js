@@ -1,7 +1,7 @@
 'use strict'
 const { randomBytes } = require('crypto')
 const { test } = require('tap')
-const { once, timeout } = require('nonsynchronous')
+const { once, timeout, promisifyMethod } = require('nonsynchronous')
 const { dhtBootstrap } = require('./util')
 const hyperswarm = require('../swarm')
 
@@ -9,7 +9,8 @@ test('maxPeers defaults to 24', async ({ is }) => {
   const swarm = hyperswarm({ bootstrap: [] })
   const { maxPeers } = swarm
   is(maxPeers, 24)
-  swarm.destroy()
+  promisifyMethod(swarm, 'destroy')
+  await swarm.destroy()
 })
 
 test('allows a maximum amount of peers (maxPeers option - client sockets)', async ({ is, fail }) => {
@@ -60,7 +61,7 @@ test('allows a maximum amount of peers (maxPeers option - client sockets)', asyn
   for (const s of swarms) {
     s.leave(key)
   }
-  closeDht(swarm, swarm2, ...swarms)
+  await closeDht(swarm, swarm2, ...swarms)
 })
 
 test('allows a maximum amount of peers (maxPeers option - server sockets)', async ({ is, fail }) => {
@@ -108,7 +109,7 @@ test('allows a maximum amount of peers (maxPeers option - server sockets)', asyn
   for (const s of swarms) {
     s.leave(key)
   }
-  closeDht(swarm, swarm2, ...swarms)
+  await closeDht(swarm, swarm2, ...swarms)
 })
 
 test('allows a maximum amount of peers (maxPeers option - client sockets and server sockets)', async ({ is, fail }) => {
@@ -178,7 +179,7 @@ test('allows a maximum amount of peers (maxPeers option - client sockets and ser
   for (const s of swarms) {
     s.leave(key)
   }
-  closeDht(swarm, swarm2, ...swarms)
+  await closeDht(swarm, swarm2, ...swarms)
 })
 
 test('maxPeers option sets the maximum amount of peers that a swarm can connect to be or be connected to', async ({ is, fail }) => {
@@ -251,5 +252,5 @@ test('maxPeers option sets the maximum amount of peers that a swarm can connect 
   for (const s of swarms) {
     s.leave(key)
   }
-  closeDht(swarm, swarm2, ...swarms)
+  await closeDht(swarm, swarm2, ...swarms)
 })

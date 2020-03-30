@@ -1,7 +1,7 @@
 'use strict'
 const { randomBytes } = require('crypto')
 const { test } = require('tap')
-const { once, timeout } = require('nonsynchronous')
+const { once, timeout, promisifyMethod } = require('nonsynchronous')
 const { dhtBootstrap } = require('./util')
 const hyperswarm = require('../swarm')
 const net = require('net')
@@ -10,7 +10,8 @@ test('maxServerSockets defaults to Infinity', async ({ is }) => {
   const swarm = hyperswarm({ bootstrap: [] })
   const { maxServerSockets } = swarm
   is(maxServerSockets, Infinity)
-  swarm.destroy()
+  promisifyMethod(swarm, 'destroy')
+  await swarm.destroy()
 })
 
 test('maxServerSockets option controls maximum incoming sockets', async ({ is, fail }) => {
@@ -48,7 +49,7 @@ test('maxServerSockets option controls maximum incoming sockets', async ({ is, f
   for (const s of swarms) {
     s.leave(key)
   }
-  closeDht(swarm, swarm2, ...swarms)
+  await closeDht(swarm, swarm2, ...swarms)
 })
 
 test('after maxServerSockets is exceeded, new incoming sockets are refused until server socket count is below threshhold again', async ({ is, fail }) => {
@@ -97,7 +98,7 @@ test('after maxServerSockets is exceeded, new incoming sockets are refused until
   for (const s of swarms) {
     s.leave(key)
   }
-  closeDht(swarm, swarm2, ...swarms)
+  await closeDht(swarm, swarm2, ...swarms)
 })
 
 test('maxServerSockets is actually a soft limit, the absolute hard limit is double maxServerSockets', async ({ is, fail }) => {
@@ -187,7 +188,9 @@ test('maxServerSockets is actually a soft limit, the absolute hard limit is doub
   for (const s of swarms) {
     s.leave(key)
   }
-
   closeDht(swarm, swarm2, ...swarms)
-  setImmediate(() => process.exit(0)) // haxx exit the process so we don't have to wait for utp timeouts ... maybe something we can improve in utp?
+  // haxx exit the process so we don't have to wait for utp timeouts
+  // maybe something we can improve in utp?:
+  await timeout(500)
+  setImmediate(() => process.exit(0))
 })

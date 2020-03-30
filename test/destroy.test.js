@@ -21,7 +21,6 @@ test('listening and destroy twice', async ({ pass, is }) => {
   pass('swarm is listening')
   is(typeof swarm.address().port, 'number')
   swarm.destroy()
-  swarm.destroy()
   await once(swarm, 'close')
 })
 
@@ -36,30 +35,37 @@ test('destroy right away', async ({ pass, doesNotThrow }) => {
 
 test('destroy right away after listen', async ({ pass }) => {
   const swarm = hyperswarm()
-  swarm.listen()
-  swarm.destroy()
-  await once(swarm, 'close')
+  promisifyMethod(swarm, 'listen')
+  promisifyMethod(swarm, 'destroy')
+  await swarm.listen()
+  await swarm.destroy()
   pass('closed')
 })
 
 test('address after destroy', async ({ throws }) => {
   const swarm = hyperswarm()
-  swarm.listen()
-  swarm.destroy()
+  promisifyMethod(swarm, 'listen')
+  promisifyMethod(swarm, 'destroy')
+  await swarm.listen()
+  await swarm.destroy()
   throws(() => swarm.address(), Error('swarm has been destroyed'))
 })
 
-test('listen after destroy', async ({ throws }) => {
+test('listen after destroy', async ({ rejects }) => {
   const swarm = hyperswarm()
-  swarm.listen()
-  swarm.destroy()
-  throws(() => swarm.listen(), Error('swarm has been destroyed'))
+  promisifyMethod(swarm, 'listen')
+  promisifyMethod(swarm, 'destroy')
+  await swarm.listen()
+  await swarm.destroy()
+  rejects(() => swarm.listen(), Error('swarm has been destroyed'))
 })
 
 test('join after destroy', async ({ throws }) => {
   const swarm = hyperswarm()
-  swarm.listen()
-  swarm.destroy()
+  promisifyMethod(swarm, 'listen')
+  promisifyMethod(swarm, 'destroy')
+  await swarm.listen()
+  await swarm.destroy()
   throws(() => {
     const key = randomBytes(32)
     swarm.join(key)
@@ -68,8 +74,10 @@ test('join after destroy', async ({ throws }) => {
 
 test('connect after destroy', async ({ throws }) => {
   const swarm = hyperswarm()
-  swarm.listen()
-  swarm.destroy()
+  promisifyMethod(swarm, 'listen')
+  promisifyMethod(swarm, 'destroy')
+  await swarm.listen()
+  await swarm.destroy()
   throws(() => {
     const peer = {
       host: '127.0.0.1',
@@ -81,8 +89,10 @@ test('connect after destroy', async ({ throws }) => {
 
 test('connectivity after destroy', async ({ throws }) => {
   const swarm = hyperswarm()
-  swarm.listen()
-  swarm.destroy()
+  promisifyMethod(swarm, 'listen')
+  promisifyMethod(swarm, 'destroy')
+  await swarm.listen()
+  await swarm.destroy()
   throws(() => {
     swarm.connectivity(() => {})
   }, Error('swarm has been destroyed'))
