@@ -506,8 +506,12 @@ test('emits disconnection event upon being disconnected from by a peer', async (
   const { bootstrap, closeDht } = await dhtBootstrap()
   const swarm1 = hyperswarm({ bootstrap })
   const swarm2 = hyperswarm({ bootstrap })
+  const evts = [once(swarm1, 'connection'), once(swarm2, 'connection')]
+  promisifyMethod(swarm1, 'listen')
+  promisifyMethod(swarm2, 'listen')
+  await swarm1.listen()
+  await swarm2.listen()
   const key = randomBytes(32)
-  const evts = [once(swarm1, 'connection'), once(swarm2, 'connection'), once(swarm1, 'listening'), once(swarm2, 'listening')]
   swarm1.join(key, {
     announce: true,
     lookup: false
