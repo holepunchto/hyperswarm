@@ -507,17 +507,16 @@ test('emits disconnection event upon being disconnected from by a peer', async (
   const swarm1 = hyperswarm({ bootstrap })
   const swarm2 = hyperswarm({ bootstrap })
   const key = randomBytes(32)
+  const evts = [once(swarm1, 'connection'), once(swarm2, 'connection'), once(swarm1, 'listening'), once(swarm2, 'listening')]
   swarm1.join(key, {
     announce: true,
     lookup: false
   })
-  await once(swarm1, 'listening')
   swarm2.join(key, {
     announce: false,
     lookup: true
   })
-  await once(swarm2, 'listening')
-  await Promise.all([once(swarm1, 'connection'), once(swarm2, 'connection')])
+  await Promise.all(evts)
   swarm2.leave(key)
   swarm2.destroy()
   await once(swarm2, 'close')
