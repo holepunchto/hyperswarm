@@ -101,7 +101,7 @@ test('join automatically binds', async ({ is }) => {
 test('join – emits error event when failing to bind', async ({ is }) => {
   const swarm = hyperswarm({ bootstrap: [] })
   const fauxError = Error('problem binding')
-  swarm.network.bind = (cb) => queueMicrotask(cb.bind(null, fauxError))
+  swarm.network.bind = (cb) => process.nextTick(cb.bind(null, fauxError))
   swarm.join(Buffer.from('key'))
   const err = await once(swarm, 'error')
   is(err, fauxError)
@@ -157,7 +157,7 @@ test('join - emits update event when topic updates', async ({ pass }) => {
   swarm.network.lookup = () => topic
   swarm.join(key)
   await once(swarm, 'listening')
-  queueMicrotask(() => topic.emit('update'))
+  process.nextTick(() => topic.emit('update'))
   await once(swarm, 'updated')
   pass('event emitted')
   promisifyMethod(swarm, 'destroy')
@@ -174,7 +174,7 @@ test('join - emits peer event when topic recieves peer', async ({ plan, pass, is
   swarm.network.lookup = () => topic
   swarm.join(key)
   await once(swarm, 'listening')
-  queueMicrotask(() => topic.emit('peer', fauxPeer))
+  process.nextTick(() => topic.emit('peer', fauxPeer))
   const [ peer ] = await once(swarm, 'peer')
   pass('event emitted')
   is(peer, fauxPeer)
@@ -197,7 +197,7 @@ test('join - announce: true, lookup: false', async ({ is, fail }) => {
   swarm.once('peer', () => {
     fail('peers should not be emitted when lookup is false')
   })
-  queueMicrotask(() => {
+  process.nextTick(() => {
     topic.emit('peer', fauxPeer)
   })
   is(announceKey, key)
@@ -220,7 +220,7 @@ test('join - announce: true, lookup: true', async ({ plan, is }) => {
   }
   swarm.join(key, { announce: true, lookup: true })
   await once(swarm, 'listening')
-  queueMicrotask(() => topic.emit('peer', fauxPeer))
+  process.nextTick(() => topic.emit('peer', fauxPeer))
   const [ peer ] = await once(swarm, 'peer')
   is(peer, fauxPeer)
   is(announceKey, key)
