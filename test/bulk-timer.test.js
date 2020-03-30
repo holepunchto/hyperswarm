@@ -1,5 +1,5 @@
 'use strict'
-const { test } = require('tap')
+const test = require('tape')
 const { whenify, immediate, timeout, done, count } = require('nonsynchronous')
 const bulkTimer = require('../lib/bulk-timer')
 

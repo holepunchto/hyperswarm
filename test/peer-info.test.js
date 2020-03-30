@@ -1,7 +1,7 @@
 'use strict'
 const { PassThrough } = require('stream')
 const peerInfo = require('../lib/peer-info')
-const { test } = require('tap')
+const test = require('tape')
 const { once } = require('nonsynchronous')
 
 test('default state', async ({ is }) => {

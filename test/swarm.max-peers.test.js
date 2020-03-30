@@ -1,6 +1,6 @@
 'use strict'
 const { randomBytes } = require('crypto')
-const { test } = require('tap')
+const test = require('tape')
 const { once, timeout, promisifyMethod } = require('nonsynchronous')
 const { dhtBootstrap } = require('./util')
 const hyperswarm = require('../swarm')

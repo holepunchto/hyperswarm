@@ -1,5 +1,5 @@
 'use strict'
-const { test } = require('tap')
+const test = require('tape')
 const { done, whenifyMethod, promisifyMethod } = require('nonsynchronous')
 const hyperswarm = require('../')
 

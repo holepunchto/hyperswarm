@@ -1,6 +1,6 @@
 'use strict'
 const { randomBytes } = require('crypto')
-const { test } = require('tap')
+const test = require('tape')
 const { once, promisifyMethod } = require('nonsynchronous')
 const hyperswarm = require('../')
 
@@ -51,13 +51,18 @@ test('address after destroy', async ({ throws }) => {
   throws(() => swarm.address(), Error('swarm has been destroyed'))
 })
 
-test('listen after destroy', async ({ rejects }) => {
+test('listen after destroy', async ({ same, fail }) => {
   const swarm = hyperswarm()
   promisifyMethod(swarm, 'listen')
   promisifyMethod(swarm, 'destroy')
   await swarm.listen()
   await swarm.destroy()
-  rejects(() => swarm.listen(), Error('swarm has been destroyed'))
+  try {
+    await swarm.listen()
+    fail('listen should not succeeed')
+  } catch (err) {
+    same(err, Error('swarm has been destroyed'))
+  }
 })
 
 test('join after destroy', async ({ throws }) => {
