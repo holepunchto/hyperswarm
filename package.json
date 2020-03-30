@@ -17,7 +17,7 @@
     "tape": "^5.0.0-next.5"
   },
   "scripts": {
-    "test": "tap -j 1 -R classic test/*.test.js && standard --fix",
+    "test": "tape test/*.test.js",
     "cov": "tap -j 1 -R classic --coverage-report=html test/*.test.js",
     "ci": "standard && npm test"
   },
