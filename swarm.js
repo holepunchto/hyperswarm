@@ -177,7 +177,8 @@ class Swarm extends EventEmitter {
 
     if (Buffer.isBuffer(key) === false) throw Error(ERR_MISSING_KEY)
 
-    const { announce = false, lookup = true } = opts
+    const { announce = false, lookup = true, length } = opts
+    const includeLength = !!length || length === 0 || !!opts.includeLength
 
     if (!announce && !lookup) throw Error(ERR_JOIN_OPTS)
 
@@ -189,8 +190,8 @@ class Swarm extends EventEmitter {
       }
       this[kLeave](key)
       const topic = announce
-        ? network.announce(key, { lookup })
-        : network.lookup(key)
+        ? network.announce(key, { lookup, length, includeLength })
+        : network.lookup(key, { includeLength })
 
       if (onjoin) topic.flush(onjoin)
       topic.on('update', () => {
