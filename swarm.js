@@ -178,7 +178,7 @@ class Swarm extends EventEmitter {
     if (Buffer.isBuffer(key) === false) throw Error(ERR_MISSING_KEY)
 
     const { announce = false, lookup = true, length } = opts
-    const includeLength = !!length || length === 0
+    const includeLength = !!length || length === 0 || !!opts.includeLength
 
     if (!announce && !lookup) throw Error(ERR_JOIN_OPTS)
 
