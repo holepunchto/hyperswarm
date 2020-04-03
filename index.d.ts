@@ -3,7 +3,41 @@ import { EventEmitter } from 'events';
 import { Socket } from 'net';
 import { Duplex } from 'stream';
 
-declare class PeerInfo extends EventEmitter {
+export declare class Timer {
+  constructor(time: any, fn: any);
+  private _time: any;
+  private _fn: any;
+  private _interval: NodeJS.Timeout;
+  private _next: any[];
+  private _pending: any[];
+  destroy(): void;
+  private _ontick(): void;
+  push(info: any): void;
+}
+
+export declare class PeerQueue extends EventEmitter {
+  constructor(opts?: {});
+  destroyed: boolean;
+  private _infos: Map<any, any>;
+  private _queue: any;
+  private _multiplex: boolean;
+  private _requeue: any[];
+  private _remove: any[];
+  private _dedup: Map<any, any>;
+  get prioritised(): number;
+  get length(): any;
+  deduplicate(localId: any, remoteId: any, peer: any): boolean;
+  private _ondedupclose(peer: any, id: any): void;
+  private _release(batch: any): void;
+  private _push(batch: any): void;
+  requeue(info: any): boolean;
+  shift(): any;
+  add(peer: any): void;
+  remove(peer: any): void;
+  destroy(): void;
+}
+
+export declare class PeerInfo extends EventEmitter {
     /**
     * The priority the peer has when trying to reconnect. Is an integer between 0 and 5. 5 meaning the highest priority and 0 meaning the lowest.
     */
@@ -26,8 +60,8 @@ declare class PeerInfo extends EventEmitter {
     duplicate: this;
     /** The list of topics associated with this connection (when multiplex: true) */
     topics: Array<Buffer>;
-    private index;
-    private queue;
+    private index: number;
+    private queue: PeerQueue;
     constructor(peer: any, queue: any);
 
     /** Wether the peer is prioritised or not */
@@ -66,7 +100,7 @@ declare class PeerInfo extends EventEmitter {
     private update(): boolean;
 }
 
-interface SwarmOptions {
+export interface SwarmOptions {
     /**
     * Optionally overwrite the default set of bootstrap servers
     * Each string has to be a valid IPv4 address followed by a port like so:
@@ -130,7 +164,7 @@ interface SwarmOptions {
         multiplex?: boolean;
     };
 }
-interface TopicStatus {
+export interface TopicStatus {
     announce: boolean;
     lookup: boolean;
 }
