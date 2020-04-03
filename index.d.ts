@@ -2,6 +2,8 @@
 import { EventEmitter } from 'events';
 import { Socket } from 'net';
 import { Duplex } from 'stream';
+import { TopicOptions } from '@hyperswarm/discovery'
+import { NetworkResource } from '@hyperswarm/network'
 
 export declare class Timer {
   constructor(time: any, fn: any);
@@ -164,10 +166,6 @@ export interface SwarmOptions {
         multiplex?: boolean;
     };
 }
-export interface TopicStatus {
-    announce: boolean;
-    lookup: boolean;
-}
 
 /**
 * This class is the Hyperswarm Class
@@ -196,7 +194,7 @@ declare class Hyperswarm extends EventEmitter {
     /** The function that gets used to validate new peers before we connect to them*/
     validatePeer: SwarmOptions['validatePeer'];
     /** @internal */
-    network: any;
+    network: NetworkResource;
     /** @internal */
     private kStatus;
     /** @internal */
@@ -215,21 +213,21 @@ declare class Hyperswarm extends EventEmitter {
     on(event: 'updated', listener: (topic: Buffer) => void): this;
     on(event: 'peer-rejected', listener: (peer: any) => void): this;
     on(event: 'peer', listener: (peer: any) => void): this;
-    on(event: 'join', listener: (topic: Buffer, status: TopicStatus) => void): this;
+    on(event: 'join', listener: (topic: Buffer, status: TopicOptions) => void): this;
     on(event: 'leave', listener: (topic: Buffer) => void): this;
 
     /**
     * Returns your local Address.
     */
     address(): {
-        host: string;
-        port: number;
-        family: 'IPv4' | 'IPv6'
+      host: string;
+      port: number;
+      family: 'IPv4' | 'IPv6'
     };
     /**
     * Returns an object indicating wheather a topic is being announced or performing a lookup, or null if the topic is unknown
     */
-    status(key: Buffer): TopicStatus | null;
+    status(key: Buffer): TopicOptions | null;
     /**
     * Returnes you public Ipv4 address as other peers would see it.
     */
@@ -248,7 +246,7 @@ declare class Hyperswarm extends EventEmitter {
     /**
     * Join the swarm for a given topic. This will cause peers to be discovered for the topic. Connections will automatically be created to those peers.
     */
-    join(key: Buffer, opts?: TopicStatus, onjoin?: ( err:Error | undefined | null, join: { maxLength:number }) => void ): void;
+    join(key: Buffer, opts?: TopicOptions, onjoin?: ( err:Error | undefined | null, join: { maxLength:number }) => void ): void;
     /**
     * Leave the swarm for the given topic.
     */
