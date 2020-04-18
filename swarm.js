@@ -48,7 +48,8 @@ class Swarm extends EventEmitter {
         this.emit('connection', socket, info)
         this.serverSockets += 1
         this[kIncrPeerCount]()
-        socket.once('close', () => {
+        socket.on('close', () => {
+          info.disconnected()
           this.serverSockets -= 1
           this.emit('disconnection', socket, info)
           this[kDecrPeerCount]()
@@ -105,10 +106,10 @@ class Swarm extends EventEmitter {
       info.connected(socket, isTCP)
       this.emit('connection', socket, info)
       socket.on('close', () => {
+        info.disconnected()
         this.clientSockets -= 1
         this.emit('disconnection', socket, info)
         this[kDecrPeerCount]()
-        info.disconnected()
         queue.requeue(info)
         setImmediate(drain)
       })
