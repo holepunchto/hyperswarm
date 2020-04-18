@@ -32,10 +32,12 @@ class Swarm extends EventEmitter {
       bootstrap,
       ephemeral,
       validatePeer = () => true,
-      queue = {}
+      queue = {},
+      id
     } = opts
 
     this.network = network({
+      id,
       bootstrap,
       ephemeral,
       announceLocalAddress: !!opts.announceLocalAddress,
