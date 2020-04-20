@@ -33,13 +33,15 @@ class Swarm extends EventEmitter {
       ephemeral,
       validatePeer = () => true,
       queue = {},
-      id
+      id,
+      preferredPort
     } = opts
 
     this.network = network({
       id,
       bootstrap,
       ephemeral,
+      preferredPort,
       announceLocalAddress: !!opts.announceLocalAddress,
       bind: () => this.emit('listening'),
       socket: (socket, isTCP) => {
