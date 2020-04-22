@@ -63,17 +63,17 @@ Options include:
   // apply a filter before connecting to the peer
   validatePeer: (peer) => true,
   // configure peer management behaviour
-  queue = {
+  queue: {
     // an array of backoff times, in millieconds
     // every time a failing peer connection is retried
     // it will wait for specified milliseconds based on the
     // retry count, until it reaches the end of the requeue
     // array at which time the peer is considered unresponsive
     // and retry attempts cease
-    requeue = [ 1000, 5000, 15000 ],
+    requeue: [ 1000, 5000, 15000 ],
     // configure when to forget certain peer characteristics
     // and treat them as fresh peer connections again
-    forget = {
+    forget: {
       // how long to wait before forgetting that a peer
       // has become unresponsive
       unresponsive: 7500,
