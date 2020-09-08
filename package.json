@@ -1,6 +1,6 @@
 {
   "name": "hyperswarm",
-  "version": "2.15.0",
+  "version": "2.15.1",
   "description": "A distributed networking stack for connecting peers",
   "main": "swarm.js",
   "dependencies": {
