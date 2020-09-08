@@ -34,6 +34,8 @@ class Swarm extends EventEmitter {
       validatePeer = () => true,
       queue = {},
       id,
+      port,
+      announcePort,
       preferredPort
     } = opts
 
@@ -41,6 +43,8 @@ class Swarm extends EventEmitter {
       id,
       bootstrap,
       ephemeral,
+      port,
+      announcePort,
       preferredPort,
       announceLocalAddress: !!opts.announceLocalAddress,
       bind: () => this.emit('listening'),
