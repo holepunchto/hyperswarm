@@ -24,8 +24,8 @@ swarm.join(topic, {
   announce: true // optional- announce self as a connection target
 })
 
-swarm.on('connection', (socket, details) => {
-  console.log('new connection!', details)
+swarm.on('connection', (socket, info) => {
+  console.log('new connection!', info)
 
   // you can now use the socket as a stream, eg:
   // process.stdin.pipe(socket).pipe(process.stdout)
@@ -117,7 +117,7 @@ Leave the swarm for the given topic.
 Returns an object indicating wheather a topic is being announced or performing a lookup,
 or `null` if the topic is unknown
 
-#### `swarm.connect(peer, (err, socket, details) => {})`
+#### `swarm.connect(peer, (err, socket, info) => {})`
 
 Establish a connection to the given peer. You usually won't need to use this function, because hyperswarm connects to found peers automatically.
 
@@ -125,7 +125,7 @@ Establish a connection to the given peer. You usually won't need to use this fun
  - `cb`. Function.
    - `err`. Error.
    - `socket`. The established TCP or UTP socket.
-   - `details`. Object describing the connection.
+   - `info`. Object describing the connection.
      - `type`. String. Should be either `'tcp'` or `'utp'`.
      - `client`. Boolean. If true, the connection was initiated by this node.
      - `peer`. Object describing the peer. (Will be the same object that was passed into this method.)
@@ -149,7 +149,7 @@ A new connection has been created. You should handle this event by using the soc
        - `id`. Buffer.
      - `topic`. Buffer. The identifier which this peer was discovered under.
 
-The `details` argument is a `PeerInfo` object, which will emit events of the form `details.on('topic', topic => ...)` when the `multiplex` flag is `true`.
+The `info` argument is a `PeerInfo` object, which will emit events of the form `info.on('topic', topic => ...)` when the `multiplex` flag is `true`.
 
 #### `info.ban()`
 
