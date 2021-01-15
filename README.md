@@ -151,16 +151,16 @@ A new connection has been created. You should handle this event by using the soc
 
 The `info` argument is a `PeerInfo` object, which will emit events of the form `info.on('topic', topic => ...)` when the `multiplex` flag is `true`.
 
-##### `info.ban()`
+#### `info.ban()`
 
 Call this to ban this peer. Makes the swarm stop connecting to it.
 
-##### `info.backoff()`
+#### `info.backoff()`
 
 Call this to make the swarm backoff reconnecting to this peer.
 Can be called multiple times to backoff more.
 
-##### `dropped = info.deduplicate(localIdBuffer, remoteIdBuffer)`
+#### `dropped = info.deduplicate(localIdBuffer, remoteIdBuffer)`
 
 Use this method to deduplicate connections.
 
