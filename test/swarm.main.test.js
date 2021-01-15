@@ -78,8 +78,9 @@ test('join - missing key', async ({ throws }) => {
   const swarm = hyperswarm({ bootstrap: [] })
   promisifyMethod(swarm, 'listen')
   await swarm.listen()
-  throws(() => swarm.join(), Error('key is required and must be a buffer'))
-  throws(() => swarm.join('not a buffer.'), Error('key is required and must be a buffer'))
+  throws(() => swarm.join(), Error('key is required and must be a 32-byte buffer'))
+  throws(() => swarm.join('not a buffer but still 32 bytes.'), Error('key is required and must be a 32-byte buffer'))
+  throws(() => swarm.join(Buffer.from('buffer but not 32 bytes.')), Error('key is required and must be a 32-byte buffer'))
   swarm.destroy()
 })
 
@@ -87,7 +88,7 @@ test('join automatically binds', async ({ is }) => {
   const swarm = hyperswarm({ bootstrap: [] })
   var bind = false
   swarm.network.bind = () => (bind = true)
-  swarm.join(Buffer.from('key'))
+  swarm.join(Buffer.from('key-key-key-key-key-key-key-key-'))
   is(bind, true)
   swarm.destroy()
 })
@@ -96,7 +97,7 @@ test('join – emits error event when failing to bind', async ({ is }) => {
   const swarm = hyperswarm({ bootstrap: [] })
   const fauxError = Error('problem binding')
   swarm.network.bind = (cb) => process.nextTick(cb, fauxError)
-  swarm.join(Buffer.from('key'))
+  swarm.join(Buffer.from('key-key-key-key-key-key-key-key-'))
   const err = await once(swarm, 'error')
   is(err, fauxError)
   swarm.destroy()
@@ -105,7 +106,7 @@ test('join – emits error event when failing to bind', async ({ is }) => {
 test('join – default options', async ({ is }) => {
   const swarm = hyperswarm({ bootstrap: [] })
   var lookupKey = null
-  const key = Buffer.from('key')
+  const key = Buffer.from('key-key-key-key-key-key-key-key-')
   swarm.network.lookup = (key) => {
     lookupKey = key
     return new EventEmitter()
@@ -119,7 +120,7 @@ test('join – default options', async ({ is }) => {
 test('join - announce: false, lookup: true', async ({ is }) => {
   const swarm = hyperswarm({ bootstrap: [] })
   var lookupKey = null
-  const key = Buffer.from('key')
+  const key = Buffer.from('key-key-key-key-key-key-key-key-')
   swarm.network.lookup = (key) => {
     lookupKey = key
     return new EventEmitter()
@@ -132,7 +133,7 @@ test('join - announce: false, lookup: true', async ({ is }) => {
 
 test('join - announce: false, lookup: false', async ({ throws }) => {
   const swarm = hyperswarm({ bootstrap: [] })
-  const key = Buffer.from('key')
+  const key = Buffer.from('key-key-key-key-key-key-key-key-')
   throws(
     () => swarm.join(key, { announce: false, lookup: false }),
     Error('join options must enable lookup, announce or both, but not neither')
@@ -142,7 +143,7 @@ test('join - announce: false, lookup: false', async ({ throws }) => {
 
 test('join - emits update event when topic updates', async ({ pass }) => {
   const swarm = hyperswarm({ bootstrap: [] })
-  const key = Buffer.from('key')
+  const key = Buffer.from('key-key-key-key-key-key-key-key-')
   const topic = new EventEmitter()
   swarm.network.lookup = () => topic
   swarm.join(key)
@@ -157,7 +158,7 @@ test('join - emits peer event when topic recieves peer', async ({ plan, pass, is
   plan(2)
 
   const swarm = hyperswarm({ bootstrap: [] })
-  const key = Buffer.from('key')
+  const key = Buffer.from('key-key-key-key-key-key-key-key-')
   const topic = new EventEmitter()
   const fauxPeer = { port: 8080, host: '127.0.0.1', local: true, referrer: null, topic: key }
   swarm.network.lookup = () => topic
@@ -176,7 +177,7 @@ test('join - emits peer event when topic recieves peer', async ({ plan, pass, is
 test('join - announce: true, lookup: false', async ({ is, fail }) => {
   const swarm = hyperswarm({ bootstrap: [] })
   var announceKey = null
-  const key = Buffer.from('key')
+  const key = Buffer.from('key-key-key-key-key-key-key-key-')
   const topic = new EventEmitter()
   const fauxPeer = { port: 8080, host: '127.0.0.1', local: true, referrer: null, topic: key }
   swarm.network.announce = (key) => {
@@ -200,7 +201,7 @@ test('join - announce: true, lookup: true', async ({ plan, is }) => {
 
   const swarm = hyperswarm({ bootstrap: [] })
   var announceKey = null
-  const key = Buffer.from('key')
+  const key = Buffer.from('key-key-key-key-key-key-key-key-')
   const topic = new EventEmitter()
   const fauxPeer = { port: 8080, host: '127.0.0.1', local: true, referrer: null, topic: key }
   swarm.network.announce = (key) => {
@@ -224,8 +225,9 @@ test('leave - missing key', async ({ throws }) => {
   const swarm = hyperswarm({ bootstrap: [] })
   promisifyMethod(swarm, 'listen')
   await swarm.listen()
-  throws(() => swarm.leave(), Error('key is required and must be a buffer'))
-  throws(() => swarm.leave('not a buffer.'), Error('key is required and must be a buffer'))
+  throws(() => swarm.leave(), Error('key is required and must be a 32-byte buffer'))
+  throws(() => swarm.leave('not a buffer but still 32 bytes.'), Error('key is required and must be a 32-byte buffer'))
+  throws(() => swarm.leave(Buffer.from('buffer but not 32 bytes.')), Error('key is required and must be a 32-byte buffer'))
   swarm.destroy()
 })
 
@@ -255,8 +257,8 @@ test('leave destroys the topic for a given pre-existing key', async ({ is }) => 
 
 test('leave does not throw when a given key was never joined', async ({ doesNotThrow }) => {
   const swarm = hyperswarm({ bootstrap: [] })
-  const key = Buffer.from('key1')
-  const key2 = Buffer.from('key2')
+  const key = Buffer.from('key1key1key1key1key1key1key1key1')
+  const key2 = Buffer.from('key2key2key2key2key2key2key2key2')
   swarm.join(key)
   await once(swarm, 'listening')
   doesNotThrow(() => swarm.leave(key2))
@@ -265,7 +267,7 @@ test('leave does not throw when a given key was never joined', async ({ doesNotT
 
 test('joining the same topic twice will leave the topic before rejoining', async ({ is }) => {
   const swarm = hyperswarm({ bootstrap: [] })
-  const key = Buffer.from('key')
+  const key = Buffer.from('key-key-key-key-key-key-key-key-')
   const { lookup } = swarm.network
   var topicDestroyed = false
   var topic = null

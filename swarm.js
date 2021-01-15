@@ -9,7 +9,7 @@ const MAX_CLIENT_SOCKETS = Infinity
 const MAX_PEERS = 24
 
 const ERR_DESTROYED = 'swarm has been destroyed'
-const ERR_MISSING_KEY = 'key is required and must be a buffer'
+const ERR_MISSING_KEY = 'key is required and must be a 32-byte buffer'
 const ERR_JOIN_OPTS = 'join options must enable lookup, announce or both, but not neither'
 
 const kDrain = Symbol('hyperswarm.drain')
@@ -184,7 +184,7 @@ class Swarm extends EventEmitter {
 
     const { network } = this
 
-    if (Buffer.isBuffer(key) === false) throw Error(ERR_MISSING_KEY)
+    if (Buffer.isBuffer(key) === false || key.length !== 32) throw Error(ERR_MISSING_KEY)
 
     const { announce = false, lookup = true } = opts
 
@@ -219,7 +219,7 @@ class Swarm extends EventEmitter {
     })
   }
   leave (key, onleave) {
-    if (Buffer.isBuffer(key) === false) throw Error(ERR_MISSING_KEY)
+    if (Buffer.isBuffer(key) === false || key.length !== 32) throw Error(ERR_MISSING_KEY)
     if (this.destroyed) return
 
     this[kStatus].delete(key.toString('hex'))
