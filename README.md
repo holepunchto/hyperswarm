@@ -6,6 +6,8 @@ A high-level API for finding and connecting to peers who are interested in a "to
 npm install hyperswarm
 ```
 
+Using the [Hyperswarm DHT and MDNS](https://github.com/hyperswarm/discovery) for peer lookups and announces.
+
 ## Usage
 
 ```js
