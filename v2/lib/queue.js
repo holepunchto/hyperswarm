@@ -4,6 +4,8 @@ const spq = require('shuffled-priority-queue')
 const { EventEmitter } = require('events')
 const peerInfo = require('./peer-info')
 const timer = require('./bulk-timer')
+const noop = () => {}
+module.exports = (opts) => new PeerQueue(opts)
 
 const BACKOFF_S = 1000
 const BACKOFF_M = 5000
@@ -11,7 +13,7 @@ const BACKOFF_L = 15000
 const FORGET_UNRESPONSIVE = 7500
 const FORGET_BANNED = Infinity
 
-module.exports = class PeerQueue extends EventEmitter {
+class PeerQueue extends EventEmitter {
   constructor (opts = {}) {
     super()
 
@@ -220,4 +222,4 @@ function toID (peer, multiplex) {
   return baseID + (peer.topic ? '@' + peer.topic.toString('hex') : '')
 }
 
-function noop () {}
+module.exports.PeerQueue = PeerQueue

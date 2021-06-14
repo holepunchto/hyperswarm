@@ -1,24 +1,20 @@
 {
   "name": "hyperswarm",
-  "version": "2.15.3",
+  "version": "3.0.0-beta1",
   "description": "A distributed networking stack for connecting peers",
   "main": "swarm.js",
   "dependencies": {
-    "@hyperswarm/network": "^2.0.0",
-    "shuffled-priority-queue": "^2.1.0",
-    "utp-native": "^2.1.7"
+    "@hyperswarm/dht": "^5.0.0-beta5",
+    "shuffled-priority-queue": "^2.1.0"
   },
   "devDependencies": {
-    "@hyperswarm/dht": "^4.0.0",
     "events.once": "^2.0.2",
     "nonsynchronous": "^1.0.0",
     "standard": "^12.0.1",
-    "tap": "^14.3.1"
+    "tape": "^5.2.2"
   },
   "scripts": {
-    "test": "tap -j 1 -R classic test/*.test.js && standard --fix",
-    "cov": "tap -j 1 -R classic --coverage-report=html test/*.test.js",
-    "ci": "standard && npm test"
+    "test": "standard && tape test/*.js"
   },
   "repository": {
     "type": "git",
@@ -26,7 +22,8 @@
   },
   "author": "Mathias Buus (@mafintosh)",
   "contributors": [
-    "David Mark Clements (@davidmarkclem)"
+    "David Mark Clements (@davidmarkclem)",
+    "Andrew Osheroff (@andrewosh)"
   ],
   "license": "MIT",
   "bugs": {
