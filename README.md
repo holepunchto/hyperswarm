@@ -1,5 +1,8 @@
 # hyperswarm
 
+## WIP: These docs need to be updated to reflect the latest changes.
+### The docs below are outdated.
+
 A high-level API for finding and connecting to peers who are interested in a "topic."
 
 ```

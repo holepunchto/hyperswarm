@@ -1,46 +1,18 @@
-'use strict'
-const { inspect } = require('util')
-const hyperswarm = require('./')
-const crypto = require('crypto')
-const swarm = hyperswarm({
-  announceLocalAddress: true
-})
+const Swarm = require('.')
 
-if (!process.argv[2]) { throw Error('node example.js <topic-key>') }
+start()
 
-const key = crypto.createHash('sha256')
-  .update(process.argv[2])
-  .digest()
+async function start () {
+  const swarm = new Swarm({ seed: Buffer.alloc(32).fill(1) })
+  swarm.on('connection', function (connection, info) {
+    // Do something with `connection`
+    // `info` is a PeerInfo object
+  })
 
-swarm.connectivity((err, capabilities) => {
-  console.log('network capabilities', capabilities, err || '')
-})
-
-swarm.join(key, {
-  announce: true,
-  lookup: true
-}, function () {
-  console.log('fully joined...')
-})
-
-swarm.on('connection', function (socket, info) {
-  const {
-    priority,
-    status,
-    retries,
-    peer,
-    client
-  } = info
-  console.log('new connection!', `
-    priority: ${priority}
-    status: ${status}
-    retries: ${retries}
-    client: ${client}
-    peer: ${!peer ? peer : `
-      ${inspect(peer, { indentationLvl: 4 }).slice(2, -2)}
-    `}
-  `)
-
-  if (client) process.stdin.pipe(socket)
-  else socket.pipe(process.stdout)
-})
+  const key = Buffer.alloc(32).fill(2)
+  const discovery = swarm.join(key)
+  // discovery.refresh({ server: true })
+  await discovery.flushed() // Wait for the first lookup/annnounce to complete.
+  // await discovery.destroy() // Stop lookup up and announcing this topic.
+  // console.log('DESTROY FINISHED')
+}
