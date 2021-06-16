@@ -1,8 +1,9 @@
 const { EventEmitter } = require('events')
 const DHT = require('@hyperswarm/dht')
+const spq = require('shuffled-priority-queue')
 
 const PeerInfo = require('./lib/peer-info')
-const PeerQueue = require('./lib/queue')
+const RetryTimer = require('./lib/retry-timer')
 const ConnectionSet = require('./lib/connection-set')
 const PeerDiscovery = require('./lib/peer-discovery')
 
@@ -44,13 +45,33 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     this._listening = null
     this._discovery = new Map()
-    this._queue = new PeerQueue({
-      ...queue,
-      onreadable: this._attemptClientConnections.bind(this)
-    })
+    this._timer = new RetryTimer(this._requeue.bind(this))
+    this._queue = spq()
+
     this._clientConnections = 0
     this._serverConnections = 0
     this._onauthenticate = onauthenticate
+  }
+
+  _enqueue (peerInfo) {
+    const empty = !this._queue.head()
+    peerInfo.queued = true
+    this._queue.add(peerInfo)
+    if (empty) this._attemptClientConnections()
+  }
+
+  _requeue (batch) {
+    const empty = !this._queue.head()
+    let readable = false
+
+    for (const peerInfo of batch) {
+      if (peerInfo.update() === false) continue
+      peerInfo.queued = true
+      this._queue.add(peerInfo)
+      readable = true
+    }
+
+    if (empty && readable) this._attemptClientConnections()
   }
 
   _shouldConnect () {
@@ -63,9 +84,10 @@ module.exports = class Hyperswarm extends EventEmitter {
     // TODO: Add max parallelism
     while (this._queue.length && this._shouldConnect()) {
       const peerInfo = this._queue.shift()
+      peerInfo.queued = false
 
       if (this.connections.has(peerInfo.publicKey)) {
-        this._queue.queueLater(peerInfo) // TODO: Need to give it a low priority here + timeout (in queue)
+        this._timer.add(peerInfo) // TODO: Need to give it a low priority here + timeout (in queue)
         continue
       }
 
@@ -80,7 +102,7 @@ module.exports = class Hyperswarm extends EventEmitter {
         this.connections.delete(conn)
         this._clientConnections--
         peerInfo._disconnected()
-        this._queue.queueLater(peerInfo)
+        this._timer.add(peerInfo)
       })
       conn.on('error', noop)
       conn.on('open', () => {
@@ -149,7 +171,8 @@ module.exports = class Hyperswarm extends EventEmitter {
     const peerInfo = this._upsertPeer(peer.publicKey, peer.nodes)
     if (!peerInfo || peerInfo.active) return
     if (!peerInfo.prioritized) peerInfo._reset()
-    if (!peerInfo.queued) this._queue.queue(peerInfo)
+    console.log('PEER INFO', peerInfo)
+    if (!peerInfo.queued) this._enqueue(peerInfo)
   }
 
   status (key) {
