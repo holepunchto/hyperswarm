@@ -22,9 +22,11 @@ async function start () {
 
   const key = Buffer.alloc(32).fill(7)
 
-  const discovery1 = swarm1.join(key, { server: true, client: false })
+  const discovery1 = swarm1.join(key)
   await discovery1.flushed() // Wait for the first lookup/annnounce to complete.
 
-  const discovery2 = swarm2.join(key, { server: false, client: true })
+  const discovery2 = swarm2.join(key)
+
+  // await swarm2.flush()
   // await discovery.destroy() // Stop lookup up and announcing this topic.
 }
