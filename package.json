@@ -4,7 +4,7 @@
   "description": "A distributed networking stack for connecting peers",
   "main": "swarm.js",
   "dependencies": {
-    "@hyperswarm/dht": "^5.0.0-beta5",
+    "@hyperswarm/dht": "hyperswarm/dht#v5",
     "shuffled-priority-queue": "^2.1.0"
   },
   "devDependencies": {
