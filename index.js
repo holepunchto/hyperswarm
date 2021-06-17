@@ -25,7 +25,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       maxPeers = MAX_PEERS,
       maxClientConnections = MAX_CLIENT_CONNECTIONS,
       maxServerConnections = MAX_SERVER_CONNECTIONS,
-      onauthenticate = noop,
+      onauthenticate = allowAll,
       queue = {}
     } = opts
 
@@ -69,7 +69,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     let readable = false
 
     for (const peerInfo of batch) {
-      if ((peerInfo._updatePriority() === false) || this._connection.has(peerInfo.remotePublicKey)) continue
+      if ((peerInfo._updatePriority() === false) || this.connections.has(peerInfo.remotePublicKey)) continue
       peerInfo.queued = true
       peerInfo._flushTick = this._flushTick
       this._queue.add(peerInfo)
@@ -126,7 +126,7 @@ module.exports = class Hyperswarm extends EventEmitter {
         opened = true
         conn.removeListener('error', noop)
         peerInfo._connected()
-        peerInfo.isClient = true
+        peerInfo.client = true
         this._flushMaybe(peerInfo)
         this.emit('connection', conn, peerInfo)
       })
@@ -145,6 +145,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   _handleServerConnection (conn) {
     const existing = this.connections.get(conn.remotePublicKey)
     if (existing) {
+      conn.on('error', noop)
       conn.destroy(new Error(ERR_DUPLICATE))
       return
     }
@@ -157,7 +158,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       this.connections.delete(conn)
       this._serverConnections--
     })
-    peerInfo.isClient = false
+    peerInfo.client = false
     this.emit('connection', conn, peerInfo)
   }
 
@@ -188,7 +189,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   _handlePeer (peer, topic) {
     const peerInfo = this._upsertPeer(peer.publicKey, peer.nodes)
     if (!peerInfo || this.connections.has(peer.publicKey)) return
-    if (!peerInfo.prioritized || peerInfo.isServer) peerInfo._reset()
+    if (!peerInfo.prioritized || peerInfo.server) peerInfo._reset()
     if (peerInfo._updatePriority()) this._enqueue(peerInfo)
   }
 
@@ -209,8 +210,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     if (this._discovery.has(topicString)) return this._discovery.get(topicString)
     const discovery = new PeerDiscovery(this, topic, {
       ...opts,
-      onpeer: peer => this._handlePeer(peer, topic),
-      onerror: err => console.log('ERR:', err)
+      onpeer: peer => this._handlePeer(peer, topic)
     })
     this._discovery.set(topicString, discovery)
     return discovery
@@ -249,3 +249,4 @@ module.exports = class Hyperswarm extends EventEmitter {
 }
 
 function noop () {}
+function allowAll () { return true }
