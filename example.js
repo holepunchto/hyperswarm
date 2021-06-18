@@ -16,7 +16,7 @@ async function start () {
     // `info` is a PeerInfo object
   })
   swarm2.on('connection', function (connection, info) {
-    console.log('swarm 2 got a client connection:', connection.remotePublicKey, connection.publicKey, connection.handshakeHash )
+    console.log('swarm 2 got a client connection:', connection.remotePublicKey, connection.publicKey, connection.handshakeHash)
     connection.on('error', err => console.error('2 CONN ERR:', err))
   })
 
@@ -25,7 +25,7 @@ async function start () {
   const discovery1 = swarm1.join(key)
   await discovery1.flushed() // Wait for the first lookup/annnounce to complete.
 
-  const discovery2 = swarm2.join(key)
+  swarm2.join(key)
 
   // await swarm2.flush()
   // await discovery.destroy() // Stop lookup up and announcing this topic.
