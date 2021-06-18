@@ -12,8 +12,6 @@ const MAX_CLIENT_CONNECTIONS = Infinity // TODO: Change
 const MAX_SERVER_CONNECTIONS = Infinity
 
 const ERR_DESTROYED = 'Swarm has been destroyed'
-const ERR_MISSING_KEY = 'Key is required and must be a 32-byte buffer'
-const ERR_JOIN_OPTS = 'Join options must enable lookup, announce or both, but not neither'
 const ERR_DUPLICATE = 'Duplicate connection'
 
 module.exports = class Hyperswarm extends EventEmitter {
@@ -25,8 +23,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       maxPeers = MAX_PEERS,
       maxClientConnections = MAX_CLIENT_CONNECTIONS,
       maxServerConnections = MAX_SERVER_CONNECTIONS,
-      firewall = allowAll,
-      queue = {}
+      firewall = allowAll
     } = opts
 
     this.keyPair = keyPair
