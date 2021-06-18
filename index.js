@@ -25,14 +25,14 @@ module.exports = class Hyperswarm extends EventEmitter {
       maxPeers = MAX_PEERS,
       maxClientConnections = MAX_CLIENT_CONNECTIONS,
       maxServerConnections = MAX_SERVER_CONNECTIONS,
-      onauthenticate = allowAll,
+      firewall = allowAll,
       queue = {}
     } = opts
 
     this.keyPair = keyPair
     this.dht = new DHT()
     this.server = this.dht.createServer({
-      onauthenticate: this._handleAuthenticate.bind(this),
+      firewall: this._handleFirewall.bind(this),
       onconnection: this._handleServerConnection.bind(this)
     })
 
@@ -53,7 +53,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     this._clientConnections = 0
     this._serverConnections = 0
-    this._onauthenticate = onauthenticate
+    this._firewall = firewall
   }
 
   _enqueue (peerInfo) {
@@ -106,6 +106,13 @@ module.exports = class Hyperswarm extends EventEmitter {
         continue
       }
 
+      // TODO: Support async firewalling at some point.
+      if (!this._firewall(peerInfo.publicKey, null)) {
+        peerInfo.ban()
+        this._flushMaybe(peerInfo)
+        continue
+      }
+
       const conn = this.dht.connect(peerInfo.publicKey, {
         nodes: peerInfo.nodes,
         keyPair: this.keyPair
@@ -133,13 +140,13 @@ module.exports = class Hyperswarm extends EventEmitter {
     }
   }
 
-  _handleAuthenticate (remotePublicKey) {
+  _handleFirewall (remotePublicKey, payload) {
     const existing = this.connections.get(remotePublicKey)
     if (existing && isOpen(existing)) return false
     if (remotePublicKey.equals(this.keyPair.publicKey)) return false
     const peerInfo = this.peers.get(remotePublicKey.toString('hex'))
     if (peerInfo && peerInfo.banned) return false
-    return this._onauthenticate(remotePublicKey)
+    return this._firewall(remotePublicKey, payload)
   }
 
   // Called when the DHT receives a new server connection.

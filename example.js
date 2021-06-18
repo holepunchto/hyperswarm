@@ -10,13 +10,13 @@ async function start () {
   console.log('SWARM 2 KEYPAIR:', swarm2.keyPair)
 
   swarm1.on('connection', function (connection, info) {
-    console.log('swarm 1 got a server connection:', connection.remotePublicKey, connection.publicKey, info)
+    console.log('swarm 1 got a server connection:', connection.remotePublicKey, connection.publicKey, connection.handshakeHash)
     connection.on('error', err => console.error('1 CONN ERR:', err))
     // Do something with `connection`
     // `info` is a PeerInfo object
   })
   swarm2.on('connection', function (connection, info) {
-    console.log('swarm 2 got a client connection:', connection.remotePublicKey, connection.publicKey, info)
+    console.log('swarm 2 got a client connection:', connection.remotePublicKey, connection.publicKey, connection.handshakeHash )
     connection.on('error', err => console.error('2 CONN ERR:', err))
   })
 
