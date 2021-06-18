@@ -98,7 +98,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       const peerInfo = this._queue.shift()
       peerInfo.queued = false
 
-      if (this.connections.has(peerInfo.publicKey)) {
+      if (peerInfo.banned || this.connections.has(peerInfo.publicKey)) {
         this._flushMaybe(peerInfo)
         continue
       }
