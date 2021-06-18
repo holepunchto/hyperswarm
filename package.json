@@ -2,7 +2,6 @@
   "name": "hyperswarm",
   "version": "3.0.0-beta1",
   "description": "A distributed networking stack for connecting peers",
-  "main": "swarm.js",
   "dependencies": {
     "@hyperswarm/dht": "next",
     "shuffled-priority-queue": "^2.1.0"

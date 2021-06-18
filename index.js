@@ -69,7 +69,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     let readable = false
 
     for (const peerInfo of batch) {
-      if ((peerInfo._updatePriority() === false) || this.connections.has(peerInfo.remotePublicKey)) continue
+      if ((peerInfo._updatePriority() === false) || this.connections.has(peerInfo.publicKey)) continue
       peerInfo.queued = true
       peerInfo._flushTick = this._flushTick
       this._queue.add(peerInfo)
@@ -134,7 +134,8 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   _handleAuthenticate (remotePublicKey) {
-    if (this.connections.has(remotePublicKey)) return false
+    const existing = this.connections.get(remotePublicKey)
+    if (existing && isOpen(existing)) return false
     if (remotePublicKey.equals(this.keyPair.publicKey)) return false
     const peerInfo = this.peers.get(remotePublicKey.toString('hex'))
     if (peerInfo && peerInfo.banned) return false
@@ -145,10 +146,15 @@ module.exports = class Hyperswarm extends EventEmitter {
   _handleServerConnection (conn) {
     const existing = this.connections.get(conn.remotePublicKey)
     if (existing) {
-      conn.on('error', noop)
-      conn.destroy(new Error(ERR_DUPLICATE))
-      return
+      if (isOpen(existing)) {
+        conn.on('error', noop)
+        conn.destroy(new Error(ERR_DUPLICATE))
+        return
+      }
+
+      existing.destroy(new Error(ERR_DUPLICATE))
     }
+
     const peerInfo = this._upsertPeer(conn.remotePublicKey, null)
 
     this.connections.add(conn)
@@ -249,4 +255,11 @@ module.exports = class Hyperswarm extends EventEmitter {
 }
 
 function noop () {}
-function allowAll () { return true }
+
+function allowAll () {
+  return true
+}
+
+function isOpen (stream) {
+  return !!stream.id
+}
