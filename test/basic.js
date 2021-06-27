@@ -1,5 +1,4 @@
 const { test } = require('./helpers')
-const { timeout } = require('nonsynchronous')
 const Hyperswarm = require('..')
 
 test('one client, one server - first connection', async (bootstrap, t) => {
