@@ -23,11 +23,13 @@ module.exports = class Hyperswarm extends EventEmitter {
       maxPeers = MAX_PEERS,
       maxClientConnections = MAX_CLIENT_CONNECTIONS,
       maxServerConnections = MAX_SERVER_CONNECTIONS,
-      firewall = allowAll
+      firewall = allowAll,
     } = opts
 
     this.keyPair = keyPair
-    this.dht = new DHT()
+    this.dht = new DHT({
+      bootstrap: opts.bootstrap
+    })
     this.server = this.dht.createServer({
       firewall: this._handleFirewall.bind(this),
       onconnection: this._handleServerConnection.bind(this)
@@ -46,6 +48,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     this._queue = spq()
 
     this._pendingFlushes = []
+    this._pendingConnections = []
     this._flushTick = 0
 
     this._clientConnections = 0
@@ -115,11 +118,14 @@ module.exports = class Hyperswarm extends EventEmitter {
         keyPair: this.keyPair
       })
       this.connections.add(conn)
+
+      this._pendingConnections.push(conn)
       this._clientConnections++
       let opened = false
 
       conn.on('close', () => {
         this.connections.delete(conn)
+        this._pendingConnections.splice(this._pendingConnections.indexOf(conn), 1)
         this._clientConnections--
         peerInfo._disconnected()
         this._timer.add(peerInfo)
@@ -128,11 +134,12 @@ module.exports = class Hyperswarm extends EventEmitter {
       conn.on('error', noop)
       conn.on('open', () => {
         opened = true
+        this._pendingConnections.splice(this._pendingConnections.indexOf(conn), 1)
         conn.removeListener('error', noop)
         peerInfo._connected()
         peerInfo.client = true
-        this._flushMaybe(peerInfo)
         this.emit('connection', conn, peerInfo)
+        this._flushMaybe(peerInfo)
       })
     }
   }
@@ -148,6 +155,12 @@ module.exports = class Hyperswarm extends EventEmitter {
 
   // Called when the DHT receives a new server connection.
   _handleServerConnection (conn) {
+    if (this.destroyed) {
+      // TODO: Investigate why a final server connection can be received after close
+      conn.on('error', noop)
+      return conn.destroy(ERR_DESTROYED)
+    }
+
     const existing = this.connections.get(conn.remotePublicKey)
     if (existing) {
       if (isOpen(existing)) {
@@ -237,8 +250,9 @@ module.exports = class Hyperswarm extends EventEmitter {
 
   // Returns a promise
   async flush () {
-    const allFlushedPromises = [...this._discovery.values()].map(v => v.flushed())
-    await Promise.all(allFlushedPromises)
+    const allRefreshedPromises = [...this._discovery.values()].map(v => v.refreshed())
+    await Promise.all(allRefreshedPromises)
+    if (!this._queue.length && !this._pendingConnections.length) return Promise.resolve()
     return new Promise((resolve, reject) => {
       this._pendingFlushes.push({
         resolve,
@@ -250,11 +264,25 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   async destroy () {
+    if (this.destroyed) return
+    this.destroyed = true
+
+    this._timer.destroy()
+    this.dht.destroy()
+    await this.server.close()
+
+    for (const discovery of this._discovery.values()) {
+      discovery.destroy()
+    }
+
     while (this._pendingFlushes.length) {
       const flush = this._pendingFlushes.pop()
       flush.reject(new Error(ERR_DESTROYED))
     }
-    // TODO: Other destroy stuff
+
+    for (const conn of this.connections) {
+      conn.destroy()
+    }
   }
 }
 
