@@ -23,7 +23,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       maxPeers = MAX_PEERS,
       maxClientConnections = MAX_CLIENT_CONNECTIONS,
       maxServerConnections = MAX_SERVER_CONNECTIONS,
-      firewall = allowAll,
+      firewall = allowAll
     } = opts
 
     this.keyPair = keyPair
