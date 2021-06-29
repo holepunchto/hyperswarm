@@ -211,6 +211,7 @@ module.exports = class Hyperswarm extends EventEmitter {
    */
   _handlePeer (peer, topic) {
     const peerInfo = this._upsertPeer(peer.publicKey, peer.nodes)
+    if (peerInfo) peerInfo.topic(topic)
     if (!peerInfo || this.connections.has(peer.publicKey)) return
     if (!peerInfo.prioritized || peerInfo.server) peerInfo._reset()
     if (peerInfo._updatePriority()) this._enqueue(peerInfo)
