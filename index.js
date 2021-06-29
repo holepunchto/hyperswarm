@@ -27,9 +27,11 @@ module.exports = class Hyperswarm extends EventEmitter {
     } = opts
 
     this.keyPair = keyPair
-    this.dht = new DHT({
-      bootstrap: opts.bootstrap
-    })
+
+    const networkOpts = {}
+    if (opts.bootstrap) networkOpts.bootstrap = opts.bootstrap
+    this.dht = new DHT(networkOpts)
+
     this.server = this.dht.createServer({
       firewall: this._handleFirewall.bind(this),
       onconnection: this._handleServerConnection.bind(this)
