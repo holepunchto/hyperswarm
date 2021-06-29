@@ -20,7 +20,7 @@ test('one server, one client - first connection', async (bootstrap, t) => {
     t.pass('swarm2 got a client connection')
   })
 
-  const topic = Buffer.from(Buffer.alloc(32).fill('hello world'))
+  const topic = Buffer.alloc(32).fill('hello world')
   await swarm1.join(topic, { server: true, client: false }).flushed()
 
   swarm2.join(topic, { client: true, server: false })
@@ -41,14 +41,14 @@ test('two servers - first connection', async (bootstrap, t) => {
   swarm1.on('connection', () => s1Connected.resolve())
   swarm2.on('connection', () => s2Connected.resolve())
 
-  const topic = Buffer.from(Buffer.alloc(32).fill('hello world'))
+  const topic = Buffer.alloc(32).fill('hello world')
   await swarm1.join(topic).flushed()
   await swarm2.join(topic).flushed()
 
   try {
     await Promise.all([s1Connected, s2Connected])
     t.pass('connection events fired successfully')
-  } catch {
+  } catch (_) {
     t.fail('connection events did not fire')
   }
 
@@ -74,14 +74,14 @@ test('one server, one client - single reconnect', async (bootstrap, t) => {
     reconnected.resolve()
   })
 
-  const topic = Buffer.from(Buffer.alloc(32).fill('hello world'))
+  const topic = Buffer.alloc(32).fill('hello world')
   await swarm1.join(topic, { client: false, server: true }).flushed()
   swarm2.join(topic, { client: true, server: false })
 
   try {
     await reconnected
     t.pass('client got a second connection')
-  } catch {
+  } catch (_) {
     t.fail('client did not get a second connection')
   }
 
@@ -103,7 +103,7 @@ test('one server, one client - maximum reconnects', async (bootstrap, t) => {
     conn.destroy()
   })
 
-  const topic = Buffer.from(Buffer.alloc(32).fill('hello world'))
+  const topic = Buffer.alloc(32).fill('hello world')
   await swarm1.join(topic, { client: false, server: true }).flushed()
   swarm2.join(topic, { client: true, server: false })
 
@@ -127,7 +127,7 @@ test('one server, one client - banned peer does not reconnect', async (bootstrap
     conn.destroy()
   })
 
-  const topic = Buffer.from(Buffer.alloc(32).fill('hello world'))
+  const topic = Buffer.alloc(32).fill('hello world')
   await swarm1.join(topic, { client: false, server: true }).flushed()
   swarm2.join(topic, { client: true, server: false })
 
@@ -148,7 +148,7 @@ test('two servers, two clients - simple deduplication', async (bootstrap, t) => 
   swarm1.on('connection', () => s1Connections++)
   swarm2.on('connection', () => s2Connections++)
 
-  const topic = Buffer.from(Buffer.alloc(32).fill('hello world'))
+  const topic = Buffer.alloc(32).fill('hello world')
   await swarm1.join(topic).flushed()
   await swarm2.join(topic).flushed()
 
@@ -156,6 +156,34 @@ test('two servers, two clients - simple deduplication', async (bootstrap, t) => 
 
   t.same(s1Connections, 1)
   t.same(s2Connections, 1)
+
+  await destroyAll(swarm1, swarm2)
+  t.end()
+})
+
+test('one server, two clients - topic multiplexing', async (bootstrap, t) => {
+  const swarm1 = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: MAX_JITTER })
+  const swarm2 = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: MAX_JITTER })
+
+  let clientConnections = 0
+  let peerInfo = null
+  swarm2.on('connection', (_, info) => {
+    clientConnections++
+    peerInfo = info
+  })
+
+  const topic1 = Buffer.alloc(32).fill('hello world')
+  const topic2 = Buffer.alloc(32).fill('hi world')
+
+  await swarm1.join(topic1, { client: false, server: true }).flushed()
+  await swarm1.join(topic2, { client: false, server: true }).flushed()
+  swarm2.join(topic1, { client: true, server: false })
+  swarm2.join(topic2, { client: true, server: false })
+
+  await timeout(250) // 250 ms will be enough for all connections to trigger
+
+  t.same(clientConnections, 1)
+  t.same(peerInfo.topics.length, 2)
 
   await destroyAll(swarm1, swarm2)
   t.end()
@@ -176,7 +204,7 @@ test('one server, two clients - first connection', async (bootstrap, t) => {
   swarm2.on('connection', () => s2Connected.resolve())
   swarm3.on('connection', () => s3Connected.resolve())
 
-  const topic = Buffer.from(Buffer.alloc(32).fill('hello world'))
+  const topic = Buffer.alloc(32).fill('hello world')
   await swarm1.join(topic, { server: true, client: false }).flushed()
   swarm2.join(topic, { server: false, client: true })
   swarm3.join(topic, { server: false, client: true })
@@ -187,7 +215,7 @@ test('one server, two clients - first connection', async (bootstrap, t) => {
   try {
     await Promise.all([s1Connected, s2Connected, s3Connected])
     t.pass('connection events fired successfully')
-  } catch {
+  } catch (_) {
     t.fail('connection events did not fire')
   }
 
@@ -203,7 +231,7 @@ function timeoutPromise (ms = CONNECTION_TIMEOUT) {
   let rej = null
   let timer = null
 
-  let p = new Promise((resolve, reject) => {
+  const p = new Promise((resolve, reject) => {
     res = resolve
     rej = reject
   })
