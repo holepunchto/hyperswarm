@@ -44,11 +44,13 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     this._listening = null
     this._discovery = new Map()
-    this._timer = new RetryTimer(this._requeue.bind(this))
+    this._timer = new RetryTimer(this._requeue.bind(this), {
+      backoffs: opts.backoffs,
+      jitter: opts.jitter
+    })
     this._queue = spq()
 
     this._pendingFlushes = []
-    this._pendingConnections = []
     this._flushTick = 0
 
     this._clientConnections = 0
@@ -119,13 +121,11 @@ module.exports = class Hyperswarm extends EventEmitter {
       })
       this.connections.add(conn)
 
-      this._pendingConnections.push(conn)
       this._clientConnections++
       let opened = false
 
       conn.on('close', () => {
         this.connections.delete(conn)
-        this._pendingConnections.splice(this._pendingConnections.indexOf(conn), 1)
         this._clientConnections--
         peerInfo._disconnected()
         this._timer.add(peerInfo)
@@ -134,7 +134,6 @@ module.exports = class Hyperswarm extends EventEmitter {
       conn.on('error', noop)
       conn.on('open', () => {
         opened = true
-        this._pendingConnections.splice(this._pendingConnections.indexOf(conn), 1)
         conn.removeListener('error', noop)
         peerInfo._connected()
         peerInfo.client = true
@@ -145,11 +144,16 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   _handleFirewall (remotePublicKey, payload) {
-    const existing = this.connections.get(remotePublicKey)
-    if (existing && isOpen(existing)) return false
     if (remotePublicKey.equals(this.keyPair.publicKey)) return false
+
+    const existing = this.connections.get(remotePublicKey)
+    if (existing) {
+      if (existing.isInitiator === true && isOpen(existing)) return false
+    }
+
     const peerInfo = this.peers.get(remotePublicKey.toString('hex'))
     if (peerInfo && peerInfo.banned) return false
+
     return this._firewall(remotePublicKey, payload)
   }
 
@@ -214,7 +218,9 @@ module.exports = class Hyperswarm extends EventEmitter {
     if (peerInfo) peerInfo.topic(topic)
     if (!peerInfo || this.connections.has(peer.publicKey)) return
     if (!peerInfo.prioritized || peerInfo.server) peerInfo._reset()
-    if (peerInfo._updatePriority()) this._enqueue(peerInfo)
+    if (peerInfo._updatePriority()) {
+      this._enqueue(peerInfo)
+    }
   }
 
   status (key) {
@@ -251,9 +257,9 @@ module.exports = class Hyperswarm extends EventEmitter {
 
   // Returns a promise
   async flush () {
-    const allRefreshedPromises = [...this._discovery.values()].map(v => v.refreshed())
-    await Promise.all(allRefreshedPromises)
-    if (!this._queue.length && !this._pendingConnections.length) return Promise.resolve()
+    const allFlushed = [...this._discovery.values()].map(v => v.flushed())
+    await Promise.all(allFlushed)
+    if (!this._queue.length && !this.connections.pending) return Promise.resolve()
     return new Promise((resolve, reject) => {
       this._pendingFlushes.push({
         resolve,
