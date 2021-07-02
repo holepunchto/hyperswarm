@@ -381,6 +381,48 @@ test('firewalled server - rejection does not trigger retry cascade', async (boot
   t.end()
 })
 
+test('one server, one client - correct deduplication when a client connection is destroyed', async (bootstrap, t) => {
+  const swarm1 = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: 0 })
+  const swarm2 = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: 0 })
+
+  let clientConnections = 0
+  let serverConnections = 0
+  let clientData = 0
+  let serverData = 0
+
+  const RECONNECT_TIMEOUT = CONNECTION_TIMEOUT * 4
+
+  swarm1.on('connection', conn => {
+    serverConnections++
+    conn.on('error', noop)
+    conn.on('data', () => serverData++)
+    conn.write('hello world')
+  })
+  swarm2.on('connection', conn => {
+    clientConnections++
+    conn.on('error', noop)
+    conn.on('data', () => clientData++)
+    conn.write('hello world')
+    if (clientConnections === 1) setTimeout(() => conn.destroy(), 100) // Destroy the first client connection
+  })
+
+  const topic = Buffer.alloc(32).fill('hello world')
+
+  await swarm1.join(topic, { server: true, client: false }).flushed()
+  swarm2.join(topic, { server: false, client: true })
+  await swarm2.flush()
+
+  await timeout(RECONNECT_TIMEOUT) // Wait for the first connection to be destroyed/reestablished.
+
+  t.same(clientConnections, 2)
+  t.same(serverConnections, 2)
+  t.same(clientData, 2)
+  t.same(serverData, 2)
+
+  await destroyAll(swarm2, swarm1)
+  t.end()
+})
+
 test('chaos - recovers after random disconnections (takes ~60s)', async (bootstrap, t) => {
   const SEED = 'hyperswarm v3'
   const NUM_SWARMS = 10
@@ -469,71 +511,13 @@ test('chaos - recovers after random disconnections (takes ~60s)', async (bootstr
   t.end()
 })
 
-test.skip('simple timeout test', async (bootstrap, t) => {
-  const swarm1 = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: 0 })
-  const swarm2 = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: 0 })
-
-  swarm1.on('connection', conn => {
-    console.log('swarm1 got conn:', conn.isInitiator)
-    const timer = setInterval(() => conn.write(Buffer.alloc(10)), 100)
-    let gotData = false
-
-    conn.on('error', err => {
-      console.log('err:', err, 'gotData:', gotData)
-    })
-    conn.once('data', () => {
-      gotData = true
-    })
-    conn.on('close', () => {
-      console.log('swarm1 conn closed, got data:', gotData)
-      clearInterval(timer)
-    })
-    if (conn.isInitiator) {
-      setTimeout(() => {
-        console.log('swarm1 destroying connection')
-        conn.destroy()
-      }, 3000)
-    }
-  })
-  swarm2.on('connection', conn => {
-    console.log('swarm2 got conn:', conn.isInitiator)
-    const timer = setInterval(() => conn.write(Buffer.alloc(10)), 100)
-    let gotData = false
-
-    conn.on('error', err => {
-      console.log('err:', err)
-      console.log('gotData:', gotData)
-    })
-    conn.once('data', () => {
-      gotData = true
-    })
-    conn.on('close', () => {
-      console.log('swarm2 conn closed, got data:', gotData)
-      clearInterval(timer)
-    })
-    if (conn.isInitiator) {
-      setTimeout(() => {
-        console.log('swarm2 destroying connection')
-        conn.destroy()
-      }, 3000)
-    }
-  })
-
-  const topic = crypto.randomBytes(32)
-  await swarm1.join(topic, { server: true, client: false }).flushed()
-  await swarm2.join(topic, { server: false, client: true }).flushed()
-
-  await timeout(120 * 1000 * 5)
-
-  await destroyAll(swarm1, swarm2)
-  t.end()
-})
-
 async function destroyAll (...swarms) {
   for (const swarm of swarms) {
     await swarm.clear()
   }
-  return Promise.all(swarms.map(s => s.destroy()))
+  for (const swarm of swarms) {
+    await swarm.destroy()
+  }
 }
 
 function timeoutPromise (ms = CONNECTION_TIMEOUT) {
