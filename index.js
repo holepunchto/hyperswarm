@@ -11,6 +11,7 @@ const MAX_PEERS = 64
 const MAX_CLIENT_CONNECTIONS = Infinity // TODO: Change
 const MAX_SERVER_CONNECTIONS = Infinity
 
+const ERR_MISSING_TOPIC = 'Topic is required and must be a 32-byte buffer'
 const ERR_DESTROYED = 'Swarm has been destroyed'
 const ERR_DUPLICATE = 'Duplicate connection'
 
@@ -94,8 +95,18 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   _shouldConnect () {
-    return this.connections.size < this.maxPeers &&
+    return !this.destroyed &&
+      this.connections.size < this.maxPeers &&
       this._clientConnections < this.maxClientConnections
+  }
+
+  _shouldRequeue (peerInfo) {
+    for (const topic of peerInfo.topics) {
+      if (this._discovery.has(topic.toString('hex')) && !this.destroyed) {
+        return true
+      }
+    }
+    return false
   }
 
   // Called when the PeerQueue indicates a connection should be attempted.
@@ -111,7 +122,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       }
 
       // TODO: Support async firewalling at some point.
-      if (!this._firewall(peerInfo.publicKey, null)) {
+      if (!this._handleFirewall(peerInfo.publicKey, null)) {
         peerInfo.ban()
         this._flushMaybe(peerInfo)
         continue
@@ -130,7 +141,7 @@ module.exports = class Hyperswarm extends EventEmitter {
         this.connections.delete(conn)
         this._clientConnections--
         peerInfo._disconnected()
-        this._timer.add(peerInfo)
+        if (this._shouldRequeue(peerInfo)) this._timer.add(peerInfo)
         if (!opened) this._flushMaybe(peerInfo)
       })
       conn.on('error', noop)
@@ -169,12 +180,12 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     const existing = this.connections.get(conn.remotePublicKey)
     if (existing) {
-      if (isOpen(existing)) {
+      if (existing.isInitiator && isOpen(existing)) {
         conn.on('error', noop)
         conn.destroy(new Error(ERR_DUPLICATE))
         return
       }
-
+      existing.on('error', noop)
       existing.destroy(new Error(ERR_DUPLICATE))
     }
 
@@ -238,6 +249,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   // TODO: Handle joining with different announce/lookup combos.
   // TODO: When you rejoin, it should reannounce + bump lookup priority
   join (topic, opts = {}) {
+    if (!topic) throw new Error(ERR_MISSING_TOPIC)
     const topicString = topic.toString('hex')
     if (this._discovery.has(topicString)) return this._discovery.get(topicString)
     const discovery = new PeerDiscovery(this, topic, {
@@ -250,6 +262,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
   // Returns a promise
   leave (topic) {
+    if (!topic) throw new Error(ERR_MISSING_TOPIC)
     const topicString = topic.toString('hex')
     if (!this._discovery.has(topicString)) return Promise.resolve()
     const discovery = this._discovery.get(topicString)
@@ -272,17 +285,22 @@ module.exports = class Hyperswarm extends EventEmitter {
     })
   }
 
+  async clear () {
+    const cleared = Promise.allSettled([...this._discovery.values()].map(d => d.destroy()))
+    this._discovery.clear()
+    return cleared
+  }
+
   async destroy () {
     if (this.destroyed) return
     this.destroyed = true
 
     this._timer.destroy()
-    this.dht.destroy()
-    await this.server.close()
 
-    for (const discovery of this._discovery.values()) {
-      discovery.destroy()
-    }
+    await this.clear()
+
+    await this.dht.destroy()
+    await this.server.close()
 
     while (this._pendingFlushes.length) {
       const flush = this._pendingFlushes.pop()
@@ -295,7 +313,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 }
 
-function noop () {}
+function noop () { }
 
 function allowAll () {
   return true
