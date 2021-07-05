@@ -63,6 +63,7 @@ A [`@hyperswarm/dht`](https://github.com/hyperswarm/dht) instance. Useful if you
 Emitted whenever the swarm connects to a new peer.
 
 `socket` is an end-to-end (Noise) encrypted Duplex stream
+
 `peerInfo` is a [`PeerInfo`](https://github.com/hyperswarm/hyperswarm/blob/v3/README.md#peerinfo-api) instance
 
 #### `const discovery = swarm.join(topic, opts = {})`
