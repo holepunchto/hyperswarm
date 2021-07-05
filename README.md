@@ -44,9 +44,9 @@ Construct a new Hyperswarm instance.
 
 `opts` can include:
 * `keyPair`: A Noise keypair that will be used to listen/connect on the DHT. Defaults to a new key pair.
-* `seed`: A random seed that can be used to deterministically generate the key pair.
+* `seed`: A unique, 32-byte, random seed that can be used to deterministically generate the key pair.
 * `maxPeers`: The maximum number of peer connections to allow
-* `firewall`: A sync function of the form `(remotePublicKey, noisePayload) => (true|false)`. If false, the connection will be rejected. Defaults to allowing all connections.
+* `firewall`: A sync function of the form `remotePublicKey => (true|false)`. If false, the connection will be rejected. Defaults to allowing all connections.
 
 #### `swarm.connections`
 A set of all active client/server connections.
