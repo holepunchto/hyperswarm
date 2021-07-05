@@ -54,6 +54,8 @@ A set of all active client/server connections.
 #### `swarm.peers`
 A Map containing all connected peers, of the form: `(Noise public key hex string) -> PeerInfo object`
 
+See the [`PeerInfo`](https://github.com/hyperswarm/hyperswarm/blob/v3/README.md#peerinfo-api) API for more details.
+
 #### `swarm.dht`
 A [`@hyperswarm/dht`](https://github.com/hyperswarm/dht) instance. Useful if you want lower-level control over Hyperswarm's networking.
 
@@ -61,7 +63,7 @@ A [`@hyperswarm/dht`](https://github.com/hyperswarm/dht) instance. Useful if you
 Emitted whenever the swarm connects to a new peer.
 
 `socket` is an end-to-end (Noise) encrypted Duplex stream
-`peerInfo` is a [`PeerInfo`]() instance
+`peerInfo` is a [`PeerInfo`](https://github.com/hyperswarm/hyperswarm/blob/v3/README.md#peerinfo-api) instance
 
 #### `const discovery = swarm.join(topic, opts = {})`
 Start discovering and connecting to peers sharing a common topic. As new peers are connected to, they will be emitted from the swarm as `connection` events.
