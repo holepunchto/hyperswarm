@@ -58,6 +58,10 @@ A Map containing all connected peers, of the form: `(Noise public key hex string
 A [`@hyperswarm/dht`](https://github.com/hyperswarm/dht) instance. Useful if you want lower-level control over Hyperswarm's networking.
 
 #### `swarm.on('connection', (socket, peerInfo) => {})`
+Emitted whenever the swarm connects to a new peer.
+
+`socket` is an end-to-end (Noise) encrypted Duplex stream
+`peerInfo` is a [`PeerInfo`]() instance
 
 #### `const discovery = swarm.join(topic, opts = {})`
 Start discovering and connecting to peers sharing a common topic. As new peers are connected to, they will be emitted from the swarm as `connection` events.
@@ -67,7 +71,7 @@ Start discovering and connecting to peers sharing a common topic. As new peers a
 * `server`: Accept server connections for this topic by announcing yourself to the DHT. Defaults to `true`.
 * `client`: Actively search for and connect to discovered servers. Defaults to `true`.
 
-Returns a [`PeerDiscovery`](##PeerDiscovery API) object.
+Returns a [`PeerDiscovery`](https://github.com/hyperswarm/hyperswarm/blob/v3/README.md#peerdiscovery-api) object.
 
 #### Clients and Servers
 In Hyperswarm, there are two ways for peers to join the swarm: client mode and server mode. If you've previously used Hyperswarm v2, these were called "lookup" and "announce", but we now think "client" and "server" are more descriptive.
@@ -86,7 +90,7 @@ If a topic was previously joined in server mode, `leave` will stop announcing th
 `leave` will __not__ close any existing connections.
 
 #### `const discovery = swarm.status(topic)`
-Get the [`PeerDiscovery`]() object associated with the topic, if it exists.
+Get the [`PeerDiscovery`](https://github.com/hyperswarm/hyperswarm/blob/v3/README.md#peerdiscovery-api) object associated with the topic, if it exists.
 
 #### `await swarm.listen()`
 Explicitly start listening for incoming connections. This will be called internally after the first `join`, so it rarely needs to be called manually.
@@ -113,7 +117,7 @@ Stop discovering peers for the given topic.
 
 If a topic was previously joined in server mode, `leave` will stop announcing the topic on the DHT. If a topic was previously joined in client mode, `leave` will stop searching for servers announcing the topic.
 
-### PeerInfo API
+## PeerInfo API
 
 `swarm.on('connection', ...)` emits a `PeerInfo` instance whenever a new connection is established.
 
