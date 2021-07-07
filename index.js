@@ -4,7 +4,7 @@ const spq = require('shuffled-priority-queue')
 
 const PeerInfo = require('./lib/peer-info')
 const RetryTimer = require('./lib/retry-timer')
-const ConnectionSet = require('./lib/connection-set')
+const PublicKeySet = require('./lib/public-key-set')
 const PeerDiscovery = require('./lib/peer-discovery')
 
 const MAX_PEERS = 64
@@ -42,8 +42,8 @@ module.exports = class Hyperswarm extends EventEmitter {
     this.maxPeers = maxPeers
     this.maxClientConnections = maxClientConnections
     this.maxServerConnections = maxServerConnections
-    this.connections = new ConnectionSet()
-    this.peers = new Map()
+    this.connections = new PublicKeySet()
+    this.peers = new PublicKeySet()
 
     this._listening = null
     this._discovery = new Map()
@@ -132,13 +132,13 @@ module.exports = class Hyperswarm extends EventEmitter {
         nodes: peerInfo.nodes,
         keyPair: this.keyPair
       })
-      this.connections.add(conn)
+      this.connections.set(conn.remotePublicKey, conn)
 
       this._clientConnections++
       let opened = false
 
       conn.on('close', () => {
-        this.connections.delete(conn)
+        this.connections.delete(conn.remotePublicKey, conn)
         this._clientConnections--
         peerInfo._disconnected()
         if (this._shouldRequeue(peerInfo)) this._timer.add(peerInfo)
@@ -191,11 +191,11 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     const peerInfo = this._upsertPeer(conn.remotePublicKey, null)
 
-    this.connections.add(conn)
+    this.connections.set(conn.remotePublicKey, conn)
     this._serverConnections++
 
     conn.on('close', () => {
-      this.connections.delete(conn)
+      this.connections.delete(conn.remotePublicKey, conn)
       this._serverConnections--
     })
     peerInfo.client = false
@@ -204,17 +204,19 @@ module.exports = class Hyperswarm extends EventEmitter {
 
   _upsertPeer (publicKey, nodes) {
     if (publicKey.equals(this.keyPair.publicKey)) return null
-    const keyString = publicKey.toString('hex')
 
-    let peerInfo = this.peers.get(keyString)
-    if (peerInfo) return peerInfo
+    let peerInfo = this.peers.get(publicKey)
+    if (peerInfo) {
+      if (nodes) peerInfo.nodes = nodes
+      return peerInfo
+    }
 
     peerInfo = new PeerInfo({
       publicKey,
       nodes
     })
 
-    this.peers.set(keyString, peerInfo)
+    this.peers.set(publicKey, peerInfo)
     return peerInfo
   }
 
@@ -274,7 +276,13 @@ module.exports = class Hyperswarm extends EventEmitter {
   async flush () {
     const allFlushed = [...this._discovery.values()].map(v => v.flushed())
     await Promise.all(allFlushed)
-    if (!this._queue.length && !this.connections.pending) return Promise.resolve()
+
+    let pendingConnections = 0
+    for (const conn of this.connections) {
+      if (!conn.id) pendingConnections++
+    }
+
+    if (!this._queue.length && pendingConnections === 0) return Promise.resolve()
     return new Promise((resolve, reject) => {
       this._pendingFlushes.push({
         resolve,

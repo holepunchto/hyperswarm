@@ -49,10 +49,10 @@ Construct a new Hyperswarm instance.
 * `firewall`: A sync function of the form `remotePublicKey => (true|false)`. If false, the connection will be rejected. Defaults to allowing all connections.
 
 #### `swarm.connections`
-A set of all active client/server connections.
+An iterable containing all active client/server connections.
 
 #### `swarm.peers`
-A Map containing all connected peers, of the form: `(Noise public key hex string) -> PeerInfo object`
+An iterable containing all connected peers.
 
 See the [`PeerInfo`](https://github.com/hyperswarm/hyperswarm/blob/v3/README.md#peerinfo-api) API for more details.
 
@@ -76,7 +76,7 @@ Start discovering and connecting to peers sharing a common topic. As new peers a
 
 Returns a [`PeerDiscovery`](https://github.com/hyperswarm/hyperswarm/blob/v3/README.md#peerdiscovery-api) object.
 
-#### Clients and Servers
+### Clients and Servers
 In Hyperswarm, there are two ways for peers to join the swarm: client mode and server mode. If you've previously used Hyperswarm v2, these were called "lookup" and "announce", but we now think "client" and "server" are more descriptive.
 
 When you join a topic as a server, the swarm will start accepting incoming connections from clients (peers that have joined the same topic in client mode). Server mode will announce your keypair to the DHT, so that other peers can discover your server. When server connections are emitted, they are not associated with a specific topic -- the server only knows it received an incoming connection.
