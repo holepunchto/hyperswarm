@@ -11,6 +11,9 @@ const MAX_PEERS = 64
 const MAX_CLIENT_CONNECTIONS = Infinity // TODO: Change
 const MAX_SERVER_CONNECTIONS = Infinity
 
+const MAX_PARALLEL_FAST_ATTEMPTS = 5
+const MAX_PARALLEL_SLOW_ATTEMPTS = 1
+
 const ERR_MISSING_TOPIC = 'Topic is required and must be a 32-byte buffer'
 const ERR_DESTROYED = 'Swarm has been destroyed'
 const ERR_DUPLICATE = 'Duplicate connection'
@@ -24,6 +27,8 @@ module.exports = class Hyperswarm extends EventEmitter {
       maxPeers = MAX_PEERS,
       maxClientConnections = MAX_CLIENT_CONNECTIONS,
       maxServerConnections = MAX_SERVER_CONNECTIONS,
+      maxParallelFast = MAX_PARALLEL_FAST_ATTEMPTS,
+      maxParallelSlow = MAX_PARALLEL_SLOW_ATTEMPTS,
       firewall = allowAll
     } = opts
 
@@ -35,6 +40,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     this.server = this.dht.createServer({
       firewall: this._handleFirewall.bind(this),
+      onholepunch: this._handleServerHolepunch.bind(this),
       onconnection: this._handleServerConnection.bind(this)
     })
 
@@ -42,6 +48,8 @@ module.exports = class Hyperswarm extends EventEmitter {
     this.maxPeers = maxPeers
     this.maxClientConnections = maxClientConnections
     this.maxServerConnections = maxServerConnections
+    this.maxParallelFast = maxParallelFast
+    this.maxParallelSlow = maxParallelSlow
     this.connections = new PublicKeySet()
     this.peers = new PublicKeySet()
 
@@ -53,6 +61,11 @@ module.exports = class Hyperswarm extends EventEmitter {
     })
     this._queue = spq()
 
+    this._currentFast = 0
+    this._currentSlow = 0
+    this._waitingSlow = [] // Queued slow connections that should be attempted when capacity is available
+    this._pendingConnections = []
+
     this._pendingFlushes = []
     this._flushTick = 0
 
@@ -61,12 +74,12 @@ module.exports = class Hyperswarm extends EventEmitter {
     this._firewall = firewall
   }
 
-  _enqueue (peerInfo) {
+  _enqueue (peerInfo, shouldAttempt = true) {
     const empty = !this._queue.head()
     peerInfo.queued = true
     peerInfo._flushTick = this._flushTick
     this._queue.add(peerInfo)
-    if (empty) this._attemptClientConnections()
+    if (empty && shouldAttempt) this._attemptClientConnections()
   }
 
   _requeue (batch) {
@@ -97,7 +110,8 @@ module.exports = class Hyperswarm extends EventEmitter {
   _shouldConnect () {
     return !this.destroyed &&
       this.connections.size < this.maxPeers &&
-      this._clientConnections < this.maxClientConnections
+      this._clientConnections < this.maxClientConnections &&
+      this._currentFast < this.maxParallelFast
   }
 
   _shouldRequeue (peerInfo) {
@@ -109,12 +123,65 @@ module.exports = class Hyperswarm extends EventEmitter {
     return false
   }
 
+  _connectionProcessed (conn, peerInfo) {
+    if (peerInfo.fast) this._currentFast--
+    else this._currentSlow--
+    if (this._waitingSlow.length || this._queue.length) this._attemptClientConnections()
+  }
+
+  _registerConnectionListeners (conn, peerInfo) {
+    let opened = false
+    conn.on('error', noop)
+    conn.on('close', () => {
+      this.connections.delete(conn.remotePublicKey, conn)
+      this._clientConnections--
+
+      peerInfo._disconnected()
+      if (this._shouldRequeue(peerInfo)) this._timer.add(peerInfo)
+      if (!opened) this._flushMaybe(peerInfo)
+
+      this._connectionProcessed(conn, peerInfo)
+    })
+    conn.on('open', () => {
+      opened = true
+      conn.removeListener('error', noop)
+
+      peerInfo._connected()
+      peerInfo.client = true
+      this.emit('connection', conn, peerInfo)
+      this._flushMaybe(peerInfo)
+
+      this._connectionProcessed(conn, peerInfo)
+    })
+  }
+
+  _updateConcurrency (peerInfo) {
+    // The fast connection limit is enforced by _shouldConnect. Slow connections must be limited here.
+    if (peerInfo.fast) {
+      this._currentFast++
+      return true
+    }
+    if (this._currentSlow < this.maxParallelSlow) {
+      this._currentSlow++
+      return true
+    }
+    this._waitingSlow.push(peerInfo)
+    return false
+  }
+
   // Called when the PeerQueue indicates a connection should be attempted.
   _attemptClientConnections () {
-    // TODO: Add max parallelism
+    // Requeue any slow connections that are waiting for a parallelism slot
+    while (this._waitingSlow.length) {
+      const peerInfo = this._waitingSlow.pop()
+      peerInfo.eager = true
+      if (peerInfo._updatePriority()) this._enqueue(peerInfo, false)
+    }
     while (this._queue.length && this._shouldConnect()) {
       const peerInfo = this._queue.shift()
       peerInfo.queued = false
+
+      if (!this._updateConcurrency(peerInfo)) continue
 
       if (peerInfo.banned || this.connections.has(peerInfo.publicKey)) {
         this._flushMaybe(peerInfo)
@@ -129,31 +196,37 @@ module.exports = class Hyperswarm extends EventEmitter {
       }
 
       const conn = this.dht.connect(peerInfo.publicKey, {
+        onholepunch: natInfo => this._handleClientHolepunch(peerInfo, conn, natInfo),
         nodes: peerInfo.nodes,
         keyPair: this.keyPair
       })
+
       this.connections.set(conn.remotePublicKey, conn)
-
+      this._registerConnectionListeners(conn, peerInfo)
       this._clientConnections++
-      let opened = false
-
-      conn.on('close', () => {
-        this.connections.delete(conn.remotePublicKey, conn)
-        this._clientConnections--
-        peerInfo._disconnected()
-        if (this._shouldRequeue(peerInfo)) this._timer.add(peerInfo)
-        if (!opened) this._flushMaybe(peerInfo)
-      })
-      conn.on('error', noop)
-      conn.on('open', () => {
-        opened = true
-        conn.removeListener('error', noop)
-        peerInfo._connected()
-        peerInfo.client = true
-        this.emit('connection', conn, peerInfo)
-        this._flushMaybe(peerInfo)
-      })
     }
+  }
+
+  _handleServerHolepunch (natInfo) {
+    // TODO: Implement
+    return true
+  }
+
+  _handleClientHolepunch (peerInfo, conn, natInfo) {
+    // A few different scenarios:
+    // 1. natInfo will differ from the static NAT info that was used in updateConcurrency
+    //  - update peerInfo and concurrency to reflect this
+    // 2. if the concurrency limit is reached, bail on this connection and ensure the peerInfo is requeued
+    //  - updateConcurrency will do this
+    if (peerInfo.fast === natInfo.fast) return true // If the dynamic NAT info matches the static, just continue
+    if (natInfo.fast) {
+      peerInfo.fast = true
+      this._currentSlow--
+    } else {
+      peerInfo.fast = false
+      this._currentFast--
+    }
+    return this._updateConcurrency(peerInfo)
   }
 
   _handleFirewall (remotePublicKey, payload) {

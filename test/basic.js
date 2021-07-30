@@ -3,9 +3,8 @@ const random = require('math-random-seed')
 const { timeout } = require('nonsynchronous')
 
 const Hyperswarm = require('..')
-const { test } = require('./helpers')
+const { test, destroyAll, timeoutPromise } = require('./helpers')
 
-const CONNECTION_TIMEOUT = 100
 const BACKOFFS = [
   100,
   200,
@@ -510,34 +509,5 @@ test('chaos - recovers after random disconnections (takes ~60s)', async (bootstr
   await destroyAll(...swarms)
   t.end()
 })
-
-async function destroyAll (...swarms) {
-  for (const swarm of swarms) {
-    await swarm.clear()
-  }
-  for (const swarm of swarms) {
-    await swarm.destroy()
-  }
-}
-
-function timeoutPromise (ms = CONNECTION_TIMEOUT) {
-  let res = null
-  let rej = null
-  let timer = null
-
-  const p = new Promise((resolve, reject) => {
-    res = resolve
-    rej = reject
-  })
-  p.resolve = res
-  p.reject = rej
-  p.reset = () => {
-    if (timer) clearTimeout(timer)
-    timer = setTimeout(() => p.reject(new Error('Timed out')), ms)
-  }
-
-  p.reset()
-  return p
-}
 
 function noop () {}

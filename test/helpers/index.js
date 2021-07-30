@@ -2,26 +2,11 @@ const tape = require('tape')
 const HyperDHT = require('@hyperswarm/dht')
 const Hyperswarm = require('../../')
 
-module.exports = { test, swarm, destroy, defer }
+module.exports = { test, swarm, destroy, destroyAll, timeoutPromise }
 test.only = (name, fn) => test(name, fn, true, false)
 test.skip = (name, fn) => test(name, fn, false, true)
 
-function destroy (...nodes) {
-  for (const node of nodes) {
-    if (Array.isArray(node)) destroy(...node)
-    else node.destroy()
-  }
-}
-
-function defer () {
-  const res = { promise: null, resolve: null, reject: null, then: null }
-  res.promise = new Promise((resolve, reject) => {
-    res.resolve = resolve
-    res.reject = reject
-  })
-  res.then = res.promise.then.bind(res.promise)
-  return res
-}
+const CONNECTION_TIMEOUT = 100
 
 async function swarm (bootstrap, n = 32) {
   const nodes = []
@@ -63,4 +48,40 @@ async function test (name, fn, only = false, skip = false) {
     destroy(bootstrappers)
     destroy(nodes)
   }
+}
+
+async function destroyAll (...swarms) {
+  for (const swarm of swarms) {
+    await swarm.clear()
+  }
+  for (const swarm of swarms) {
+    await swarm.destroy()
+  }
+}
+
+function destroy (...nodes) {
+  for (const node of nodes) {
+    if (Array.isArray(node)) destroy(...node)
+    else node.destroy()
+  }
+}
+
+function timeoutPromise (ms = CONNECTION_TIMEOUT) {
+  let res = null
+  let rej = null
+  let timer = null
+
+  const p = new Promise((resolve, reject) => {
+    res = resolve
+    rej = reject
+  })
+  p.resolve = res
+  p.reject = rej
+  p.reset = () => {
+    if (timer) clearTimeout(timer)
+    timer = setTimeout(() => p.reject(new Error('Timed out')), ms)
+  }
+
+  p.reset()
+  return p
 }
