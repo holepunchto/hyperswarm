@@ -3,7 +3,7 @@ const test = require('tape')
 
 const BulkTimer = require('../lib/bulk-timer')
 
-const TEST_INTERVAL = 250
+const TEST_INTERVAL = 500
 
 test('bulk timer queue', async t => {
   t.plan(1)
