@@ -44,6 +44,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     this.maxServerConnections = maxServerConnections
     this.connections = new Set()
     this.peers = new Map()
+    this.explicitPeers = new Set()
 
     this._listening = null
     this._discovery = new Map()
@@ -102,6 +103,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   _shouldRequeue (peerInfo) {
+    if (this.explicitPeers.has(peerInfo)) return true
     for (const topic of peerInfo.topics) {
       if (this._discovery.has(topic.toString('hex')) && !this.destroyed) {
         return true
@@ -110,52 +112,55 @@ module.exports = class Hyperswarm extends EventEmitter {
     return false
   }
 
+  _connect (peerInfo) {
+    if (peerInfo.banned || this._allConnections.has(peerInfo.publicKey)) {
+      this._flushMaybe(peerInfo)
+      return
+    }
+
+    // TODO: Support async firewalling at some point.
+    if (!this._handleFirewall(peerInfo.publicKey, null)) {
+      peerInfo.ban()
+      this._flushMaybe(peerInfo)
+      return
+    }
+
+    const conn = this.dht.connect(peerInfo.publicKey, {
+      nodes: peerInfo.nodes,
+      keyPair: this.keyPair
+    })
+    this._allConnections.add(conn)
+
+    this._clientConnections++
+    let opened = false
+
+    conn.on('close', () => {
+      this.connections.delete(conn)
+      this._allConnections.delete(conn)
+      this._clientConnections--
+      peerInfo._disconnected()
+      if (this._shouldRequeue(peerInfo)) this._timer.add(peerInfo)
+      if (!opened) this._flushMaybe(peerInfo)
+    })
+    conn.on('error', noop)
+    conn.on('open', () => {
+      opened = true
+      this.connections.add(conn)
+      conn.removeListener('error', noop)
+      peerInfo._connected()
+      peerInfo.client = true
+      this.emit('connection', conn, peerInfo)
+      this._flushMaybe(peerInfo)
+    })
+  }
+
   // Called when the PeerQueue indicates a connection should be attempted.
   _attemptClientConnections () {
     // TODO: Add max parallelism
     while (this._queue.length && this._shouldConnect()) {
       const peerInfo = this._queue.shift()
       peerInfo.queued = false
-
-      if (peerInfo.banned || this._allConnections.has(peerInfo.publicKey)) {
-        this._flushMaybe(peerInfo)
-        continue
-      }
-
-      // TODO: Support async firewalling at some point.
-      if (!this._handleFirewall(peerInfo.publicKey, null)) {
-        peerInfo.ban()
-        this._flushMaybe(peerInfo)
-        continue
-      }
-
-      const conn = this.dht.connect(peerInfo.publicKey, {
-        nodes: peerInfo.nodes,
-        keyPair: this.keyPair
-      })
-      this._allConnections.add(conn)
-
-      this._clientConnections++
-      let opened = false
-
-      conn.on('close', () => {
-        this.connections.delete(conn)
-        this._allConnections.delete(conn)
-        this._clientConnections--
-        peerInfo._disconnected()
-        if (this._shouldRequeue(peerInfo)) this._timer.add(peerInfo)
-        if (!opened) this._flushMaybe(peerInfo)
-      })
-      conn.on('error', noop)
-      conn.on('open', () => {
-        opened = true
-        this.connections.add(conn)
-        conn.removeListener('error', noop)
-        peerInfo._connected()
-        peerInfo.client = true
-        this.emit('connection', conn, peerInfo)
-        this._flushMaybe(peerInfo)
-      })
+      this._connect(peerInfo)
     }
   }
 
@@ -273,6 +278,23 @@ module.exports = class Hyperswarm extends EventEmitter {
     const discovery = this._discovery.get(topicString)
     this._discovery.delete(topicString)
     return discovery.destroy()
+  }
+
+  joinPeer (publicKey) {
+    const peerInfo = this._upsertPeer(publicKey)
+    if (!this.explicitPeers.has(peerInfo)) {
+      this.explicitPeers.add(peerInfo)
+    }
+    if (peerInfo._updatePriority()) {
+      this._enqueue(peerInfo)
+    }
+  }
+
+  leavePeer (publicKey) {
+    const keyString = publicKey.toString('hex')
+    if (!this.peers.has(keyString)) return
+    const peerInfo = this.peers.get(keyString)
+    this.explicitPeers.delete(peerInfo)
   }
 
   // Returns a promise
