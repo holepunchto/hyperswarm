@@ -279,12 +279,13 @@ module.exports = class Hyperswarm extends EventEmitter {
   async flush () {
     const allFlushed = [...this._discovery.values()].map(v => v.flushed())
     await Promise.all(allFlushed)
-    if (!this._queue.length && (this._allConnections.size === this.connections.size)) return
+    const pendingSize = this._allConnections.size - this.connections.size
+    if (!this._queue.length && !pendingSize) return
     return new Promise((resolve, reject) => {
       this._pendingFlushes.push({
         resolve,
         reject,
-        missing: this._queue.length,
+        missing: this._queue.length + pendingSize,
         tick: this._flushTick++
       })
     })
