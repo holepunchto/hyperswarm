@@ -92,6 +92,20 @@ If a topic was previously joined in server mode, `leave` will stop announcing th
 
 `leave` will __not__ close any existing connections.
 
+#### `swarm.joinPeer(noisePublicKey)`
+Establish a direct connection to a known peer.
+
+`noisePublicKey` must be a 32-byte Buffer
+
+As with the standard `join` method, `joinPeer` will ensure that peer connections are reestablished in the event of failures.
+
+#### `swarm.leavePeer(noisePublicKey)`
+Stop attempting direct connections to a known peer.
+
+`noisePublicKey` must be a 32-byte Buffer
+
+If a direct connection is already established, that connection will __not__ be destroyed by `leavePeer`.
+
 #### `const discovery = swarm.status(topic)`
 Get the [`PeerDiscovery`](https://github.com/hyperswarm/hyperswarm/blob/v3/README.md#peerdiscovery-api) object associated with the topic, if it exists.
 
