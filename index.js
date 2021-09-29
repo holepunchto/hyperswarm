@@ -285,6 +285,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     if (!this.explicitPeers.has(peerInfo)) {
       this.explicitPeers.add(peerInfo)
     }
+    if (this._allConnections.has(publicKey)) return
     if (peerInfo._updatePriority()) {
       this._enqueue(peerInfo)
     }
