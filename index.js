@@ -282,6 +282,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
   joinPeer (publicKey) {
     const peerInfo = this._upsertPeer(publicKey)
+    if (!peerInfo) return
     if (!this.explicitPeers.has(peerInfo)) {
       this.explicitPeers.add(peerInfo)
     }
