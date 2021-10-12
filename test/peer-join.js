@@ -38,6 +38,16 @@ test('join peer - can establish direct connections to public keys', async (boots
   await destroyAll(swarm1, swarm2)
 })
 
+test('join peer - attempt to connect to self is a no-op', async (bootstrap, t) => {
+  const swarm = new Hyperswarm({ bootstrap })
+  await swarm.listen()
+
+  swarm.joinPeer(swarm.keyPair.publicKey)
+  t.same(swarm._queue.length, 0)
+
+  await destroyAll(swarm)
+})
+
 test('leave peer - will stop reconnecting to previously joined peers', async (bootstrap, t) => {
   const swarm1 = new Hyperswarm({ bootstrap })
   const swarm2 = new Hyperswarm({ bootstrap })
