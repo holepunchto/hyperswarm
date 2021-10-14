@@ -9,7 +9,7 @@ To see the v2 documentation/code go to https://github.com/hyperswarm/hyperswarm/
 
 ## Installation
 ```
-npm i hyperswarm@beta --save
+npm i hyperswarm@next --save
 ```
 
 ## Usage
