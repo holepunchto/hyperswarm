@@ -17,7 +17,7 @@ test('firewalled server - bad client is rejected', async (bootstrap, t) => {
     backoffs: BACKOFFS,
     jitter: 0,
     firewall: remotePublicKey => {
-      return !remotePublicKey.equals(swarm1.keyPair.publicKey)
+      return remotePublicKey.equals(swarm1.keyPair.publicKey)
     }
   })
 
@@ -44,7 +44,7 @@ test('firewalled client - bad server is rejected', async (bootstrap, t) => {
     backoffs: BACKOFFS,
     jitter: 0,
     firewall: remotePublicKey => {
-      return !remotePublicKey.equals(swarm1.keyPair.publicKey)
+      return remotePublicKey.equals(swarm1.keyPair.publicKey)
     }
   })
 
@@ -74,7 +74,7 @@ test('firewalled server - rejection does not trigger retry cascade', async (boot
     jitter: 0,
     firewall: remotePublicKey => {
       firewallCalls++
-      return !remotePublicKey.equals(swarm1.keyPair.publicKey)
+      return remotePublicKey.equals(swarm1.keyPair.publicKey)
     }
   })
 
@@ -89,7 +89,7 @@ test('firewalled server - rejection does not trigger retry cascade', async (boot
   await timeout(BACKOFFS[2] * 5) // Wait for many retries -- there should only be 3
 
   t.same(serverConnections, 0, 'server did not receive an incoming connection')
-  t.same(firewallCalls, 3, 'client retried 3 times')
+  t.same(firewallCalls, 1, 'client retried mulitple times but server cached it')
 
   await destroyAll(swarm1, swarm2)
   t.end()

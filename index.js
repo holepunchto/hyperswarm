@@ -119,14 +119,14 @@ module.exports = class Hyperswarm extends EventEmitter {
     }
 
     // TODO: Support async firewalling at some point.
-    if (!this._handleFirewall(peerInfo.publicKey, null)) {
+    if (this._handleFirewall(peerInfo.publicKey, null)) {
       peerInfo.ban()
       this._flushMaybe(peerInfo)
       return
     }
 
     const conn = this.dht.connect(peerInfo.publicKey, {
-      nodes: peerInfo.nodes,
+      relayAddresses: peerInfo.relayAddresses,
       keyPair: this.keyPair
     })
     this._allConnections.add(conn)
@@ -165,15 +165,15 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   _handleFirewall (remotePublicKey, payload) {
-    if (remotePublicKey.equals(this.keyPair.publicKey)) return false
+    if (remotePublicKey.equals(this.keyPair.publicKey)) return true
 
     const existing = this._allConnections.get(remotePublicKey)
     if (existing) {
-      if (existing.isInitiator === true && isOpen(existing)) return false
+      if (existing.isInitiator === true && isOpen(existing)) return true
     }
 
     const peerInfo = this.peers.get(remotePublicKey.toString('hex'))
-    if (peerInfo && peerInfo.banned) return false
+    if (peerInfo && peerInfo.banned) return true
 
     return this._firewall(remotePublicKey, payload)
   }
@@ -212,7 +212,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     this.emit('connection', conn, peerInfo)
   }
 
-  _upsertPeer (publicKey, nodes) {
+  _upsertPeer (publicKey, relayAddresses) {
     if (publicKey.equals(this.keyPair.publicKey)) return null
     const keyString = publicKey.toString('hex')
 
@@ -221,7 +221,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     peerInfo = new PeerInfo({
       publicKey,
-      nodes
+      relayAddresses
     })
 
     this.peers.set(keyString, peerInfo)
@@ -237,7 +237,7 @@ module.exports = class Hyperswarm extends EventEmitter {
    *  3. A known peer with low priority -- bump priority, because it's been rediscovered
    */
   _handlePeer (peer, topic) {
-    const peerInfo = this._upsertPeer(peer.publicKey, peer.nodes)
+    const peerInfo = this._upsertPeer(peer.publicKey, peer.relayAddresses)
     if (peerInfo) peerInfo._topic(topic)
     if (!peerInfo || this._allConnections.has(peer.publicKey)) return
     if (!peerInfo.prioritized || peerInfo.server) peerInfo._reset()
@@ -281,7 +281,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   joinPeer (publicKey) {
-    const peerInfo = this._upsertPeer(publicKey)
+    const peerInfo = this._upsertPeer(publicKey, null)
     if (!peerInfo) return
     if (!this.explicitPeers.has(peerInfo)) {
       this.explicitPeers.add(peerInfo)
@@ -346,7 +346,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 function noop () { }
 
 function allowAll () {
-  return true
+  return false
 }
 
 function isOpen (stream) {
