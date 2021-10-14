@@ -1,5 +1,4 @@
 name: Build Status
-
 on:
   push:
     branches:
@@ -7,18 +6,17 @@ on:
   pull_request:
     branches:
       - master
-      - v3
 jobs:
   build:
     strategy:
       matrix:
-        node-version: [14.x]
-        os: [ubuntu-16.04, macos-latest, windows-latest]
+        node-version: [lts/*]
+        os: [ubuntu-latest, macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
     - uses: actions/checkout@v2
     - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v1
+      uses: actions/setup-node@v2
       with:
         node-version: ${{ matrix.node-version }}
     - run: npm install
