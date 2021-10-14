@@ -12,6 +12,7 @@ test('join peer - can establish direct connections to public keys', async (boots
   let s2Connected = false
 
   swarm2.on('connection', conn => {
+    conn.on('error', noop)
     if (!s2Connected) {
       firstConnection.pass('swarm2 got its first connection')
       s2Connected = true
@@ -19,6 +20,7 @@ test('join peer - can establish direct connections to public keys', async (boots
     plan.pass('swarm2 got a connection')
   })
   swarm1.on('connection', conn => {
+    conn.on('error', noop)
     plan.pass('swarm1 got a connection')
   })
 
@@ -98,3 +100,5 @@ test('leave peer - will stop reconnecting to previously joined peers', async (bo
 
   await destroyAll(swarm1, swarm2)
 })
+
+function noop () {}

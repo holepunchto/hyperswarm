@@ -120,6 +120,9 @@ test('one server, one client - maximum reconnects', async (bootstrap, t) => {
     conn.on('error', noop)
     conn.destroy()
   })
+  swarm1.on('connection', (conn) => {
+    conn.on('error', noop)
+  })
 
   const topic = Buffer.alloc(32).fill('hello world')
   await swarm1.join(topic, { client: false, server: true }).flushed()
@@ -143,6 +146,9 @@ test('one server, one client - banned peer does not reconnect', async (bootstrap
     connections++
     info.ban(true)
     conn.destroy()
+  })
+  swarm1.on('connection', (conn) => {
+    conn.on('error', noop)
   })
 
   const topic = Buffer.alloc(32).fill('hello world')
@@ -176,6 +182,7 @@ test('two servers, two clients - simple deduplication', async (bootstrap, t) => 
   t.same(s2Connections, 1)
 
   await destroyAll(swarm1, swarm2)
+
   t.end()
 })
 
