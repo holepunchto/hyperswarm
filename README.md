@@ -24,7 +24,7 @@ swarm1.on('connection', (conn, info) => {
  conn.end()
 })
 swarm2.on('connection', (conn, info) => {
- conn.on('data', data => console.log('client got message:', data.toString())
+ conn.on('data', data => console.log('client got message:', data.toString()))
 })
 
 const topic = Buffer.alloc(32).fill('hello world') // A topic must be 32 bytes
@@ -46,7 +46,7 @@ Construct a new Hyperswarm instance.
 * `keyPair`: A Noise keypair that will be used to listen/connect on the DHT. Defaults to a new key pair.
 * `seed`: A unique, 32-byte, random seed that can be used to deterministically generate the key pair.
 * `maxPeers`: The maximum number of peer connections to allow
-* `firewall`: A sync function of the form `remotePublicKey => (true|false)`. If false, the connection will be rejected. Defaults to allowing all connections.
+* `firewall`: A sync function of the form `remotePublicKey => (true|false)`. If true, the connection will be rejected. Defaults to allowing all connections.
 
 #### `swarm.connections`
 A set of all active client/server connections.
