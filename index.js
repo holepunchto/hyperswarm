@@ -45,8 +45,8 @@ module.exports = class Hyperswarm extends EventEmitter {
     this.connections = new Set()
     this.peers = new Map()
     this.explicitPeers = new Set()
+    this.listening = null
 
-    this._listening = null
     this._discovery = new Map()
     this._timer = new RetryTimer(this._requeue.bind(this), {
       backoffs: opts.backoffs,
@@ -251,8 +251,8 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   listen () {
-    if (!this._listening) this._listening = this.server.listen(this.keyPair)
-    return this._listening
+    if (!this.listening) this.listening = this.server.listen(this.keyPair)
+    return this.listening
   }
 
   // Object that exposes a cancellation method (destroy)
