@@ -1,28 +1,44 @@
-const tape = require('tape')
+const brittle = require('brittle')
 const HyperDHT = require('@hyperswarm/dht')
 const Hyperswarm = require('../../')
 
 const CONNECTION_TIMEOUT = 100
 
-module.exports = { test, swarm, destroy, destroyAll, timeoutPromise, planPromise, defer }
-test.only = (name, fn) => test(name, fn, true, false)
-test.skip = (name, fn) => test(name, fn, false, true)
+module.exports = { createTestDHT, destroy, timeoutPromise }
+
+async function createTestDHT (t) {
+  const bootstrappers = []
+  const nodes = []
+
+  while (bootstrappers.length < 3) {
+    bootstrappers.push(new HyperDHT({ ephemeral: true, bootstrap: [] }))
+  }
+
+  const bootstrap = []
+  for (const node of bootstrappers) {
+    await node.ready()
+    bootstrap.push({ host: '127.0.0.1', port: node.address().port })
+  }
+
+  while (nodes.length < 3) {
+    const node = new HyperDHT({ ephemeral: false, bootstrap })
+    await node.ready()
+    nodes.push(node)
+  }
+
+  t.teardown(async () => {
+    destroy(bootstrappers)
+    destroy(nodes)
+  })
+
+  return bootstrap
+}
 
 function destroy (...nodes) {
   for (const node of nodes) {
     if (Array.isArray(node)) destroy(...node)
     else node.destroy()
   }
-}
-
-function defer () {
-  const res = { promise: null, resolve: null, reject: null, then: null }
-  res.promise = new Promise((resolve, reject) => {
-    res.resolve = resolve
-    res.reject = reject
-  })
-  res.then = res.promise.then.bind(res.promise)
-  return res
 }
 
 async function swarm (bootstrap, n = 32) {
@@ -94,35 +110,4 @@ function timeoutPromise (ms = CONNECTION_TIMEOUT) {
 
   p.reset()
   return p
-}
-
-function planPromise (t, count) {
-  let tick = 0
-  let res = null
-  let rej = null
-  let timer = null
-
-  let p = new Promise((resolve, reject) => {
-    res = resolve
-    rej = reject
-  })
-
-  return {
-    plan: (n) => {
-      const promise = planPromise(t, n)
-      p = Promise.all([p, promise])
-      return promise
-    },
-    pass: (msg) => {
-      t.pass(msg)
-      if (++tick === count) {
-        if (timer) clearTimeout(timer)
-        return res()
-      }
-    },
-    timeout: (ms) => {
-      timer = setTimeout(rej, ms, new Error('Plan promise timed out'))
-    },
-    then: (...args) => p.then(...args)
-  }
 }
