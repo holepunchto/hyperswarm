@@ -33,9 +33,12 @@ module.exports = class Hyperswarm extends EventEmitter {
     if (opts.bootstrap) networkOpts.bootstrap = opts.bootstrap
     this.dht = opts.dht || new DHT(networkOpts)
 
-    this.server = this.dht.createServer(this._handleServerConnection.bind(this), {
-      firewall: this._handleFirewall.bind(this)
-    })
+    this.server = this.dht.createServer(
+      {
+        firewall: this._handleFirewall.bind(this)
+      },
+      this._handleServerConnection.bind(this)
+    )
 
     this.destroyed = false
     this.maxPeers = maxPeers
