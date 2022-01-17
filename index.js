@@ -1,6 +1,7 @@
 const { EventEmitter } = require('events')
 const DHT = require('@hyperswarm/dht')
 const spq = require('shuffled-priority-queue')
+const crypto = require('hypercore-crypto')
 
 const PeerInfo = require('./lib/peer-info')
 const RetryTimer = require('./lib/retry-timer')
@@ -20,7 +21,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     super()
     const {
       seed,
-      keyPair = DHT.keyPair(seed),
+      keyPair = crypto.keyPair(seed),
       maxPeers = MAX_PEERS,
       maxClientConnections = MAX_CLIENT_CONNECTIONS,
       maxServerConnections = MAX_SERVER_CONNECTIONS,
