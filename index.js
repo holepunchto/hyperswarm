@@ -1,6 +1,8 @@
 const { EventEmitter } = require('events')
 const DHT = require('@hyperswarm/dht')
 const spq = require('shuffled-priority-queue')
+const b4a = require('b4a')
+const HashMap = require('turbo-hash-map')
 
 const PeerInfo = require('./lib/peer-info')
 const RetryTimer = require('./lib/retry-timer')
@@ -42,11 +44,11 @@ module.exports = class Hyperswarm extends EventEmitter {
     this.maxClientConnections = maxClientConnections
     this.maxServerConnections = maxServerConnections
     this.connections = new Set()
-    this.peers = new Map()
+    this.peers = new HashMap()
     this.explicitPeers = new Set()
     this.listening = null
 
-    this._discovery = new Map()
+    this._discovery = new HashMap()
     this._timer = new RetryTimer(this._requeue.bind(this), {
       backoffs: opts.backoffs,
       jitter: opts.jitter
@@ -104,7 +106,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   _shouldRequeue (peerInfo) {
     if (this.explicitPeers.has(peerInfo)) return true
     for (const topic of peerInfo.topics) {
-      if (this._discovery.has(topic.toString('hex')) && !this.destroyed) {
+      if (this._discovery.has(topic) && !this.destroyed) {
         return true
       }
     }
@@ -164,14 +166,14 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   _handleFirewall (remotePublicKey, payload) {
-    if (remotePublicKey.equals(this.keyPair.publicKey)) return true
+    if (b4a.equals(remotePublicKey, this.keyPair.publicKey)) return true
 
     const existing = this._allConnections.get(remotePublicKey)
     if (existing) {
       if (existing.isInitiator === true && isOpen(existing)) return true
     }
 
-    const peerInfo = this.peers.get(remotePublicKey.toString('hex'))
+    const peerInfo = this.peers.get(remotePublicKey)
     if (peerInfo && peerInfo.banned) return true
 
     return this._firewall(remotePublicKey, payload)
@@ -212,10 +214,8 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   _upsertPeer (publicKey, relayAddresses) {
-    if (publicKey.equals(this.keyPair.publicKey)) return null
-    const keyString = publicKey.toString('hex')
-
-    let peerInfo = this.peers.get(keyString)
+    if (b4a.equals(publicKey, this.keyPair.publicKey)) return null
+    let peerInfo = this.peers.get(publicKey)
     if (peerInfo) return peerInfo
 
     peerInfo = new PeerInfo({
@@ -223,7 +223,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       relayAddresses
     })
 
-    this.peers.set(keyString, peerInfo)
+    this.peers.set(publicKey, peerInfo)
     return peerInfo
   }
 
@@ -246,7 +246,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   status (key) {
-    return this._discovery.get(key.toString('hex')) || null
+    return this._discovery.get(key) || null
   }
 
   listen () {
@@ -259,23 +259,21 @@ module.exports = class Hyperswarm extends EventEmitter {
   // TODO: When you rejoin, it should reannounce + bump lookup priority
   join (topic, opts = {}) {
     if (!topic) throw new Error(ERR_MISSING_TOPIC)
-    const topicString = topic.toString('hex')
-    if (this._discovery.has(topicString)) return this._discovery.get(topicString)
+    if (this._discovery.has(topic)) return this._discovery.get(topic)
     const discovery = new PeerDiscovery(this, topic, {
       ...opts,
       onpeer: peer => this._handlePeer(peer, topic)
     })
-    this._discovery.set(topicString, discovery)
+    this._discovery.set(topic, discovery)
     return discovery
   }
 
   // Returns a promise
   leave (topic) {
     if (!topic) throw new Error(ERR_MISSING_TOPIC)
-    const topicString = topic.toString('hex')
-    if (!this._discovery.has(topicString)) return Promise.resolve()
-    const discovery = this._discovery.get(topicString)
-    this._discovery.delete(topicString)
+    if (!this._discovery.has(topic)) return Promise.resolve()
+    const discovery = this._discovery.get(topic)
+    this._discovery.delete(topic)
     return discovery.destroy()
   }
 
@@ -292,9 +290,8 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   leavePeer (publicKey) {
-    const keyString = publicKey.toString('hex')
-    if (!this.peers.has(keyString)) return
-    const peerInfo = this.peers.get(keyString)
+    if (!this.peers.has(publicKey)) return
+    const peerInfo = this.peers.get(publicKey)
     this.explicitPeers.delete(peerInfo)
   }
 
