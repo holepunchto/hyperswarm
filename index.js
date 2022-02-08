@@ -8,6 +8,7 @@ const ConnectionSet = require('./lib/connection-set')
 const PeerDiscovery = require('./lib/peer-discovery')
 
 const MAX_PEERS = 64
+const MAX_PARALLEL = 3
 const MAX_CLIENT_CONNECTIONS = Infinity // TODO: Change
 const MAX_SERVER_CONNECTIONS = Infinity
 
@@ -24,6 +25,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       maxPeers = MAX_PEERS,
       maxClientConnections = MAX_CLIENT_CONNECTIONS,
       maxServerConnections = MAX_SERVER_CONNECTIONS,
+      maxParallel = MAX_PARALLEL,
       firewall = allowAll
     } = opts
 
@@ -41,6 +43,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     this.maxPeers = maxPeers
     this.maxClientConnections = maxClientConnections
     this.maxServerConnections = maxServerConnections
+    this.maxParallel = maxParallel
     this.connections = new Set()
     this.peers = new Map()
     this.explicitPeers = new Set()
@@ -57,32 +60,30 @@ module.exports = class Hyperswarm extends EventEmitter {
     this._pendingFlushes = []
     this._flushTick = 0
 
+    this._drainingQueue = false
+    this._connecting = 0
     this._clientConnections = 0
     this._serverConnections = 0
     this._firewall = firewall
   }
 
   _enqueue (peerInfo) {
-    const empty = !this._queue.head()
     peerInfo.queued = true
     peerInfo._flushTick = this._flushTick
     this._queue.add(peerInfo)
-    if (empty) this._attemptClientConnections()
+
+    this._attemptClientConnections()
   }
 
   _requeue (batch) {
-    const empty = !this._queue.head()
-    let readable = false
-
     for (const peerInfo of batch) {
       if ((peerInfo._updatePriority() === false) || this._allConnections.has(peerInfo.publicKey)) continue
       peerInfo.queued = true
       peerInfo._flushTick = this._flushTick
       this._queue.add(peerInfo)
-      readable = true
     }
 
-    if (empty && readable) this._attemptClientConnections()
+    this._attemptClientConnections()
   }
 
   _flushMaybe (peerInfo) {
@@ -98,7 +99,8 @@ module.exports = class Hyperswarm extends EventEmitter {
   _shouldConnect () {
     return !this.destroyed &&
       this._allConnections.size < this.maxPeers &&
-      this._clientConnections < this.maxClientConnections
+      this._clientConnections < this.maxClientConnections &&
+      this._connecting < this.maxParallel
   }
 
   _shouldRequeue (peerInfo) {
@@ -129,21 +131,25 @@ module.exports = class Hyperswarm extends EventEmitter {
       keyPair: this.keyPair
     })
     this._allConnections.add(conn)
-
+    this._connecting++
     this._clientConnections++
     let opened = false
 
     conn.on('close', () => {
+      if (!opened) this._connectDone()
       this.connections.delete(conn)
       this._allConnections.delete(conn)
       this._clientConnections--
       peerInfo._disconnected()
       if (this._shouldRequeue(peerInfo)) this._timer.add(peerInfo)
       if (!opened) this._flushMaybe(peerInfo)
+
+      this._attemptClientConnections()
     })
     conn.on('error', noop)
     conn.on('open', () => {
       opened = true
+      this._connectDone()
       this.connections.add(conn)
       conn.removeListener('error', noop)
       peerInfo._connected()
@@ -153,14 +159,22 @@ module.exports = class Hyperswarm extends EventEmitter {
     })
   }
 
+  _connectDone () {
+    this._connecting--
+    if (this._connecting < this.maxParallel) this._attemptClientConnections()
+  }
+
   // Called when the PeerQueue indicates a connection should be attempted.
   _attemptClientConnections () {
-    // TODO: Add max parallelism
+    // Guard against re-entries - unsure if it still needed but doesn't hurt
+    if (this._drainingQueue) return
+    this._drainingQueue = true
     while (this._queue.length && this._shouldConnect()) {
       const peerInfo = this._queue.shift()
       peerInfo.queued = false
       this._connect(peerInfo)
     }
+    this._drainingQueue = false
   }
 
   _handleFirewall (remotePublicKey, payload) {
@@ -206,6 +220,8 @@ module.exports = class Hyperswarm extends EventEmitter {
       this.connections.delete(conn)
       this._allConnections.delete(conn)
       this._serverConnections--
+
+      this._attemptClientConnections()
     })
     peerInfo.client = false
     this.emit('connection', conn, peerInfo)
