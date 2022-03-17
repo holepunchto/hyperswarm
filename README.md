@@ -4,9 +4,7 @@ A high-level API for finding and connecting to peers who are interested in a "to
 
 ## NOTE: v3
 
-Note that this is the README for v3 which is tagged under next. To see the v2 documentation/code go to https://github.com/hyperswarm/hyperswarm/tree/v2
-
-As v3 fully matures over the next month it will be shifted to npm latest.
+Note that this is the README for v3. To see the v2 documentation/code go to https://github.com/hyperswarm/hyperswarm/tree/v2.
 
 ## Installation
 ```
