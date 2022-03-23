@@ -1,6 +1,7 @@
 const { EventEmitter } = require('events')
 const DHT = require('@hyperswarm/dht')
 const spq = require('shuffled-priority-queue')
+const b4a = require('b4a')
 
 const PeerInfo = require('./lib/peer-info')
 const RetryTimer = require('./lib/retry-timer')
@@ -106,7 +107,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   _shouldRequeue (peerInfo) {
     if (this.explicitPeers.has(peerInfo)) return true
     for (const topic of peerInfo.topics) {
-      if (this._discovery.has(topic.toString('hex')) && !this.destroyed) {
+      if (this._discovery.has(b4a.toString(topic, 'hex')) && !this.destroyed) {
         return true
       }
     }
@@ -178,14 +179,14 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   _handleFirewall (remotePublicKey, payload) {
-    if (remotePublicKey.equals(this.keyPair.publicKey)) return true
+    if (b4a.equals(remotePublicKey, this.keyPair.publicKey)) return true
 
     const existing = this._allConnections.get(remotePublicKey)
     if (existing) {
       if (existing.isInitiator === true && isOpen(existing)) return true
     }
 
-    const peerInfo = this.peers.get(remotePublicKey.toString('hex'))
+    const peerInfo = this.peers.get(b4a.toString(remotePublicKey, 'hex'))
     if (peerInfo && peerInfo.banned) return true
 
     return this._firewall(remotePublicKey, payload)
@@ -228,9 +229,8 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   _upsertPeer (publicKey, relayAddresses) {
-    if (publicKey.equals(this.keyPair.publicKey)) return null
-    const keyString = publicKey.toString('hex')
-
+    if (b4a.equals(publicKey, this.keyPair.publicKey)) return null
+    const keyString = b4a.toString(publicKey, 'hex')
     let peerInfo = this.peers.get(keyString)
     if (peerInfo) return peerInfo
 
@@ -262,7 +262,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   status (key) {
-    return this._discovery.get(key.toString('hex')) || null
+    return this._discovery.get(b4a.toString(key, 'hex')) || null
   }
 
   listen () {
@@ -275,7 +275,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   // TODO: When you rejoin, it should reannounce + bump lookup priority
   join (topic, opts = {}) {
     if (!topic) throw new Error(ERR_MISSING_TOPIC)
-    const topicString = topic.toString('hex')
+    const topicString = b4a.toString(topic, 'hex')
     if (this._discovery.has(topicString)) return this._discovery.get(topicString)
     const discovery = new PeerDiscovery(this, topic, {
       ...opts,
@@ -288,7 +288,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   // Returns a promise
   leave (topic) {
     if (!topic) throw new Error(ERR_MISSING_TOPIC)
-    const topicString = topic.toString('hex')
+    const topicString = b4a.toString(topic, 'hex')
     if (!this._discovery.has(topicString)) return Promise.resolve()
     const discovery = this._discovery.get(topicString)
     this._discovery.delete(topicString)
@@ -308,7 +308,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   leavePeer (publicKey) {
-    const keyString = publicKey.toString('hex')
+    const keyString = b4a.toString(publicKey, 'hex')
     if (!this.peers.has(keyString)) return
     const peerInfo = this.peers.get(keyString)
     this.explicitPeers.delete(peerInfo)
