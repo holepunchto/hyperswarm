@@ -343,4 +343,49 @@ test('one server, one client - correct deduplication when a client connection is
   t.end()
 })
 
+test('constructor options - debug options forwarded to DHT constructor', async (bootstrap, t) => {
+  const swarm1 = new Hyperswarm({
+    bootstrap,
+    backoffs: BACKOFFS,
+    jitter: 0,
+    debug: {
+      handshake: {
+        latency: [500, 500]
+      }
+    }
+  })
+  const swarm2 = new Hyperswarm({
+    bootstrap,
+    backoffs: BACKOFFS,
+    jitter: 0,
+    debug: {
+      handshake: {
+        latency: [500, 500]
+      }
+    }
+  })
+
+  const connected = new Promise(resolve => {
+    let connections = 0
+    const onconnect = () => {
+      if (++connections === 2) resolve()
+    }
+    swarm1.once('connection', onconnect)
+    swarm2.once('connection', onconnect)
+  })
+
+  const topic = Buffer.alloc(32).fill('hello world')
+  await swarm1.join(topic, { server: true }).flushed()
+
+  const start = Date.now()
+  swarm2.join(topic, { client: true })
+
+  await connected
+  const duration = Date.now() - start
+  t.true(duration > 500)
+
+  await destroyAll(swarm1, swarm2)
+  t.end()
+})
+
 function noop () {}

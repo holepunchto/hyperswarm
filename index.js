@@ -29,13 +29,12 @@ module.exports = class Hyperswarm extends EventEmitter {
       maxParallel = MAX_PARALLEL,
       firewall = allowAll
     } = opts
-
     this.keyPair = keyPair
 
-    const networkOpts = {}
-    if (opts.bootstrap) networkOpts.bootstrap = opts.bootstrap
-    this.dht = opts.dht || new DHT(networkOpts)
-
+    this.dht = opts.dht || new DHT({
+      bootstrap: opts.bootstrap,
+      debug: opts.debug
+    })
     this.server = this.dht.createServer({
       firewall: this._handleFirewall.bind(this)
     }, this._handleServerConnection.bind(this))
