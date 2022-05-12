@@ -3,7 +3,7 @@
   "version": "3.0.4",
   "description": "A distributed networking stack for connecting peers",
   "dependencies": {
-    "@hyperswarm/dht": "next",
+    "@hyperswarm/dht": "github:hyperswarm/dht#udx",
     "b4a": "^1.3.1",
     "events": "^3.3.0",
     "shuffled-priority-queue": "^2.1.0"
