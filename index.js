@@ -343,7 +343,6 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     await this.clear()
 
-    await this.dht.destroy()
     await this.server.close()
 
     while (this._pendingFlushes.length) {
@@ -354,6 +353,8 @@ module.exports = class Hyperswarm extends EventEmitter {
     for (const conn of this._allConnections) {
       conn.destroy()
     }
+
+    await this.dht.destroy()
   }
 }
 
