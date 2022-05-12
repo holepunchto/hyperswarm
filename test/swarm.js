@@ -202,10 +202,13 @@ test('one server, two clients - topic multiplexing', async (t) => {
 
   let clientConnections = 0
   let peerInfo = null
-  swarm2.on('connection', (_, info) => {
+  swarm2.on('connection', (conn, info) => {
     clientConnections++
     peerInfo = info
+    conn.on('error', noop)
   })
+
+  swarm1.on('connection', (conn) => conn.on('error', noop))
 
   const topic1 = Buffer.alloc(32).fill('hello world')
   const topic2 = Buffer.alloc(32).fill('hi world')
