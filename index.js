@@ -48,6 +48,9 @@ module.exports = class Hyperswarm extends EventEmitter {
     this.peers = new Map()
     this.explicitPeers = new Set()
     this.listening = null
+    this.parent = opts.parent
+    this.parent && this.parent.once('destroy', () => this.destroy())
+    this._opts = opts
 
     this._discovery = new Map()
     this._timer = new RetryTimer(this._requeue.bind(this), {
@@ -335,15 +338,27 @@ module.exports = class Hyperswarm extends EventEmitter {
     return cleared
   }
 
+  child (opts = {}) {
+    return new Hyperswarm({
+      ...this._opts,
+      seed: undefined,
+      keyPair: undefined,
+      ...opts,
+      dht: this.dht,
+      parent: this
+    })
+  }
+
   async destroy () {
     if (this.destroyed) return
     this.destroyed = true
+    this.emit('destroy')
 
     this._timer.destroy()
 
     await this.clear()
 
-    await this.dht.destroy()
+    if (!this.parent) await this.dht.destroy()
     await this.server.close()
 
     while (this._pendingFlushes.length) {
