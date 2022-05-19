@@ -91,7 +91,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       const flush = this._pendingFlushes[i]
       if (peerInfo._flushTick > flush.tick) continue
       if (--flush.missing > 0) continue
-      flush.resolve()
+      flush.onflush(true)
       this._pendingFlushes.splice(i--, 1)
     }
   }
@@ -319,10 +319,9 @@ module.exports = class Hyperswarm extends EventEmitter {
     await Promise.all(allFlushed)
     const pendingSize = this._allConnections.size - this.connections.size
     if (!this._queue.length && !pendingSize) return
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       this._pendingFlushes.push({
-        resolve,
-        reject,
+        onflush: resolve,
         missing: this._queue.length + pendingSize,
         tick: this._flushTick++
       })
@@ -347,7 +346,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     while (this._pendingFlushes.length) {
       const flush = this._pendingFlushes.pop()
-      flush.reject(new Error(ERR_DESTROYED))
+      flush.onflush(false)
     }
 
     for (const conn of this._allConnections) {
