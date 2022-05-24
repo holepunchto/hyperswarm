@@ -48,8 +48,8 @@ module.exports = class Hyperswarm extends EventEmitter {
     this.peers = new Map()
     this.explicitPeers = new Set()
     this.listening = null
-    this.parent = opts.parent
-    this.parent && this.parent.once('destroy', () => this.destroy())
+    this._root = opts._root
+    this._root && this._root.once('destroy', () => this.destroy())
     this._opts = opts
 
     this._discovery = new Map()
@@ -338,14 +338,14 @@ module.exports = class Hyperswarm extends EventEmitter {
     return cleared
   }
 
-  child (opts = {}) {
+  session (opts = {}) {
     return new Hyperswarm({
       ...this._opts,
       seed: undefined,
       keyPair: undefined,
       ...opts,
       dht: this.dht,
-      parent: this
+      _root: this._root || this
     })
   }
 
@@ -358,7 +358,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     await this.clear()
 
-    if (!this.parent) await this.dht.destroy()
+    if (!this._root) await this.dht.destroy()
     await this.server.close()
 
     while (this._pendingFlushes.length) {

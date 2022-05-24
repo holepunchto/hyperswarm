@@ -121,8 +121,8 @@ Once a `flush()` has completed, the swarm will have connected to every peer it c
 
 `flush()` is not topic-specific, so it will wait for every pending DHT operation and connection to be processed -- it's quite heavyweight, so it could take a while. In most cases, it's not necessary, as connections are emitted by `swarm.on('connection')` immediately after they're opened.  
 
-#### `swarm.child([opts])
-Create a new Hyperswarm instance that shares the same DHT as the parent, and is destroyed once the parent is destroyed, but not vice versa. This is useful when you want to use the same DHT instance for multiple Hyperswarm instances (peers), with their own `keyPair`s, without the overhead of bootstrapping DHT node.
+#### `swarm.session([opts])
+Create a Hyperswarm session that shares the same DHT as the root swarm, and is destroyed once the root is destroyed, but not vice versa. This is useful when you want to use the same DHT instance for multiple Hyperswarm instances (peers), with their own `keyPair`s and servers, without the overhead of bootstrapping DHT node.
 
 It inherits the parent's options (except `seed` and `keyPair`) unless overridden by `opts`.
 

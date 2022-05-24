@@ -390,28 +390,28 @@ test('constructor options - debug options forwarded to DHT constructor', async (
 
 test('child nodes', async (bootstrap, t) => {
   const root = new Hyperswarm({ bootstrap })
-  const child1 = root.child()
-  const child2 = root.child()
+  const s1 = root.session()
+  const s2 = root.session()
 
-  await child1.destroy()
+  await s1.destroy()
 
-  t.is(child1.destroyed, true)
+  t.is(s1.destroyed, true)
   t.is(root.destroyed, false, "dosen't destroy parent")
-  t.is(child2.destroyed, false, "doesn't destroy sibling")
+  t.is(s2.destroyed, false, "doesn't destroy sibling")
 
   t.is(root.dht.destroyed, false)
-  t.is(child1.dht.destroyed, false)
-  t.is(child2.dht.destroyed, false)
+  t.is(s1.dht.destroyed, false)
+  t.is(s2.dht.destroyed, false)
 
   await root.destroy()
 
   t.is(root.destroyed, true)
-  t.is(child1.destroyed, true)
-  t.is(child2.destroyed, true)
+  t.is(s1.destroyed, true)
+  t.is(s2.destroyed, true)
 
   t.is(root.dht.destroyed, true)
-  t.is(child1.dht.destroyed, true)
-  t.is(child2.dht.destroyed, true)
+  t.is(s1.dht.destroyed, true)
+  t.is(s2.dht.destroyed, true)
 })
 
 function noop () {}
