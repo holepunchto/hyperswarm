@@ -65,6 +65,8 @@ module.exports = class Hyperswarm extends EventEmitter {
     this._clientConnections = 0
     this._serverConnections = 0
     this._firewall = firewall
+
+    this.dht.on('network-change', this._handleNetworkChange.bind(this))
   }
 
   _enqueue (peerInfo) {
@@ -258,6 +260,16 @@ module.exports = class Hyperswarm extends EventEmitter {
     if (peerInfo._updatePriority()) {
       this._enqueue(peerInfo)
     }
+  }
+
+  async _handleNetworkChange () {
+    const refreshes = []
+
+    for (const discovery of this._discovery.values()) {
+      refreshes.push(discovery.refresh())
+    }
+
+    await Promise.allSettled(refreshes)
   }
 
   status (key) {
