@@ -22,9 +22,13 @@ test('one server, one client - first connection', async (t) => {
 
   swarm2.on('connection', (conn) => {
     connected.pass('swarm2')
+    conn.on('error', noop)
     conn.destroy()
   })
-  swarm1.on('connection', (conn) => conn.destroy())
+  swarm1.on('connection', (conn) => {
+    conn.on('error', noop)
+    conn.destroy()
+  })
 
   const topic = Buffer.alloc(32).fill('hello world')
   await swarm1.join(topic, { server: true, client: false }).flushed()
@@ -48,15 +52,18 @@ test('two servers - first connection', async (t) => {
   connected.plan(2)
 
   swarm1.on('connection', (conn) => {
+    conn.on('error', noop)
     connected.pass('swarm1')
     conn.destroy()
   })
   swarm2.on('connection', (conn) => {
+    conn.on('error', noop)
     connected.pass('swarm2')
     conn.destroy()
   })
 
   const topic = Buffer.alloc(32).fill('hello world')
+
   await swarm1.join(topic).flushed()
   await swarm2.join(topic).flushed()
 
@@ -81,6 +88,7 @@ test('one server, one client - single reconnect', async (t) => {
   swarm2.on('connection', (conn) => {
     if (!clientDisconnected) {
       clientDisconnected = true
+      conn.on('error', noop)
       conn.destroy()
       return
     }
@@ -90,6 +98,7 @@ test('one server, one client - single reconnect', async (t) => {
   swarm1.on('connection', (conn) => {
     if (!serverDisconnected) {
       serverDisconnected = true
+      conn.on('error', noop)
       conn.destroy()
       return
     }
@@ -146,6 +155,7 @@ test('one server, one client - banned peer does not reconnect', async (t) => {
   swarm2.on('connection', (conn, info) => {
     connections++
     info.ban(true)
+    conn.on('error', noop)
     conn.destroy()
   })
   swarm1.on('connection', (conn) => {
@@ -239,14 +249,17 @@ test('one server, two clients - first connection', async (t) => {
 
   swarm1.on('connection', (conn) => {
     connected.pass('swarm1')
+    conn.on('error', noop)
     conn.destroy()
   })
   swarm2.on('connection', (conn) => {
     connected.pass('swarm2')
+    conn.on('error', noop)
     conn.destroy()
   })
   swarm3.on('connection', (conn) => {
     connected.pass('swarm3')
+    conn.on('error', noop)
     conn.destroy()
   })
 
