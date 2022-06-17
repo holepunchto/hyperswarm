@@ -193,6 +193,26 @@ module.exports = class Hyperswarm extends EventEmitter {
     return this._firewall(remotePublicKey, payload)
   }
 
+  _handleServerConnectionSwap (existing, conn) {
+    let closed = false
+
+    existing.on('close', () => {
+      if (closed) return
+
+      conn.removeListener('error', noop)
+      conn.removeListener('close', onclose)
+
+      this._handleServerConnection(conn)
+    })
+
+    conn.on('error', noop)
+    conn.on('close', onclose)
+
+    function onclose () {
+      closed = true
+    }
+  }
+
   // Called when the DHT receives a new server connection.
   _handleServerConnection (conn) {
     if (this.destroyed) {
@@ -210,6 +230,8 @@ module.exports = class Hyperswarm extends EventEmitter {
       }
       existing.on('error', noop)
       existing.destroy(new Error(ERR_DUPLICATE))
+      this._handleServerConnectionSwap(existing, conn)
+      return
     }
 
     const peerInfo = this._upsertPeer(conn.remotePublicKey, null)
