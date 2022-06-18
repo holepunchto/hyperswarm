@@ -1,6 +1,6 @@
 {
   "name": "hyperswarm",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "A distributed networking stack for connecting peers",
   "dependencies": {
     "@hyperswarm/dht": "^6.0.1",
