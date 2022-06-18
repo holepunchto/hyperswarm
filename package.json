@@ -3,20 +3,21 @@
   "version": "3.0.4",
   "description": "A distributed networking stack for connecting peers",
   "dependencies": {
-    "@hyperswarm/dht": "next",
+    "@hyperswarm/dht": "github:hyperswarm/dht#udx",
     "b4a": "^1.3.1",
     "events": "^3.3.0",
     "shuffled-priority-queue": "^2.1.0"
   },
   "devDependencies": {
+    "@hyperswarm/testnet": "^2.0.0",
+    "brittle": "^2.3.1",
     "hypercore-crypto": "^2.3.0",
     "math-random-seed": "^2.0.0",
     "nonsynchronous": "^1.2.0",
-    "standard": "^12.0.1",
-    "tape": "^5.2.2"
+    "standard": "^17.0.0"
   },
   "scripts": {
-    "test": "standard && tape test/*.js"
+    "test": "standard && brittle test/*.js"
   },
   "repository": {
     "type": "git",

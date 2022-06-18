@@ -1,5 +1,4 @@
-'use strict'
-const test = require('tape')
+const test = require('brittle')
 const crypto = require('hypercore-crypto')
 const { timeout } = require('nonsynchronous')
 
@@ -13,7 +12,7 @@ const BACKOFFS = [
 ]
 const MAX_JITTER = 20
 
-test('retry timer - proven peer reinsertion', async t => {
+test('retry timer - proven peer reinsertion', async (t) => {
   let calls = 0
   const rt = new RetryTimer(() => calls++, {
     backoffs: BACKOFFS,
@@ -31,13 +30,12 @@ test('retry timer - proven peer reinsertion', async t => {
 
   await timeout(BACKOFFS[0] + MAX_JITTER)
 
-  t.same(calls, 2)
+  t.is(calls, 2)
 
   rt.destroy()
-  t.end()
 })
 
-test('retry timer - forget unresponsive', async t => {
+test('retry timer - forget unresponsive', async (t) => {
   let calls = 0
   const rt = new RetryTimer(() => calls++, {
     backoffs: BACKOFFS,
@@ -55,13 +53,12 @@ test('retry timer - forget unresponsive', async t => {
 
   await timeout(BACKOFFS[2] + MAX_JITTER)
 
-  t.same(calls, 1) // The second `add` should not trigger any more retries
+  t.is(calls, 1) // The second `add` should not trigger any more retries
 
   rt.destroy()
-  t.end()
 })
 
-test('retry timer - does not retry banned peers', async t => {
+test('retry timer - does not retry banned peers', async (t) => {
   let calls = 0
   const rt = new RetryTimer(() => calls++, {
     backoffs: BACKOFFS,
@@ -78,10 +75,9 @@ test('retry timer - does not retry banned peers', async t => {
 
   await timeout(BACKOFFS[2] + MAX_JITTER)
 
-  t.same(calls, 1) // The second `add` should not trigger any more retries
+  t.is(calls, 1) // The second `add` should not trigger any more retries
 
   rt.destroy()
-  t.end()
 })
 
 function randomPeerInfo () {

@@ -1,7 +1,8 @@
+const test = require('brittle')
 const { timeout } = require('nonsynchronous')
+const createTestnet = require('@hyperswarm/testnet')
 
 const Hyperswarm = require('..')
-const { test, destroyAll } = require('./helpers')
 
 const CONNECTION_TIMEOUT = 100
 const BACKOFFS = [
@@ -10,7 +11,9 @@ const BACKOFFS = [
   300
 ]
 
-test('firewalled server - bad client is rejected', async (bootstrap, t) => {
+test('firewalled server - bad client is rejected', async (t) => {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
   const swarm1 = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: 0 })
   const swarm2 = new Hyperswarm({
     bootstrap,
@@ -31,13 +34,15 @@ test('firewalled server - bad client is rejected', async (bootstrap, t) => {
 
   await timeout(CONNECTION_TIMEOUT)
 
-  t.same(serverConnections, 0, 'server did not receive an incoming connection')
+  t.alike(serverConnections, 0, 'server did not receive an incoming connection')
 
-  await destroyAll(swarm1, swarm2)
-  t.end()
+  await swarm1.destroy()
+  await swarm2.destroy()
 })
 
-test('firewalled client - bad server is rejected', async (bootstrap, t) => {
+test('firewalled client - bad server is rejected', async (t) => {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
   const swarm1 = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: 0 })
   const swarm2 = new Hyperswarm({
     bootstrap,
@@ -58,13 +63,15 @@ test('firewalled client - bad server is rejected', async (bootstrap, t) => {
 
   await timeout(CONNECTION_TIMEOUT)
 
-  t.same(clientConnections, 0, 'client did not receive an incoming connection')
+  t.alike(clientConnections, 0, 'client did not receive an incoming connection')
 
-  await destroyAll(swarm1, swarm2)
-  t.end()
+  await swarm1.destroy()
+  await swarm2.destroy()
 })
 
-test('firewalled server - rejection does not trigger retry cascade', async (bootstrap, t) => {
+test('firewalled server - rejection does not trigger retry cascade', async (t) => {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
   const swarm1 = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: 0 })
 
   let firewallCalls = 0
@@ -88,9 +95,9 @@ test('firewalled server - rejection does not trigger retry cascade', async (boot
 
   await timeout(BACKOFFS[2] * 5) // Wait for many retries -- there should only be 3
 
-  t.same(serverConnections, 0, 'server did not receive an incoming connection')
-  t.same(firewallCalls, 1, 'client retried mulitple times but server cached it')
+  t.alike(serverConnections, 0, 'server did not receive an incoming connection')
+  t.alike(firewallCalls, 1, 'client retried mulitple times but server cached it')
 
-  await destroyAll(swarm1, swarm2)
-  t.end()
+  await swarm1.destroy()
+  await swarm2.destroy()
 })
