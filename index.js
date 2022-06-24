@@ -48,8 +48,8 @@ module.exports = class Hyperswarm extends EventEmitter {
     this.peers = new Map()
     this.explicitPeers = new Set()
     this.listening = null
-    this._root = opts._root
-    this._root && this._root.once('destroy', () => this.destroy())
+    this._source = opts._source
+    this._source && this._source.once('destroy', () => this.destroy())
     this._opts = opts
 
     this._discovery = new Map()
@@ -68,6 +68,8 @@ module.exports = class Hyperswarm extends EventEmitter {
     this._clientConnections = 0
     this._serverConnections = 0
     this._firewall = firewall
+
+    this.dht.on('network-change', this._handleNetworkChange.bind(this))
   }
 
   _enqueue (peerInfo) {
@@ -94,7 +96,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       const flush = this._pendingFlushes[i]
       if (peerInfo._flushTick > flush.tick) continue
       if (--flush.missing > 0) continue
-      flush.resolve()
+      flush.onflush(true)
       this._pendingFlushes.splice(i--, 1)
     }
   }
@@ -194,6 +196,26 @@ module.exports = class Hyperswarm extends EventEmitter {
     return this._firewall(remotePublicKey, payload)
   }
 
+  _handleServerConnectionSwap (existing, conn) {
+    let closed = false
+
+    existing.on('close', () => {
+      if (closed) return
+
+      conn.removeListener('error', noop)
+      conn.removeListener('close', onclose)
+
+      this._handleServerConnection(conn)
+    })
+
+    conn.on('error', noop)
+    conn.on('close', onclose)
+
+    function onclose () {
+      closed = true
+    }
+  }
+
   // Called when the DHT receives a new server connection.
   _handleServerConnection (conn) {
     if (this.destroyed) {
@@ -211,6 +233,8 @@ module.exports = class Hyperswarm extends EventEmitter {
       }
       existing.on('error', noop)
       existing.destroy(new Error(ERR_DUPLICATE))
+      this._handleServerConnectionSwap(existing, conn)
+      return
     }
 
     const peerInfo = this._upsertPeer(conn.remotePublicKey, null)
@@ -261,6 +285,16 @@ module.exports = class Hyperswarm extends EventEmitter {
     if (peerInfo._updatePriority()) {
       this._enqueue(peerInfo)
     }
+  }
+
+  async _handleNetworkChange () {
+    const refreshes = []
+
+    for (const discovery of this._discovery.values()) {
+      refreshes.push(discovery.refresh())
+    }
+
+    await Promise.allSettled(refreshes)
   }
 
   status (key) {
@@ -322,10 +356,9 @@ module.exports = class Hyperswarm extends EventEmitter {
     await Promise.all(allFlushed)
     const pendingSize = this._allConnections.size - this.connections.size
     if (!this._queue.length && !pendingSize) return
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       this._pendingFlushes.push({
-        resolve,
-        reject,
+        onflush: resolve,
         missing: this._queue.length + pendingSize,
         tick: this._flushTick++
       })
@@ -345,7 +378,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       keyPair: undefined,
       ...opts,
       dht: this.dht,
-      _root: this._root || this
+      _source: this._source || this
     })
   }
 
@@ -358,17 +391,18 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     await this.clear()
 
-    if (!this._root) await this.dht.destroy()
     await this.server.close()
 
     while (this._pendingFlushes.length) {
       const flush = this._pendingFlushes.pop()
-      flush.reject(new Error(ERR_DESTROYED))
+      flush.onflush(false)
     }
 
     for (const conn of this._allConnections) {
       conn.destroy()
     }
+
+    if (!this._source) await this.dht.destroy()
   }
 }
 
