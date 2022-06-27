@@ -102,7 +102,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     if (this._connecting > 0 || (this._allConnections.size < this.maxPeers && this._clientConnections < this.maxClientConnections)) {
       return false
     }
-console.log('nu')
+
     while (this._pendingFlushes.length) {
       const flush = this._pendingFlushes.pop()
       flush.onflush(true)
