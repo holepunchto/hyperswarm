@@ -98,11 +98,24 @@ module.exports = class Hyperswarm extends EventEmitter {
     }
   }
 
+  _flushAllMaybe () {
+    if (this._connecting > 0 || (this._allConnections.size < this.maxPeers && this._clientConnections < this.maxClientConnections)) {
+      return false
+    }
+
+    while (this._pendingFlushes.length) {
+      const flush = this._pendingFlushes.pop()
+      flush.onflush(true)
+    }
+
+    return true
+  }
+
   _shouldConnect () {
     return !this.destroyed &&
+      this._connecting < this.maxParallel &&
       this._allConnections.size < this.maxPeers &&
-      this._clientConnections < this.maxClientConnections &&
-      this._connecting < this.maxParallel
+      this._clientConnections < this.maxClientConnections
   }
 
   _shouldRequeue (peerInfo) {
@@ -164,6 +177,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   _connectDone () {
     this._connecting--
     if (this._connecting < this.maxParallel) this._attemptClientConnections()
+    if (this._connecting === 0) this._flushAllMaybe()
   }
 
   // Called when the PeerQueue indicates a connection should be attempted.
@@ -177,6 +191,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       this._connect(peerInfo)
     }
     this._drainingQueue = false
+    if (this._connecting === 0) this._flushAllMaybe()
   }
 
   _handleFirewall (remotePublicKey, payload) {
@@ -351,8 +366,9 @@ module.exports = class Hyperswarm extends EventEmitter {
   async flush () {
     const allFlushed = [...this._discovery.values()].map(v => v.flushed())
     await Promise.all(allFlushed)
+    if (this._flushAllMaybe()) return true
     const pendingSize = this._allConnections.size - this.connections.size
-    if (!this._queue.length && !pendingSize) return
+    if (!this._queue.length && !pendingSize) return true
     return new Promise((resolve) => {
       this._pendingFlushes.push({
         onflush: resolve,
