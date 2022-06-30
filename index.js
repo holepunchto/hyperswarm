@@ -112,10 +112,12 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   _shouldConnect () {
-    return !this.destroyed &&
-      this._connecting < this.maxParallel &&
+    const belowConnectionLimit = this._connecting < this.maxParallel &&
       this._allConnections.size < this.maxPeers &&
       this._clientConnections < this.maxClientConnections
+    return !this.destroyed &&
+      ((this._queue.length && this._queue.head().ignoreLimits) ||
+       belowConnectionLimit)
   }
 
   _shouldRequeue (peerInfo) {
@@ -343,9 +345,12 @@ module.exports = class Hyperswarm extends EventEmitter {
     return discovery.destroy()
   }
 
-  joinPeer (publicKey) {
+  joinPeer (publicKey, opts = {}) {
     const peerInfo = this._upsertPeer(publicKey, null)
     if (!peerInfo) return
+    if (opts.ignoreLimits) {
+      peerInfo.ignoreLimits = true
+    }
     if (!this.explicitPeers.has(peerInfo)) {
       this.explicitPeers.add(peerInfo)
     }

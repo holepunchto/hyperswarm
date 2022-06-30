@@ -1,5 +1,6 @@
 const test = require('brittle')
 const createTestnet = require('@hyperswarm/testnet')
+const DHT = require('@hyperswarm/dht')
 
 const Hyperswarm = require('..')
 
@@ -114,6 +115,52 @@ test('leave peer - will stop reconnecting to previously joined peers', async (t)
   t.alike(swarm1.connections.size, 0)
   t.alike(swarm2.connections.size, 0)
 
+  await swarm1.destroy()
+  await swarm2.destroy()
+})
+
+test('join peer - joining with ignoreLimits: true will disregard all limits', async (t) => {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
+  const seeder1 = new Hyperswarm({ bootstrap })
+  const seeder2 = new Hyperswarm({ bootstrap })
+  const swarm1 = new Hyperswarm({ bootstrap, maxPeers: 1 })
+  seeder1.on('connection', c => c.on('error', noop))
+  seeder2.on('connection', c => c.on('error', noop))
+  swarm1.on('connection', c => c.on('error', noop))
+
+  const keyPair = DHT.keyPair()
+  const topic = Buffer.alloc(32).fill('hello world')
+
+  await seeder1.join(topic, { server: true }).flushed()
+  await seeder2.join(topic, { server: true }).flushed()
+
+  swarm1.join(topic, { client: true })
+
+  // Joining a non-existing peer
+  await swarm1.joinPeer(keyPair.publicKey, { ignoreLimits: true })
+  await swarm1.flush()
+
+  t.is(swarm1.connections.size, 1)
+
+  const connectedTest = t.test('got joinPeer connection after connection limit reached', t => {
+    t.plan(1)
+    swarm1.once('connection', conn => {
+      conn.on('error', noop)
+      t.alike(conn.remotePublicKey, keyPair.publicKey)
+    })
+  })
+
+  // The explicitly-joined peer comes only now, and swarm1 should connect
+  const swarm2 = new Hyperswarm({ bootstrap, keyPair })
+  swarm2.on('connection', conn => conn.on('error', noop))
+  await swarm2.listen()
+
+  await connectedTest
+  t.is(swarm1.connections.size, 2)
+
+  await seeder1.destroy()
+  await seeder2.destroy()
   await swarm1.destroy()
   await swarm2.destroy()
 })
