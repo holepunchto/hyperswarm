@@ -70,6 +70,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   _enqueue (peerInfo) {
+    if (peerInfo.queued) return
     peerInfo.queued = true
     peerInfo._flushTick = this._flushTick
     this._queue.add(peerInfo)
@@ -79,7 +80,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
   _requeue (batch) {
     for (const peerInfo of batch) {
-      if ((peerInfo._updatePriority() === false) || this._allConnections.has(peerInfo.publicKey)) continue
+      if ((peerInfo._updatePriority() === false) || this._allConnections.has(peerInfo.publicKey) || peerInfo.queued) continue
       peerInfo.queued = true
       peerInfo._flushTick = this._flushTick
       this._queue.add(peerInfo)
