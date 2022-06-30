@@ -120,7 +120,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   _shouldRequeue (peerInfo) {
-    if (this.explicitPeers.has(peerInfo)) return true
+    if (peerInfo.explicit) return true
     for (const topic of peerInfo.topics) {
       if (this._discovery.has(b4a.toString(topic, 'hex')) && !this.destroyed) {
         return true
@@ -348,6 +348,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     const peerInfo = this._upsertPeer(publicKey, null)
     if (!peerInfo) return
     if (!this.explicitPeers.has(peerInfo)) {
+      peerInfo.explicit = true
       this.explicitPeers.add(peerInfo)
     }
     if (this._allConnections.has(publicKey)) return
@@ -360,6 +361,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     const keyString = b4a.toString(publicKey, 'hex')
     if (!this.peers.has(keyString)) return
     const peerInfo = this.peers.get(keyString)
+    peerInfo.explicit = false
     this.explicitPeers.delete(peerInfo)
   }
 
