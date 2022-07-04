@@ -444,6 +444,37 @@ test('constructor options - debug options forwarded to DHT constructor', async (
   await swarm2.destroy()
 })
 
+test('flush when max connections reached', async (t) => {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
+  const swarm1 = new Hyperswarm({ bootstrap })
+  const swarm2 = new Hyperswarm({ bootstrap, maxPeers: 1 })
+  const swarm3 = new Hyperswarm({ bootstrap, maxPeers: 1 })
+
+  const topic = Buffer.alloc(32).fill('hello world')
+
+  await swarm1.join(topic, { server: true }).flushed()
+
+  await swarm2
+    .on('connection', (conn) => conn.on('error', noop))
+    .join(topic, { client: true })
+    .flushed()
+
+  await swarm3
+    .on('connection', (conn) => conn.on('error', noop))
+    .join(topic, { client: true })
+    .flushed()
+
+  await swarm2.flush()
+  await swarm3.flush()
+
+  t.pass('flush resolved')
+
+  await swarm1.destroy()
+  await swarm2.destroy()
+  await swarm3.destroy()
+})
+
 test('sessions', async (bootstrap, t) => {
   const root = new Hyperswarm({ bootstrap })
   const s1 = root.session()
