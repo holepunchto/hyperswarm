@@ -2,6 +2,7 @@ const { EventEmitter } = require('events')
 const DHT = require('@hyperswarm/dht')
 const spq = require('shuffled-priority-queue')
 const b4a = require('b4a')
+const safetyCatch = require('safety-catch')
 
 const PeerInfo = require('./lib/peer-info')
 const RetryTimer = require('./lib/retry-timer')
@@ -325,7 +326,11 @@ module.exports = class Hyperswarm extends EventEmitter {
   join (topic, opts = {}) {
     if (!topic) throw new Error(ERR_MISSING_TOPIC)
     const topicString = b4a.toString(topic, 'hex')
-    if (this._discovery.has(topicString)) return this._discovery.get(topicString)
+    if (this._discovery.has(topicString)) {
+      const discovery = this._discovery.get(topicString)
+      discovery.refresh(opts).catch(safetyCatch)
+      return discovery
+    }
     const discovery = new PeerDiscovery(this, topic, {
       ...opts,
       onpeer: peer => this._handlePeer(peer, topic)
