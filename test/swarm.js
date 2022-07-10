@@ -475,6 +475,30 @@ test('flush when max connections reached', async (t) => {
   await swarm3.destroy()
 })
 
+test('rejoining with different client/server opts refreshes', async (t) => {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
+  const swarm1 = new Hyperswarm({ bootstrap })
+  const swarm2 = new Hyperswarm({ bootstrap })
+
+  const topic = Buffer.alloc(32).fill('hello world')
+
+  swarm1.join(topic, { client: true, server: false })
+  await swarm1.join(topic, { client: true, server: true }).flushed()
+
+  await swarm2
+    .on('connection', (conn) => conn.on('error', noop))
+    .join(topic, { client: true })
+    .flushed()
+
+  await swarm2.flush()
+
+  t.is(swarm2.connections.size, 1)
+
+  await swarm1.destroy()
+  await swarm2.destroy()
+})
+
 test('sessions', async (bootstrap, t) => {
   const root = new Hyperswarm({ bootstrap })
   const s1 = root.session()
