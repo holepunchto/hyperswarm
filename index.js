@@ -413,6 +413,10 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     await this.dht.destroy()
   }
+
+  topics () {
+    return this._discovery.values()
+  }
 }
 
 function noop () { }
