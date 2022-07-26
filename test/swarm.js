@@ -499,6 +499,24 @@ test('rejoining with different client/server opts refreshes', async (t) => {
   await swarm2.destroy()
 })
 
+test('topics returns peer-discovery objects', async (t) => {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
+  const swarm = new Hyperswarm({ bootstrap })
+  const topic1 = Buffer.alloc(32).fill('topic 1')
+  const topic2 = Buffer.alloc(32).fill('topic 2')
+
+  swarm.join(topic1)
+  swarm.join(topic2)
+
+  const peerDiscoveries = swarm.topics()
+
+  t.alike(peerDiscoveries.next().value.topic, topic1)
+  t.alike(peerDiscoveries.next().value.topic, topic2)
+
+  await swarm.destroy()
+})
+
 test('sessions', async (bootstrap, t) => {
   const root = new Hyperswarm({ bootstrap })
   const s1 = root.session()
