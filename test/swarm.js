@@ -23,11 +23,11 @@ test('one server, one client - first connection', async (t) => {
   swarm2.on('connection', (conn) => {
     connected.pass('swarm2')
     conn.on('error', noop)
-    conn.destroy()
+    conn.end()
   })
   swarm1.on('connection', (conn) => {
     conn.on('error', noop)
-    conn.destroy()
+    conn.end()
   })
 
   const topic = Buffer.alloc(32).fill('hello world')
@@ -54,12 +54,12 @@ test('two servers - first connection', async (t) => {
   swarm1.on('connection', (conn) => {
     conn.on('error', noop)
     connected.pass('swarm1')
-    conn.destroy()
+    conn.end()
   })
   swarm2.on('connection', (conn) => {
     conn.on('error', noop)
     connected.pass('swarm2')
-    conn.destroy()
+    conn.end()
   })
 
   const topic = Buffer.alloc(32).fill('hello world')
