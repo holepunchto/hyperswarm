@@ -517,4 +517,40 @@ test('topics returns peer-discovery objects', async (t) => {
   await swarm.destroy()
 })
 
+test('multiple discovery sessions with different opts', async (t) => {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
+  const swarm1 = new Hyperswarm({ bootstrap })
+  const swarm2 = new Hyperswarm({ bootstrap })
+
+  const topic = Buffer.alloc(32).fill('hello world')
+
+  const connected = t.test('connection')
+  connected.plan(2)
+
+  swarm1.on('connection', (conn) => {
+    connected.pass('swarm1')
+    conn.on('error', noop)
+  })
+
+  swarm2.on('connection', (conn) => {
+    connected.pass('swarm2')
+    conn.on('error', noop)
+  })
+
+  await swarm1.join(topic).flushed()
+  await swarm1.flush()
+
+  const discovery1 = swarm2.join(topic, { client: true, server: false })
+  const discovery2 = swarm2.join(topic, { client: false, server: true })
+
+  await discovery1.destroy() // should not prevent server connections
+  await discovery2.flushed()
+
+  await connected
+
+  await swarm1.destroy()
+  await swarm2.destroy()
+})
+
 function noop () {}
