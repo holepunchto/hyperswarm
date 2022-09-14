@@ -12,12 +12,13 @@ test('join peer - can establish direct connections to public keys', async (t) =>
   await swarm2.listen() // Ensure that swarm2's public key is being announced
 
   const firstConnection = t.test('first connection')
-  firstConnection.plan(1)
+  firstConnection.plan(2)
 
   const connections = t.test('connections')
   connections.plan(4)
 
   let s2Connected = false
+  let s1Connected = false
 
   swarm2.on('connection', conn => {
     conn.on('error', noop)
@@ -29,6 +30,10 @@ test('join peer - can establish direct connections to public keys', async (t) =>
   })
   swarm1.on('connection', conn => {
     conn.on('error', noop)
+    if (!s1Connected) {
+      firstConnection.pass('swarm1 got its first connection')
+      s1Connected = true
+    }
     connections.pass('swarm1 got a connection')
   })
 
