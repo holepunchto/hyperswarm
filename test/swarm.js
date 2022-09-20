@@ -556,19 +556,21 @@ test('multiple discovery sessions with different opts', async (t) => {
 test('closing all discovery sessions clears all peer-discovery objects', async t => {
   const { bootstrap } = await createTestnet(3, t.teardown)
 
-  const swarm1 = new Hyperswarm({ bootstrap })
+  const swarm = new Hyperswarm({ bootstrap })
 
   const topic1 = Buffer.alloc(32).fill('hello')
   const topic2 = Buffer.alloc(32).fill('world')
 
-  const discovery1 = swarm1.join(topic1, { client: true, server: false })
-  const discovery2 = swarm1.join(topic2, { client: false, server: true })
+  const discovery1 = swarm.join(topic1, { client: true, server: false })
+  const discovery2 = swarm.join(topic2, { client: false, server: true })
 
-  t.is(swarm1._discovery.size, 2)
+  t.is(swarm._discovery.size, 2)
 
   await Promise.all([discovery1.destroy(), discovery2.destroy()])
 
-  t.is(swarm1._discovery.size, 0)
+  t.is(swarm._discovery.size, 0)
+
+  await swarm.destroy()
 })
 
 function noop () {}
