@@ -324,10 +324,15 @@ module.exports = class Hyperswarm extends EventEmitter {
   join (topic, opts = {}) {
     if (!topic) throw new Error(ERR_MISSING_TOPIC)
     const topicString = b4a.toString(topic, 'hex')
-    if (this._discovery.has(topicString)) {
-      return this._discovery.get(topicString).session(opts)
+
+    let discovery = this._discovery.get(topicString)
+
+    if (discovery && !discovery.destroyed) {
+      return discovery.session(opts)
     }
-    const discovery = new PeerDiscovery(this, topic, {
+
+    discovery = new PeerDiscovery(this, topic, {
+      wait: discovery ? discovery.destroy() : null,
       onpeer: peer => this._handlePeer(peer, topic)
     })
     this._discovery.set(topicString, discovery)
@@ -335,13 +340,17 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   // Returns a promise
-  leave (topic) {
+  async leave (topic) {
     if (!topic) throw new Error(ERR_MISSING_TOPIC)
     const topicString = b4a.toString(topic, 'hex')
     if (!this._discovery.has(topicString)) return Promise.resolve()
+
     const discovery = this._discovery.get(topicString)
-    this._discovery.delete(topicString)
-    return discovery.destroy()
+    await discovery.destroy()
+
+    if (this._discovery.get(topicString) === discovery) {
+      this._discovery.delete(topicString)
+    }
   }
 
   joinPeer (publicKey) {
