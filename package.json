@@ -1,6 +1,6 @@
 {
   "name": "hyperswarm",
-  "version": "4.3.4",
+  "version": "4.3.5",
   "description": "A distributed networking stack for connecting peers",
   "files": [
     "index.js",
