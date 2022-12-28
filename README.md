@@ -12,16 +12,18 @@ npm install hyperswarm@next
 ## Usage
 ```js
 const Hyperswarm = require('hyperswarm')
+
 const swarm1 = new Hyperswarm()
 const swarm2 = new Hyperswarm()
 
 swarm1.on('connection', (conn, info) => {
- // swarm1 will receive server connections
- conn.write('this is a server connection')
- conn.end()
+  // swarm1 will receive server connections
+  conn.write('this is a server connection')
+  conn.end()
 })
+
 swarm2.on('connection', (conn, info) => {
- conn.on('data', data => console.log('client got message:', data.toString()))
+  conn.on('data', data => console.log('client got message:', data.toString()))
 })
 
 const topic = Buffer.alloc(32).fill('hello world') // A topic must be 32 bytes
