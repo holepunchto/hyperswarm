@@ -6,7 +6,7 @@ A high-level API for finding and connecting to peers who are interested in a "to
 
 ## Installation
 ```
-npm install hyperswarm@next
+npm install hyperswarm
 ```
 
 ## Usage
