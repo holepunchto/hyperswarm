@@ -397,7 +397,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   async destroy ({ force } = {}) {
-    if (this.destroyed) return
+    if (this.destroyed && !force) return
     this.destroyed = true
 
     this._timer.destroy()
@@ -409,10 +409,6 @@ module.exports = class Hyperswarm extends EventEmitter {
     while (this._pendingFlushes.length) {
       const flush = this._pendingFlushes.pop()
       flush.onflush(false)
-    }
-
-    for (const conn of this._allConnections) {
-      conn.destroy()
     }
 
     await this.dht.destroy({ force })
