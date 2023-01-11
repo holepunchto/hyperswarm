@@ -2,7 +2,7 @@ const test = require('brittle')
 const createTestnet = require('@hyperswarm/testnet')
 const Hyperswarm = require('../')
 
-test.solo('many servers', async t => {
+test('many servers', async t => {
   const { bootstrap } = await createTestnet(3, t.teardown)
   const topic = Buffer.alloc(32).fill('hello')
 
