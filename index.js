@@ -198,11 +198,6 @@ module.exports = class Hyperswarm extends EventEmitter {
   _handleFirewall (remotePublicKey, payload) {
     if (b4a.equals(remotePublicKey, this.keyPair.publicKey)) return true
 
-    const existing = this._allConnections.get(remotePublicKey)
-    if (existing) {
-      if (existing.isInitiator === true && isOpen(existing)) return true
-    }
-
     const peerInfo = this.peers.get(b4a.toString(remotePublicKey, 'hex'))
     if (peerInfo && peerInfo.banned) return true
 
@@ -238,12 +233,17 @@ module.exports = class Hyperswarm extends EventEmitter {
     }
 
     const existing = this._allConnections.get(conn.remotePublicKey)
+
     if (existing) {
-      if (existing.isInitiator && isOpen(existing)) {
+      // if both connections are from the same peer, pick newest. otherwise tie break based on pub keys
+      const keepNew = conn.isInitiator === existing.isInitiator || b4a.compare(conn.publicKey, conn.remotePublicKey) > 0
+
+      if (keepNew === false) {
         conn.on('error', noop)
         conn.destroy(new Error(ERR_DUPLICATE))
         return
       }
+
       existing.on('error', noop)
       existing.destroy(new Error(ERR_DUPLICATE))
       this._handleServerConnectionSwap(existing, conn)
@@ -427,8 +427,4 @@ function noop () { }
 
 function allowAll () {
   return false
-}
-
-function isOpen (stream) {
-  return !!stream.id
 }
