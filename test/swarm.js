@@ -657,6 +657,47 @@ test('peer-discovery object deleted when corresponding connection closes (client
   await swarm1.destroy()
 })
 
+test('sessions', async function (t) {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
+  const root = new Hyperswarm({ bootstrap })
+  const s1 = root.session()
+  const s2 = root.session()
+
+  await s1.destroy()
+
+  t.is(root.destroyed, false)
+  t.is(s1.destroyed, true)
+  t.is(s2.destroyed, false)
+
+  t.is(root.dht.destroyed, false)
+  t.is(s1.dht.destroyed, false)
+  t.is(s2.dht.destroyed, false)
+
+  await root.destroy()
+
+  t.is(root.destroyed, true)
+  t.is(s1.destroyed, true)
+  t.is(s2.destroyed, true)
+
+  t.is(root.dht.destroyed, true)
+  t.is(s1.dht.destroyed, true)
+  t.is(s2.dht.destroyed, true)
+})
+
+test('close event', async function (t) {
+  t.plan(1)
+
+  const { bootstrap } = await createTestnet(3, t.teardown)
+  const swarm = new Hyperswarm({ bootstrap })
+
+  swarm.once('close', function () {
+    t.pass('swarm closed')
+  })
+
+  await swarm.destroy()
+})
+
 function noop () {}
 
 function eventFlush () {
