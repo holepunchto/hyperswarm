@@ -479,7 +479,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     this.destroyed = true
 
-    this.dht.off('network-change', this._handleNetworkChange)
+    if (!this._root) this.dht.off('network-change', this._handleNetworkChange)
 
     for (const session of this._sessions) {
       await session.destroy()
