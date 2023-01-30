@@ -685,7 +685,20 @@ test('sessions', async function (t) {
   t.is(s2.dht.destroyed, true)
 })
 
-test('close order of sessions and root', async function (t) {
+test('close event', async function (t) {
+  t.plan(1)
+
+  const { bootstrap } = await createTestnet(3, t.teardown)
+  const swarm = new Hyperswarm({ bootstrap })
+
+  swarm.once('close', function () {
+    t.pass('swarm closed')
+  })
+
+  await swarm.destroy()
+})
+
+test('destroy order of sessions and root', async function (t) {
   const { bootstrap } = await createTestnet(3, t.teardown)
 
   const root = new Hyperswarm({ bootstrap })
@@ -720,19 +733,6 @@ test('close order of sessions and root', async function (t) {
 
   s1.destroy()
   await root.destroy()
-})
-
-test('close event', async function (t) {
-  t.plan(1)
-
-  const { bootstrap } = await createTestnet(3, t.teardown)
-  const swarm = new Hyperswarm({ bootstrap })
-
-  swarm.once('close', function () {
-    t.pass('swarm closed')
-  })
-
-  await swarm.destroy()
 })
 
 function noop () {}
