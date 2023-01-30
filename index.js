@@ -45,6 +45,8 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     this.destroyed = false
     this.suspended = false
+    this._destroying = null
+
     this.maxPeers = maxPeers
     this.maxClientConnections = maxClientConnections
     this.maxServerConnections = maxServerConnections
@@ -474,9 +476,14 @@ module.exports = class Hyperswarm extends EventEmitter {
     })
   }
 
-  async destroy ({ force } = {}) {
-    if (this.destroyed && !force) return
+  async destroy (opts) {
+    if (this._destroying) return this._destroying
+    this._destroying = this._destroy(opts)
+    return this._destroying
+  }
 
+  async _destroy () {
+    if (this.destroyed && !force) return
     this.destroyed = true
 
     if (!this._root) this.dht.off('network-change', this._handleNetworkChange)

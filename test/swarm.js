@@ -685,6 +685,43 @@ test('sessions', async function (t) {
   t.is(s2.dht.destroyed, true)
 })
 
+test('close order of sessions and root', async function (t) {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
+  const root = new Hyperswarm({ bootstrap })
+  const s1 = root.session()
+  const s2 = root.session()
+
+  const connected = t.test('connection')
+  connected.plan(2)
+
+  s1.on('connection', (socket) => {
+    socket.on('error', noop)
+    connected.pass('new s1 connection')
+  })
+
+  s2.on('connection', (socket) => {
+    socket.on('error', noop)
+    connected.pass('new s2 connection')
+  })
+
+  const topic = Buffer.alloc(32).fill('hello world')
+  await s1.join(topic, { server: true, client: false }).flushed()
+
+  s2.join(topic, { client: true, server: false })
+  await s2.flush()
+
+  await connected
+
+  let order = 0
+  root.on('close', () => t.is(++order, 3))
+  s1.on('close', () => t.is(++order, 1))
+  s2.on('close', () => t.is(++order, 2))
+
+  s1.destroy()
+  await root.destroy()
+})
+
 test('close event', async function (t) {
   t.plan(1)
 
