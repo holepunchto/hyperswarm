@@ -195,13 +195,13 @@ module.exports = class Hyperswarm extends EventEmitter {
     if (this._connecting === 0) this._flushAllMaybe()
   }
 
-  _handleFirewall (remotePublicKey, payload) {
+  _handleFirewall (remotePublicKey, payload, clientAddress) {
     if (b4a.equals(remotePublicKey, this.keyPair.publicKey)) return true
 
     const peerInfo = this.peers.get(b4a.toString(remotePublicKey, 'hex'))
     if (peerInfo && peerInfo.banned) return true
 
-    return this._firewall(remotePublicKey, payload)
+    return this._firewall(remotePublicKey, payload, clientAddress)
   }
 
   _handleServerConnectionSwap (existing, conn) {
