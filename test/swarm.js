@@ -86,9 +86,9 @@ test('one server, one client - single reconnect', async (t) => {
   let serverDisconnected = false
 
   swarm2.on('connection', (conn) => {
-    conn.on('error', noop)
     if (!clientDisconnected) {
       clientDisconnected = true
+      conn.on('error', noop)
       conn.destroy()
       return
     }
@@ -96,9 +96,9 @@ test('one server, one client - single reconnect', async (t) => {
     conn.end()
   })
   swarm1.on('connection', (conn) => {
-    conn.on('error', noop)
     if (!serverDisconnected) {
       serverDisconnected = true
+      conn.on('error', noop)
       conn.destroy()
       return
     }
