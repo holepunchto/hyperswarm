@@ -69,7 +69,7 @@ Emitted whenever the swarm connects to a new peer.
 
 `peerInfo` is a [`PeerInfo`](https://github.com/holepunchto/hyperswarm/blob/v3/README.md#peerinfo-api) instance
 
-#### `swarm.on('state', (event) => {})`
+#### `swarm.on('update', (event) => {})`
 Emitted when internal values are changed, useful for user interfaces.
 
 Possible `event` names:
