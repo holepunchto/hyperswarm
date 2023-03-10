@@ -258,11 +258,15 @@ module.exports = class Hyperswarm extends EventEmitter {
     const peerInfo = this._upsertPeer(conn.remotePublicKey, null)
 
     this.connections.add(conn)
+    this.emit('update', 'connecting')
+
     this._allConnections.add(conn)
     this._serverConnections++
 
     conn.on('close', () => {
       this.connections.delete(conn)
+      this.emit('update', 'connecting')
+
       this._allConnections.delete(conn)
       this._serverConnections--
 
