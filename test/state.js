@@ -3,7 +3,7 @@ const Hyperswarm = require('..')
 const createTestnet = require('@hyperswarm/testnet')
 
 test('connecting', async (t) => {
-  t.plan(9)
+  t.plan(7)
 
   const { bootstrap } = await createTestnet(3, t.teardown)
 
