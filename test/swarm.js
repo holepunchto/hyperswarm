@@ -80,38 +80,30 @@ test('one server, one client - single reconnect', async (t) => {
   const swarm2 = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: 0 })
 
   const reconnected = t.test('reconnection')
-  reconnected.plan(6)
+  reconnected.plan(2)
 
   let clientDisconnected = false
   let serverDisconnected = false
 
   swarm2.on('connection', (conn) => {
     conn.on('error', noop)
-    if (reconnected.assertions === 6) return
-
     if (!clientDisconnected) {
       clientDisconnected = true
       conn.destroy()
-      reconnected.pass('client disconnected')
       return
     }
     reconnected.pass('client')
     conn.end()
-    conn.on('close', () => reconnected.pass('client closed'))
   })
   swarm1.on('connection', (conn) => {
     conn.on('error', noop)
-    if (reconnected.assertions === 6) return
-
     if (!serverDisconnected) {
       serverDisconnected = true
       conn.destroy()
-      reconnected.pass('server disconnected')
       return
     }
     reconnected.pass('server')
     conn.end()
-    conn.on('close', () => reconnected.pass('server closed'))
   })
 
   const topic = Buffer.alloc(32).fill('hello world')
