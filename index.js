@@ -44,6 +44,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     this.maxClientConnections = maxClientConnections
     this.maxServerConnections = maxServerConnections
     this.maxParallel = maxParallel
+    this.connecting = 0
     this.connections = new Set()
     this.peers = new Map()
     this.explicitPeers = new Set()
@@ -61,7 +62,6 @@ module.exports = class Hyperswarm extends EventEmitter {
     this._flushTick = 0
 
     this._drainingQueue = false
-    this._connecting = 0
     this._clientConnections = 0
     this._serverConnections = 0
     this._firewall = firewall
@@ -100,7 +100,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   _flushAllMaybe () {
-    if (this._connecting > 0 || (this._allConnections.size < this.maxPeers && this._clientConnections < this.maxClientConnections)) {
+    if (this.connecting > 0 || (this._allConnections.size < this.maxPeers && this._clientConnections < this.maxClientConnections)) {
       return false
     }
 
@@ -114,7 +114,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
   _shouldConnect () {
     return !this.destroyed &&
-      this._connecting < this.maxParallel &&
+      this.connecting < this.maxParallel &&
       this._allConnections.size < this.maxPeers &&
       this._clientConnections < this.maxClientConnections
   }
@@ -146,8 +146,11 @@ module.exports = class Hyperswarm extends EventEmitter {
       relayAddresses: peerInfo.relayAddresses,
       keyPair: this.keyPair
     })
+
+    this.connecting++
+    this.emit('state', { event: 'connecting', value: this.connecting })
+
     this._allConnections.add(conn)
-    this._connecting++
     this._clientConnections++
     let opened = false
 
@@ -176,9 +179,11 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   _connectDone () {
-    this._connecting--
-    if (this._connecting < this.maxParallel) this._attemptClientConnections()
-    if (this._connecting === 0) this._flushAllMaybe()
+    this.connecting--
+    this.emit('state', { event: 'connecting', value: this.connecting })
+
+    if (this.connecting < this.maxParallel) this._attemptClientConnections()
+    if (this.connecting === 0) this._flushAllMaybe()
   }
 
   // Called when the PeerQueue indicates a connection should be attempted.
@@ -192,7 +197,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       this._connect(peerInfo)
     }
     this._drainingQueue = false
-    if (this._connecting === 0) this._flushAllMaybe()
+    if (this.connecting === 0) this._flushAllMaybe()
   }
 
   _handleFirewall (remotePublicKey, payload) {
