@@ -148,7 +148,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     })
 
     this.connecting++
-    this.emit('state', { event: 'connecting', value: this.connecting })
+    this.emit('state', 'connecting')
 
     this._allConnections.add(conn)
     this._clientConnections++
@@ -180,7 +180,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
   _connectDone () {
     this.connecting--
-    this.emit('state', { event: 'connecting', value: this.connecting })
+    this.emit('state', 'connecting')
 
     if (this.connecting < this.maxParallel) this._attemptClientConnections()
     if (this.connecting === 0) this._flushAllMaybe()

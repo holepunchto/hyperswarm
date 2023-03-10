@@ -18,14 +18,12 @@ test('connecting', async (t) => {
 
   t.is(swarm2.connecting, 0)
 
-  swarm2.once('state', function ({ event, value }) {
+  swarm2.once('state', function (event) {
     t.is(event, 'connecting')
-    t.is(value, 1)
     t.is(swarm2.connecting, 1)
 
-    swarm2.once('state', function ({ event, value }) {
+    swarm2.once('state', function (event) {
       t.is(event, 'connecting')
-      t.is(value, 0)
       t.is(swarm2.connecting, 0)
     })
   })
