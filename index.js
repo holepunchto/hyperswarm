@@ -155,8 +155,8 @@ module.exports = class Hyperswarm extends EventEmitter {
     let opened = false
 
     conn.on('close', () => {
-      if (!opened) this._connectDone()
       this.connections.delete(conn)
+      if (!opened) this._connectDone()
       this._allConnections.delete(conn)
       this._clientConnections--
       peerInfo._disconnected()
@@ -168,8 +168,8 @@ module.exports = class Hyperswarm extends EventEmitter {
     conn.on('error', noop)
     conn.on('open', () => {
       opened = true
-      this._connectDone()
       this.connections.add(conn)
+      this._connectDone()
       conn.removeListener('error', noop)
       peerInfo._connected()
       peerInfo.client = true
