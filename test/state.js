@@ -3,7 +3,7 @@ const Hyperswarm = require('..')
 const createTestnet = require('@hyperswarm/testnet')
 
 test('connecting', async (t) => {
-  t.plan(7)
+  t.plan(9)
 
   const { bootstrap } = await createTestnet(3, t.teardown)
 
@@ -16,15 +16,17 @@ test('connecting', async (t) => {
     await swarm2.destroy()
   })
 
-  t.is(swarm1.connecting, 0)
+  t.is(swarm2.connecting, 0)
 
   swarm2.once('state', function ({ event, value }) {
     t.is(event, 'connecting')
     t.is(value, 1)
+    t.is(swarm2.connecting, 1)
 
     swarm2.once('state', function ({ event, value }) {
       t.is(event, 'connecting')
       t.is(value, 0)
+      t.is(swarm2.connecting, 0)
     })
   })
 
