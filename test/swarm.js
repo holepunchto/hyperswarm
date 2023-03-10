@@ -87,6 +87,8 @@ test('one server, one client - single reconnect', async (t) => {
 
   swarm2.on('connection', (conn) => {
     conn.on('error', noop)
+    if (reconnected.assertions === 6) return
+
     if (!clientDisconnected) {
       clientDisconnected = true
       conn.destroy()
@@ -99,6 +101,8 @@ test('one server, one client - single reconnect', async (t) => {
   })
   swarm1.on('connection', (conn) => {
     conn.on('error', noop)
+    if (reconnected.assertions === 6) return
+
     if (!serverDisconnected) {
       serverDisconnected = true
       conn.destroy()
