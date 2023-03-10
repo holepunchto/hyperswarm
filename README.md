@@ -73,7 +73,7 @@ Emitted whenever the swarm connects to a new peer.
 Emitted when internal values are changed, useful for user interfaces.
 
 Possible `event` names:
-- `connecting`: where `swarm.connecting` will have the updated value.
+- `connecting`: emitted when `swarm.connecting` or `swarm.connections` changes
 
 #### `const discovery = swarm.join(topic, opts = {})`
 Start discovering and connecting to peers sharing a common topic. As new peers are connected to, they will be emitted from the swarm as `connection` events.
