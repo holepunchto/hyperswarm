@@ -261,7 +261,6 @@ module.exports = class Hyperswarm extends EventEmitter {
     this.connections.add(conn)
     this._allConnections.add(conn)
     this._serverConnections++
-    this.emit('update')
 
     conn.on('close', () => {
       this.connections.delete(conn)
@@ -273,6 +272,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       this.emit('update')
     })
     peerInfo.client = false
+    this.emit('update')
     this.emit('connection', conn, peerInfo)
   }
 
