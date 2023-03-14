@@ -146,7 +146,6 @@ module.exports = class Hyperswarm extends EventEmitter {
       relayAddresses: peerInfo.relayAddresses,
       keyPair: this.keyPair
     })
-
     this._allConnections.add(conn)
     this.connecting++
     this._clientConnections++
