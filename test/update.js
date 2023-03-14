@@ -18,12 +18,19 @@ test('connecting', async (t) => {
 
   t.is(swarm2.connecting, 0)
 
-  swarm2.once('update', function () {
-    t.is(swarm2.connecting, 1)
+  swarm2.on('update', function onUpdate1 () {
+    if (swarm2.connecting === 1) {
+      t.pass('connecting (1)')
 
-    swarm2.once('update', function () {
-      t.is(swarm2.connecting, 0)
-    })
+      swarm2.off('update', onUpdate1)
+
+      swarm2.on('update', function onUpdate0 () {
+        if (swarm2.connecting === 0) {
+          t.pass('connecting (0)')
+          swarm2.off('update', onUpdate0)
+        }
+      })
+    }
   })
 
   swarm1.on('connection', function (socket) {
