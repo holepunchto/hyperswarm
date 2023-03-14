@@ -148,6 +148,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     })
 
     this._allConnections.add(conn)
+    this.connecting++
     this._clientConnections++
     let opened = false
 
@@ -174,15 +175,15 @@ module.exports = class Hyperswarm extends EventEmitter {
       this._flushMaybe(peerInfo)
     })
 
-    this.connecting++
     this.emit('update')
   }
 
   _connectDone () {
+    this.connecting--
+
     if (this.connecting < this.maxParallel) this._attemptClientConnections()
     if (this.connecting === 0) this._flushAllMaybe()
 
-    this.connecting--
     this.emit('update')
   }
 
