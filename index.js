@@ -153,8 +153,8 @@ module.exports = class Hyperswarm extends EventEmitter {
     let opened = false
 
     conn.on('close', () => {
-      this.connections.delete(conn)
       if (!opened) this._connectDone()
+      this.connections.delete(conn)
       this._allConnections.delete(conn)
       this._clientConnections--
       peerInfo._disconnected()
@@ -162,17 +162,21 @@ module.exports = class Hyperswarm extends EventEmitter {
       if (!opened) this._flushMaybe(peerInfo)
 
       this._attemptClientConnections()
+
+      this.emit('update')
     })
     conn.on('error', noop)
     conn.on('open', () => {
       opened = true
-      this.connections.add(conn)
       this._connectDone()
+      this.connections.add(conn)
       conn.removeListener('error', noop)
       peerInfo._connected()
       peerInfo.client = true
       this.emit('connection', conn, peerInfo)
       this._flushMaybe(peerInfo)
+
+      this.emit('update')
     })
 
     this.emit('update')
@@ -183,8 +187,6 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     if (this.connecting < this.maxParallel) this._attemptClientConnections()
     if (this.connecting === 0) this._flushAllMaybe()
-
-    this.emit('update')
   }
 
   // Called when the PeerQueue indicates a connection should be attempted.
@@ -272,8 +274,9 @@ module.exports = class Hyperswarm extends EventEmitter {
       this.emit('update')
     })
     peerInfo.client = false
-    this.emit('update')
     this.emit('connection', conn, peerInfo)
+
+    this.emit('update')
   }
 
   _upsertPeer (publicKey, relayAddresses) {
