@@ -180,6 +180,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
   _connectDone () {
     this.connecting--
+
     if (this.connecting < this.maxParallel) this._attemptClientConnections()
     if (this.connecting === 0) this._flushAllMaybe()
 
