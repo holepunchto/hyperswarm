@@ -147,9 +147,6 @@ module.exports = class Hyperswarm extends EventEmitter {
       keyPair: this.keyPair
     })
 
-    this.connecting++
-    this.emit('update', 'connecting')
-
     this._allConnections.add(conn)
     this._clientConnections++
     let opened = false
@@ -176,14 +173,17 @@ module.exports = class Hyperswarm extends EventEmitter {
       this.emit('connection', conn, peerInfo)
       this._flushMaybe(peerInfo)
     })
+
+    this.connecting++
+    this.emit('update')
   }
 
   _connectDone () {
-    this.connecting--
-    this.emit('update', 'connecting')
-
     if (this.connecting < this.maxParallel) this._attemptClientConnections()
     if (this.connecting === 0) this._flushAllMaybe()
+
+    this.connecting--
+    this.emit('update')
   }
 
   // Called when the PeerQueue indicates a connection should be attempted.
@@ -258,19 +258,18 @@ module.exports = class Hyperswarm extends EventEmitter {
     const peerInfo = this._upsertPeer(conn.remotePublicKey, null)
 
     this.connections.add(conn)
-    this.emit('update', 'connecting')
-
     this._allConnections.add(conn)
     this._serverConnections++
+    this.emit('update')
 
     conn.on('close', () => {
       this.connections.delete(conn)
-      this.emit('update', 'connecting')
-
       this._allConnections.delete(conn)
       this._serverConnections--
 
       this._attemptClientConnections()
+
+      this.emit('update')
     })
     peerInfo.client = false
     this.emit('connection', conn, peerInfo)

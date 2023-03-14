@@ -69,11 +69,10 @@ Emitted whenever the swarm connects to a new peer.
 
 `peerInfo` is a [`PeerInfo`](https://github.com/holepunchto/hyperswarm/blob/v3/README.md#peerinfo-api) instance
 
-#### `swarm.on('update', (event) => {})`
+#### `swarm.on('update', () => {})`
 Emitted when internal values are changed, useful for user interfaces.
 
-Possible `event` names:
-- `connecting`: emitted when `swarm.connecting` or `swarm.connections` changes
+For example: emitted when `swarm.connecting` or `swarm.connections` changes.
 
 #### `const discovery = swarm.join(topic, opts = {})`
 Start discovering and connecting to peers sharing a common topic. As new peers are connected to, they will be emitted from the swarm as `connection` events.
