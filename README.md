@@ -48,6 +48,9 @@ Construct a new Hyperswarm instance.
 * `firewall`: A sync function of the form `remotePublicKey => (true|false)`. If true, the connection will be rejected. Defaults to allowing all connections.
 * `dht`: A DHT instance. Defaults to a new instance.
 
+#### `swarm.connecting`
+Number that indicates connections in progress.
+
 #### `swarm.connections`
 A set of all active client/server connections.
 
@@ -65,6 +68,11 @@ Emitted whenever the swarm connects to a new peer.
 `socket` is an end-to-end (Noise) encrypted Duplex stream
 
 `peerInfo` is a [`PeerInfo`](https://github.com/holepunchto/hyperswarm/blob/v3/README.md#peerinfo-api) instance
+
+#### `swarm.on('update', () => {})`
+Emitted when internal values are changed, useful for user interfaces.
+
+For example: emitted when `swarm.connecting` or `swarm.connections` changes.
 
 #### `const discovery = swarm.join(topic, opts = {})`
 Start discovering and connecting to peers sharing a common topic. As new peers are connected to, they will be emitted from the swarm as `connection` events.
