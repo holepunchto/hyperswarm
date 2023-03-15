@@ -12,7 +12,10 @@ const BACKOFFS = [
 ]
 const MAX_JITTER = 20
 
-test('retry timer - proven peer reinsertion', async (t) => {
+const isLinux = process.platform === 'linux'
+
+// Windows and Mac CI are slow, running on Linux only is enough
+test('retry timer - proven peer reinsertion', { skip: !isLinux }, async (t) => {
   let calls = 0
   const rt = new RetryTimer(() => calls++, {
     backoffs: BACKOFFS,
