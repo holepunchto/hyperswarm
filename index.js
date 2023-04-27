@@ -1,5 +1,5 @@
 const { EventEmitter } = require('events')
-const DHT = require('@hyperswarm/dht')
+const DHT = require('hyperdht')
 const spq = require('shuffled-priority-queue')
 const b4a = require('b4a')
 

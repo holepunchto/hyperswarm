@@ -60,7 +60,7 @@ A Map containing all connected peers, of the form: `(Noise public key hex string
 See the [`PeerInfo`](https://github.com/holepunchto/hyperswarm/blob/v3/README.md#peerinfo-api) API for more details.
 
 #### `swarm.dht`
-A [`@hyperswarm/dht`](https://github.com/holepunchto/hyperswarm-dht) instance. Useful if you want lower-level control over Hyperswarm's networking.
+A [`hyperdht`](https://github.com/holepunchto/hyperdht) instance. Useful if you want lower-level control over Hyperswarm's networking.
 
 #### `swarm.on('connection', (socket, peerInfo) => {})`
 Emitted whenever the swarm connects to a new peer.
