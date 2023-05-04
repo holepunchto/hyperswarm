@@ -127,6 +127,16 @@ Once a `flush()` has completed, the swarm will have connected to every peer it c
 
 `flush()` is not topic-specific, so it will wait for every pending DHT operation and connection to be processed -- it's quite heavyweight, so it could take a while. In most cases, it's not necessary, as connections are emitted by `swarm.on('connection')` immediately after they're opened.  
 
+#### `swarm.session([opts])`
+Create a Hyperswarm session that shares the same DHT as the root swarm.
+
+It inherits the parent's options (except `seed` and `keyPair`) unless overridden by `opts`.
+
+`opts` are the same as constructor options, except `dht` option because session already sets it.
+
+#### `swarm.on('close')`
+Emitted after `swarm.destroy()` is fully completed.
+
 ## PeerDiscovery API
 
 `swarm.join` returns a `PeerDiscovery` instance which allows you to both control discovery behavior, and respond to lifecycle changes during discovery.
