@@ -161,4 +161,4 @@ If true, the swarm will rapidly attempt to reconnect to this peer.
 Ban the peer. This will prevent any future reconnection attempts, but it will __not__ close any existing connections.
 
 ## License
-MIT
+Apache-2.0
