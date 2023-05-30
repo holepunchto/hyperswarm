@@ -407,13 +407,13 @@ module.exports = class Hyperswarm extends EventEmitter {
     return cleared
   }
 
-  async destroy () {
-    if (this.destroyed) return
+  async destroy ({ force } = {}) {
+    if (this.destroyed && !force) return
     this.destroyed = true
 
     this._timer.destroy()
 
-    await this.clear()
+    if (!force) await this.clear()
 
     await this.server.close()
 
@@ -422,11 +422,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       flush.onflush(false)
     }
 
-    for (const conn of this._allConnections) {
-      conn.destroy()
-    }
-
-    await this.dht.destroy()
+    await this.dht.destroy({ force })
   }
 
   topics () {
