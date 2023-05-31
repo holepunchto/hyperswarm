@@ -157,8 +157,8 @@ An Array of topics that this Peer is associated with -- `topics` will only be up
 #### `peerInfo.prioritized`
 If true, the swarm will rapidly attempt to reconnect to this peer.
 
-#### `peerInfo.ban()`
-Ban the peer. This will prevent any future reconnection attempts, but it will __not__ close any existing connections.
+#### `peerInfo.ban(banStatus = false)`
+Ban or unban the peer. Banning will prevent any future reconnection attempts, but it will __not__ close any existing connections.
 
 ## License
 MIT
