@@ -1,6 +1,6 @@
 const test = require('brittle')
 const Hyperswarm = require('..')
-const createTestnet = require('@hyperswarm/testnet')
+const createTestnet = require('hyperdht/testnet')
 
 test('connecting', async (t) => {
   t.plan(5)
