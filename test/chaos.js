@@ -2,7 +2,7 @@ const test = require('brittle')
 const crypto = require('hypercore-crypto')
 const random = require('math-random-seed')
 const { timeout } = require('nonsynchronous')
-const createTestnet = require('@hyperswarm/testnet')
+const createTestnet = require('hyperdht/testnet')
 
 const Hyperswarm = require('..')
 
