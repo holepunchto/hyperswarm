@@ -573,4 +573,25 @@ test('closing all discovery sessions clears all peer-discovery objects', async t
   await swarm.destroy()
 })
 
+test('closing a client session correctly updates isClient status', async t => {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
+  const swarm = new Hyperswarm({ bootstrap })
+
+  const topic1 = Buffer.alloc(32).fill('hello')
+
+  const discovery1 = swarm.join(topic1, { client: true, server: true })
+  swarm.join(topic1, { client: false, server: true })
+
+  await swarm.flush()
+
+  await discovery1.destroy()
+
+  const status = swarm.status(topic1)
+  t.is(status.isClient, false)
+  t.is(status.isServer, true)
+
+  await swarm.destroy()
+})
+
 function noop () {}
