@@ -158,6 +158,8 @@ module.exports = class Hyperswarm extends EventEmitter {
       this._clientConnections--
       peerInfo._disconnected()
       if (this._shouldRequeue(peerInfo)) this._timer.add(peerInfo)
+      else if (!peerInfo.banned) this.peers.delete(b4a.toString(peerInfo.publicKey, 'hex'))
+
       if (!opened) this._flushMaybe(peerInfo)
 
       this._attemptClientConnections()
@@ -257,7 +259,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       return
     }
 
-    const peerInfo = this._upsertPeer(conn.remotePublicKey, null)
+    const peerInfo = this._upsertPeer(conn.remotePublicKey, null, false)
 
     this.connections.add(conn)
     this._allConnections.add(conn)
@@ -278,7 +280,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     this.emit('update')
   }
 
-  _upsertPeer (publicKey, relayAddresses) {
+  _upsertPeer (publicKey, relayAddresses, save) {
     if (b4a.equals(publicKey, this.keyPair.publicKey)) return null
     const keyString = b4a.toString(publicKey, 'hex')
     let peerInfo = this.peers.get(keyString)
@@ -302,7 +304,7 @@ module.exports = class Hyperswarm extends EventEmitter {
    *  3. A known peer with low priority -- bump priority, because it's been rediscovered
    */
   _handlePeer (peer, topic) {
-    const peerInfo = this._upsertPeer(peer.publicKey, peer.relayAddresses)
+    const peerInfo = this._upsertPeer(peer.publicKey, peer.relayAddresses, true)
     if (peerInfo) peerInfo._topic(topic)
     if (!peerInfo || this._allConnections.has(peer.publicKey)) return
     if (!peerInfo.prioritized || peerInfo.server) peerInfo._reset()
@@ -365,7 +367,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   joinPeer (publicKey) {
-    const peerInfo = this._upsertPeer(publicKey, null)
+    const peerInfo = this._upsertPeer(publicKey, null, true)
     if (!peerInfo) return
     if (!this.explicitPeers.has(peerInfo)) {
       peerInfo.explicit = true
