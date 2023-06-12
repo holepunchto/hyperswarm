@@ -573,7 +573,7 @@ test('closing all discovery sessions clears all peer-discovery objects', async t
   await swarm.destroy()
 })
 
-test('peer-discovery object deleted when corresponding connection closes', async t => {
+test('peer-discovery object deleted when corresponding connection closes (server)', async t => {
   const { bootstrap } = await createTestnet(3, t.teardown)
 
   const swarm1 = new Hyperswarm({ bootstrap })
@@ -607,6 +607,42 @@ test('peer-discovery object deleted when corresponding connection closes', async
   t.is(swarm1.peers.size, 0, 'No peerInfo memory leak')
 
   await swarm1.destroy()
+})
+
+test('peer-discovery object deleted when corresponding connection closes (client)', async t => {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
+  const swarm1 = new Hyperswarm({ bootstrap })
+  const swarm2 = new Hyperswarm({ bootstrap })
+
+  const connected = t.test('connection')
+  connected.plan(1)
+
+  swarm2.on('connection', (conn) => {
+    connected.pass('swarm2')
+    conn.on('error', noop)
+  })
+  swarm1.on('connection', (conn) => {
+    conn.on('error', noop)
+  })
+
+  const topic = Buffer.alloc(32).fill('hello world')
+  await swarm1.join(topic, { server: true, client: false }).flushed()
+
+  swarm2.join(topic, { client: true, server: false })
+  await swarm2.flush()
+
+  await connected
+
+  t.is(swarm2.peers.size, 1)
+  await swarm1.destroy()
+
+  // Ensure other side detects closed connection
+  await eventFlush()
+
+  t.is(swarm2.peers.size, 0, 'No peerInfo memory leak')
+
+  await swarm2.destroy()
 })
 
 function noop () {}

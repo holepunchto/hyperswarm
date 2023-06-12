@@ -157,9 +157,19 @@ module.exports = class Hyperswarm extends EventEmitter {
       this._allConnections.delete(conn)
       this._clientConnections--
       peerInfo._disconnected()
+
+      // TODO: figure out what happens if shouldRequeue is true
+      // Does the retryTimer auto clean up after the third failed attempt?
       if (this._shouldRequeue(peerInfo)) this._timer.add(peerInfo)
+
+      // TODO: verify this will indeed recreate the peerInfo if
+      // the peers connect again, and that nothing important is lost
+      this._maybeDeletePeer(peerInfo)
+
       if (!opened) this._flushMaybe(peerInfo)
 
+      // TODO: figure out why this is here, to make
+      // sure the maybeDeletePeer should not come after
       this._attemptClientConnections()
 
       this.emit('update')
@@ -268,9 +278,10 @@ module.exports = class Hyperswarm extends EventEmitter {
       this._allConnections.delete(conn)
       this._serverConnections--
 
-      this._deletePeer(conn.remotePublicKey)
+      this._maybeDeletePeer(peerInfo)
 
-      // TODO: figure out why this is here
+      // TODO: figure out why this is here, to make
+      // sure the maybeDeletePeer should not come after
       this._attemptClientConnections()
 
       this.emit('update')
@@ -296,8 +307,15 @@ module.exports = class Hyperswarm extends EventEmitter {
     return peerInfo
   }
 
-  _deletePeer (publicKey) {
-    publicKey = b4a.toString(publicKey, 'hex')
+  _maybeDeletePeer (peerInfo) {
+    if (peerInfo.explicit) return
+
+    // TODO: Consider if it makes sense to check if peer
+    // present in any open connections,
+    // so this method can be called from leavePeer
+    // (leavePeer leaks peerInfo's who don't have an active connection I think)
+
+    const publicKey = b4a.toString(peerInfo.publicKey, 'hex')
     this.peers.delete(publicKey)
   }
 
@@ -387,7 +405,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
   leavePeer (publicKey) {
     const keyString = b4a.toString(publicKey, 'hex')
-    if (!this.peers.has(keyString)) return // TODO: still remove from explicitPeers
+    if (!this.peers.has(keyString)) return // TODO: still remove from explicitPeers, or ensure never in explicitPeers in this case
     const peerInfo = this.peers.get(keyString)
     peerInfo.explicit = false
     this.explicitPeers.delete(peerInfo)
