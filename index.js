@@ -82,6 +82,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     for (const peerInfo of batch) {
       if ((peerInfo._updatePriority() === false) || this._allConnections.has(peerInfo.publicKey) || peerInfo.queued) continue
       peerInfo.queued = true
+      peerInfo.waiting = false
       peerInfo._flushTick = this._flushTick
       this._queue.add(peerInfo)
     }
@@ -158,8 +159,14 @@ module.exports = class Hyperswarm extends EventEmitter {
       this._clientConnections--
       peerInfo._disconnected()
 
-      const requeued = this._shouldRequeue(peerInfo) && this._timer.add(peerInfo)
-      if (!requeued) {
+      let requeued = false
+      if (this._shouldRequeue(peerInfo)) {
+        requeued = this._timer.add(peerInfo)
+      }
+
+      if (requeued) {
+        peerInfo.waiting = true
+      } else {
         this._maybeDeletePeer(peerInfo)
       }
 
