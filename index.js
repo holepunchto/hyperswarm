@@ -268,6 +268,9 @@ module.exports = class Hyperswarm extends EventEmitter {
       this._allConnections.delete(conn)
       this._serverConnections--
 
+      this._deletePeer(conn.remotePublicKey)
+
+      // TODO: figure out why this is here
       this._attemptClientConnections()
 
       this.emit('update')
@@ -291,6 +294,11 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     this.peers.set(keyString, peerInfo)
     return peerInfo
+  }
+
+  _deletePeer (publicKey) {
+    publicKey = b4a.toString(publicKey, 'hex')
+    this.peers.delete(publicKey)
   }
 
   /*
@@ -379,7 +387,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
   leavePeer (publicKey) {
     const keyString = b4a.toString(publicKey, 'hex')
-    if (!this.peers.has(keyString)) return
+    if (!this.peers.has(keyString)) return // TODO: still remove from explicitPeers
     const peerInfo = this.peers.get(keyString)
     peerInfo.explicit = false
     this.explicitPeers.delete(peerInfo)
