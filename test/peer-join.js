@@ -123,7 +123,7 @@ test('leave peer - will stop reconnecting to previously joined peers', async (t)
   await swarm2.destroy()
 })
 
-test.skip('leave peer - no memory leak if other side closed connection first', async (t) => {
+test('leave peer - no memory leak if other side closed connection first', async (t) => {
   const { bootstrap } = await createTestnet(3, t.teardown)
 
   const swarm1 = new Hyperswarm({ bootstrap })
@@ -159,7 +159,6 @@ test.skip('leave peer - no memory leak if other side closed connection first', a
 
   await swarm2.destroy()
   await close
-  await new Promise(resolve => setTimeout(resolve, 1000))
 
   t.is(swarm1.connections.size, 0)
   t.is(swarm1.peers.size, 1)
@@ -168,7 +167,7 @@ test.skip('leave peer - no memory leak if other side closed connection first', a
   swarm1.leavePeer(swarm2.keyPair.publicKey)
   t.is(swarm1.explicitPeers.size, 0)
   t.is(swarm1.connections.size, 0)
-  t.is(swarm1.peers.size, 0) // TODO: either fix or test expected behaviour
+  t.is(swarm1.peers.size, 0)
 
   await swarm1.destroy()
 })
