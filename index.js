@@ -158,11 +158,11 @@ module.exports = class Hyperswarm extends EventEmitter {
       this._clientConnections--
       peerInfo._disconnected()
 
-      // TODO: figure out what happens if shouldRequeue is true
-      // What happens to the peerInfo object as it goes through the timers?
-      if (this._shouldRequeue(peerInfo)) this._timer.add(peerInfo)
-
-      this._maybeDeletePeer(peerInfo)
+      if (this._shouldRequeue(peerInfo)) {
+        this._timer.add(peerInfo)
+      } else {
+        this._maybeDeletePeer(peerInfo)
+      }
 
       if (!opened) this._flushMaybe(peerInfo)
 
