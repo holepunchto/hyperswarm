@@ -158,9 +158,8 @@ module.exports = class Hyperswarm extends EventEmitter {
       this._clientConnections--
       peerInfo._disconnected()
 
-      if (this._shouldRequeue(peerInfo)) {
-        this._timer.add(peerInfo)
-      } else {
+      const requeued = this._shouldRequeue(peerInfo) && this._timer.add(peerInfo)
+      if (!requeued) {
         this._maybeDeletePeer(peerInfo)
       }
 

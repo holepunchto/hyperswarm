@@ -612,8 +612,21 @@ test('peer-discovery object deleted when corresponding connection closes (server
 test('peer-discovery object deleted when corresponding connection closes (client)', async t => {
   const { bootstrap } = await createTestnet(3, t.teardown)
 
-  const swarm1 = new Hyperswarm({ bootstrap })
-  const swarm2 = new Hyperswarm({ bootstrap })
+  t.plan(3)
+  // We want to test it eventually gets gc'd after all the retries
+  // so we don't care about waiting between retries
+  const instaBackoffs = [0, 0, 0, 0]
+  const swarm1 = new Hyperswarm({ bootstrap, backoffs: instaBackoffs, jitter: 0 })
+  const swarm2 = new Hyperswarm({ bootstrap, backoffs: instaBackoffs, jitter: 0 })
+
+  let hasBeen1 = false
+  swarm2.on('update', async () => {
+    if (swarm2.peers.size > 0) hasBeen1 = true
+    if (hasBeen1 && swarm2.peers.size === 0) {
+      t.pass('No peerInfo memory leak')
+      swarm2.destroy()
+    }
+  })
 
   const connected = t.test('connection')
   connected.plan(1)
@@ -636,13 +649,6 @@ test('peer-discovery object deleted when corresponding connection closes (client
 
   t.is(swarm2.peers.size, 1)
   await swarm1.destroy()
-
-  // Ensure other side detects closed connection
-  await eventFlush()
-
-  t.is(swarm2.peers.size, 0, 'No peerInfo memory leak')
-
-  await swarm2.destroy()
 })
 
 function noop () {}
