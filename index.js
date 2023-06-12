@@ -291,7 +291,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       relayAddresses
     })
 
-    this.peers.set(keyString, peerInfo)
+    if (save) this.peers.set(keyString, peerInfo)
     return peerInfo
   }
 
