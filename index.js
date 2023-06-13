@@ -160,13 +160,8 @@ module.exports = class Hyperswarm extends EventEmitter {
       this._clientConnections--
       peerInfo._disconnected()
 
-      const requeued = this._shouldRequeue(peerInfo) && this._timer.add(peerInfo)
-
-      if (requeued) {
-        peerInfo.waiting = true
-      } else {
-        this._maybeDeletePeer(peerInfo)
-      }
+      peerInfo.waiting = this._shouldRequeue(peerInfo) && this._timer.add(peerInfo)
+      this._maybeDeletePeer(peerInfo)
 
       if (!opened) this._flushMaybe(peerInfo)
 
@@ -311,8 +306,8 @@ module.exports = class Hyperswarm extends EventEmitter {
     const hasActiveConn = this._allConnections.has(peerInfo.publicKey)
     if (hasActiveConn) return
 
-    const publicKey = b4a.toString(peerInfo.publicKey, 'hex')
-    this.peers.delete(publicKey)
+    const keyString = b4a.toString(peerInfo.publicKey, 'hex')
+    this.peers.delete(keyString)
   }
 
   /*
