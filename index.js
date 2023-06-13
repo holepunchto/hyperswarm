@@ -80,6 +80,8 @@ module.exports = class Hyperswarm extends EventEmitter {
 
   _requeue (batch) {
     for (const peerInfo of batch) {
+      peerInfo.waiting = false
+
       if ((peerInfo._updatePriority() === false) || this._allConnections.has(peerInfo.publicKey) || peerInfo.queued) continue
       peerInfo.queued = true
       peerInfo._flushTick = this._flushTick
@@ -157,7 +159,10 @@ module.exports = class Hyperswarm extends EventEmitter {
       this._allConnections.delete(conn)
       this._clientConnections--
       peerInfo._disconnected()
-      if (this._shouldRequeue(peerInfo)) this._timer.add(peerInfo)
+
+      peerInfo.waiting = this._shouldRequeue(peerInfo) && this._timer.add(peerInfo)
+      this._maybeDeletePeer(peerInfo)
+
       if (!opened) this._flushMaybe(peerInfo)
 
       this._attemptClientConnections()
@@ -268,6 +273,8 @@ module.exports = class Hyperswarm extends EventEmitter {
       this._allConnections.delete(conn)
       this._serverConnections--
 
+      this._maybeDeletePeer(peerInfo)
+
       this._attemptClientConnections()
 
       this.emit('update')
@@ -291,6 +298,16 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     this.peers.set(keyString, peerInfo)
     return peerInfo
+  }
+
+  _maybeDeletePeer (peerInfo) {
+    if (!peerInfo.shouldGC()) return
+
+    const hasActiveConn = this._allConnections.has(peerInfo.publicKey)
+    if (hasActiveConn) return
+
+    const keyString = b4a.toString(peerInfo.publicKey, 'hex')
+    this.peers.delete(keyString)
   }
 
   /*
@@ -380,9 +397,11 @@ module.exports = class Hyperswarm extends EventEmitter {
   leavePeer (publicKey) {
     const keyString = b4a.toString(publicKey, 'hex')
     if (!this.peers.has(keyString)) return
+
     const peerInfo = this.peers.get(keyString)
     peerInfo.explicit = false
     this.explicitPeers.delete(peerInfo)
+    this._maybeDeletePeer(peerInfo)
   }
 
   // Returns a promise

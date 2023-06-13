@@ -123,4 +123,65 @@ test('leave peer - will stop reconnecting to previously joined peers', async (t)
   await swarm2.destroy()
 })
 
+test('leave peer - no memory leak if other side closed connection first', async (t) => {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
+  t.plan(9)
+
+  // No need to wait between retries, we just want to test
+  // that it cleans up after the failed retry
+  const instaBackoffs = [0, 0, 0, 0]
+  const swarm1 = new Hyperswarm({ bootstrap, backoffs: instaBackoffs, jitter: 0 })
+  const swarm2 = new Hyperswarm({ bootstrap })
+
+  let hasBeen1 = false
+  swarm1.on('update', async () => {
+    if (swarm1.peers.size > 0) hasBeen1 = true
+    if (hasBeen1 && swarm1.peers.size === 0) {
+      t.pass('No peerInfo memory leak')
+      t.is(swarm1.explicitPeers.size, 0)
+      t.is(swarm1.connections.size, 0)
+
+      swarm1.destroy()
+    }
+  })
+
+  await swarm2.listen() // Ensure that swarm2's public key is being announced
+
+  const open = t.test('open')
+  open.plan(2)
+
+  const close = t.test('close')
+  close.plan(2)
+
+  swarm2.on('connection', conn => {
+    conn.once('close', () => close.pass('swarm2 connection closed'))
+    open.pass('swarm2 got a connection')
+    conn.on('error', noop)
+  })
+  swarm1.on('connection', conn => {
+    conn.once('close', () => close.pass('swarm1 connection closed'))
+    open.pass('swarm1 got a connection')
+    conn.on('error', noop)
+  })
+
+  swarm1.joinPeer(swarm2.keyPair.publicKey)
+
+  await open
+
+  swarm1.removeAllListeners('connection')
+  swarm2.removeAllListeners('connection')
+
+  t.is(swarm1.connections.size, 1)
+
+  await swarm2.destroy()
+  await close
+
+  t.is(swarm1.connections.size, 0)
+  t.is(swarm1.peers.size, 1)
+  t.is(swarm1.explicitPeers.size, 1)
+
+  swarm1.leavePeer(swarm2.keyPair.publicKey)
+})
+
 function noop () {}
