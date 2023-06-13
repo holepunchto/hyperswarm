@@ -9,7 +9,8 @@ const Hyperswarm = require('..')
 const BACKOFFS = [
   100,
   200,
-  300
+  300,
+  400
 ]
 
 test('chaos - recovers after random disconnections (takes ~60s)', async (t) => {

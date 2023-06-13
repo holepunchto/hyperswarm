@@ -8,7 +8,8 @@ const PeerInfo = require('../lib/peer-info')
 const BACKOFFS = [
   50,
   150,
-  250
+  250,
+  350
 ]
 const MAX_JITTER = 20
 

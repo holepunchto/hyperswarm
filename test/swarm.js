@@ -8,7 +8,8 @@ const CONNECTION_TIMEOUT = 100
 const BACKOFFS = [
   100,
   200,
-  300
+  300,
+  400
 ]
 
 test('one server, one client - first connection', async (t) => {
