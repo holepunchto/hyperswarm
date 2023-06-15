@@ -32,6 +32,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     this.keyPair = keyPair
 
     this.dht = opts.dht || new DHT({
+      port: opts.port,
       bootstrap: opts.bootstrap,
       debug: opts.debug
     })

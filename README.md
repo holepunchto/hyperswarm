@@ -48,6 +48,10 @@ Construct a new Hyperswarm instance.
 * `firewall`: A sync function of the form `remotePublicKey => (true|false)`. If true, the connection will be rejected. Defaults to allowing all connections.
 * `dht`: A DHT instance. Defaults to a new instance.
 
+If you don't pass your own `dht` then you can use those extra options for it:
+* `bootstrap`: Custom array of bootstrap servers.
+* `port`: Try to bind the DHT instance to a specific port.
+
 #### `swarm.connecting`
 Number that indicates connections in progress.
 
