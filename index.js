@@ -483,7 +483,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   async _destroy ({ force } = {}) {
-    if (this.destroyed && !force) return
+    if (this.destroyed) return
     this.destroyed = true
 
     if (!this._root) this.dht.off('network-change', this._handleNetworkChange)
