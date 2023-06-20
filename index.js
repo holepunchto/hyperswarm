@@ -482,7 +482,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     return this._destroying
   }
 
-  async _destroy () {
+  async _destroy ({ force } = {}) {
     if (this.destroyed && !force) return
     this.destroyed = true
 
@@ -501,10 +501,6 @@ module.exports = class Hyperswarm extends EventEmitter {
     while (this._pendingFlushes.length) {
       const flush = this._pendingFlushes.pop()
       flush.onflush(false)
-    }
-
-    for (const conn of this._allConnections) {
-      conn.destroy()
     }
 
     if (this._root) this._root._sessions.delete(this)
