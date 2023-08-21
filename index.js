@@ -40,6 +40,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     }, this._handleServerConnection.bind(this))
 
     this.destroyed = false
+    this.suspended = false
     this.maxPeers = maxPeers
     this.maxClientConnections = maxClientConnections
     this.maxServerConnections = maxServerConnections
@@ -79,6 +80,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   _requeue (batch) {
+    if (this.suspended) return
     for (const peerInfo of batch) {
       peerInfo.waiting = false
 
@@ -116,12 +118,14 @@ module.exports = class Hyperswarm extends EventEmitter {
 
   _shouldConnect () {
     return !this.destroyed &&
+      !this.suspended &&
       this.connecting < this.maxParallel &&
       this._allConnections.size < this.maxPeers &&
       this._clientConnections < this.maxClientConnections
   }
 
   _shouldRequeue (peerInfo) {
+    if (this.suspended) return false
     if (peerInfo.explicit) return true
     for (const topic of peerInfo.topics) {
       if (this._discovery.has(b4a.toString(topic, 'hex')) && !this.destroyed) {
@@ -208,6 +212,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   _handleFirewall (remotePublicKey, payload) {
+    if (this.suspended) return true
     if (b4a.equals(remotePublicKey, this.keyPair.publicKey)) return true
 
     const peerInfo = this.peers.get(b4a.toString(remotePublicKey, 'hex'))
@@ -442,6 +447,30 @@ module.exports = class Hyperswarm extends EventEmitter {
     }
 
     await this.dht.destroy({ force })
+  }
+
+  suspend () {
+    if (this.suspended) return
+    this.suspended = true
+
+    for (const discovery of this._discovery.values()) {
+      discovery.suspend()
+    }
+
+    for (const connection of this._allConnections) {
+      connection.destroy()
+    }
+  }
+
+  resume () {
+    if (!this.suspended) return
+    this.suspended = false
+
+    for (const discovery of this._discovery.values()) {
+      discovery.resume()
+    }
+
+    this._attemptClientConnections()
   }
 
   topics () {
