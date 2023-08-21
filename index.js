@@ -40,6 +40,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     }, this._handleServerConnection.bind(this))
 
     this.destroyed = false
+    this.suspended = false
     this.maxPeers = maxPeers
     this.maxClientConnections = maxClientConnections
     this.maxServerConnections = maxServerConnections
@@ -79,6 +80,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   _requeue (batch) {
+    if (this.suspended) return
     for (const peerInfo of batch) {
       peerInfo.waiting = false
 
@@ -442,6 +444,28 @@ module.exports = class Hyperswarm extends EventEmitter {
     }
 
     await this.dht.destroy({ force })
+  }
+
+  suspend () {
+    if (this.suspended) return
+    this.suspended = true
+
+    for (const discovery of this._discovery.values()) {
+      discovery.suspend()
+    }
+
+    for (const connection of this._allConnections) {
+      connection.destroy()
+    }
+  }
+
+  resume () {
+    if (!this.suspended) return
+    this.suspended = false
+
+    for (const discovery of this._discovery.values()) {
+      discovery.resume()
+    }
   }
 
   topics () {

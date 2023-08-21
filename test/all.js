@@ -13,6 +13,7 @@ async function runTests () {
   await import('./firewall.js')
   await import('./peer-join.js')
   await import('./retry-timer.js')
+  await import('./suspend.js')
   await import('./swarm.js')
   await import('./update.js')
 
