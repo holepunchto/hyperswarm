@@ -469,6 +469,8 @@ module.exports = class Hyperswarm extends EventEmitter {
     for (const discovery of this._discovery.values()) {
       discovery.resume()
     }
+
+    this._attemptClientConnections()
   }
 
   topics () {
