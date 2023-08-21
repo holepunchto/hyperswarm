@@ -118,12 +118,14 @@ module.exports = class Hyperswarm extends EventEmitter {
 
   _shouldConnect () {
     return !this.destroyed &&
+      !this.suspended &&
       this.connecting < this.maxParallel &&
       this._allConnections.size < this.maxPeers &&
       this._clientConnections < this.maxClientConnections
   }
 
   _shouldRequeue (peerInfo) {
+    if (this.suspended) return false
     if (peerInfo.explicit) return true
     for (const topic of peerInfo.topics) {
       if (this._discovery.has(b4a.toString(topic, 'hex')) && !this.destroyed) {
