@@ -212,6 +212,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   _handleFirewall (remotePublicKey, payload) {
+    if (this.suspended) return true
     if (b4a.equals(remotePublicKey, this.keyPair.publicKey)) return true
 
     const peerInfo = this.peers.get(b4a.toString(remotePublicKey, 'hex'))
