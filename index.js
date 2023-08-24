@@ -449,9 +449,8 @@ module.exports = class Hyperswarm extends EventEmitter {
     await this.dht.destroy({ force })
   }
 
-  suspend () {
+  async suspend () {
     if (this.suspended) return
-    this.suspended = true
 
     for (const discovery of this._discovery.values()) {
       discovery.suspend()
@@ -460,17 +459,22 @@ module.exports = class Hyperswarm extends EventEmitter {
     for (const connection of this._allConnections) {
       connection.destroy()
     }
+
+    await this.dht.suspend()
+    this.suspended = true
   }
 
-  resume () {
+  async resume () {
     if (!this.suspended) return
-    this.suspended = false
+
+    await this.dht.resume()
 
     for (const discovery of this._discovery.values()) {
       discovery.resume()
     }
 
     this._attemptClientConnections()
+    this.suspended = false
   }
 
   topics () {
