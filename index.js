@@ -28,6 +28,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       maxClientConnections = MAX_CLIENT_CONNECTIONS,
       maxServerConnections = MAX_SERVER_CONNECTIONS,
       maxParallel = MAX_PARALLEL,
+      shareLocalAddress,
       firewall = allowAll
     } = opts
     this.keyPair = keyPair
@@ -37,6 +38,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       debug: opts.debug
     })
     this.server = this.dht.createServer({
+      shareLocalAddress,
       firewall: this._handleFirewall.bind(this),
       relayThrough: this._maybeRelayConnection.bind(this)
     }, this._handleServerConnection.bind(this))
