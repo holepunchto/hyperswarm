@@ -22,6 +22,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     super()
     const {
       seed,
+      relayThrough,
       keyPair = DHT.keyPair(seed),
       maxPeers = MAX_PEERS,
       maxClientConnections = MAX_CLIENT_CONNECTIONS,
@@ -36,7 +37,9 @@ module.exports = class Hyperswarm extends EventEmitter {
       debug: opts.debug
     })
     this.server = this.dht.createServer({
-      firewall: this._handleFirewall.bind(this)
+      firewall: this._handleFirewall.bind(this),
+      holepunch: () => !this._shouldUseRelay(),
+      relayThrough: () => this._shouldUseRelay() ? this.relayThrough : null
     }, this._handleServerConnection.bind(this))
 
     this.destroyed = false
@@ -45,6 +48,8 @@ module.exports = class Hyperswarm extends EventEmitter {
     this.maxClientConnections = maxClientConnections
     this.maxServerConnections = maxServerConnections
     this.maxParallel = maxParallel
+    this.relayThrough = relayThrough
+
     this.connecting = 0
     this.connections = new Set()
     this.peers = new Map()
@@ -68,6 +73,11 @@ module.exports = class Hyperswarm extends EventEmitter {
     this._firewall = firewall
 
     this.dht.on('network-change', this._handleNetworkChange.bind(this))
+  }
+
+  _shouldUseRelay () {
+    // Relay if we're randomized and a relay address is provided as an option
+    return this.relayThrough && this.dht.host && (this.dht.port === 0)
   }
 
   _enqueue (peerInfo) {
@@ -148,11 +158,15 @@ module.exports = class Hyperswarm extends EventEmitter {
       return
     }
 
+    const shouldUseRelay = this._shouldUseRelay()
     const conn = this.dht.connect(peerInfo.publicKey, {
+      relayThrough: shouldUseRelay ? this.relayThrough : null,
+      holepunch: () => !this._shouldUseRelay(),
       relayAddresses: peerInfo.relayAddresses,
       keyPair: this.keyPair
     })
     this._allConnections.add(conn)
+
     this.connecting++
     this._clientConnections++
     let opened = false
