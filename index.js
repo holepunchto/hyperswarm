@@ -23,6 +23,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     const {
       seed,
       relayThrough,
+      forceRelayThrough,
       keyPair = DHT.keyPair(seed),
       maxPeers = MAX_PEERS,
       maxClientConnections = MAX_CLIENT_CONNECTIONS,
@@ -75,7 +76,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   _shouldUseRelay () {
-    return this.relayThrough && this.dht.host && (this.dht.port === 0)
+    return this.relayThrough && (this.forceRelayThrough || (this.dht.host && this.dht.port === 0))
   }
 
   _relayOptions () {
