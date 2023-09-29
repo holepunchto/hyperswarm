@@ -22,6 +22,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     super()
     const {
       seed,
+      relayThrough,
       keyPair = DHT.keyPair(seed),
       maxPeers = MAX_PEERS,
       maxClientConnections = MAX_CLIENT_CONNECTIONS,
@@ -36,7 +37,8 @@ module.exports = class Hyperswarm extends EventEmitter {
       debug: opts.debug
     })
     this.server = this.dht.createServer({
-      firewall: this._handleFirewall.bind(this)
+      firewall: this._handleFirewall.bind(this),
+      relayThrough: this._maybeRelayConnection.bind(this)
     }, this._handleServerConnection.bind(this))
 
     this.destroyed = false
@@ -45,6 +47,8 @@ module.exports = class Hyperswarm extends EventEmitter {
     this.maxClientConnections = maxClientConnections
     this.maxServerConnections = maxServerConnections
     this.maxParallel = maxParallel
+    this.relayThrough = relayThrough || null
+
     this.connecting = 0
     this.connections = new Set()
     this.peers = new Map()
@@ -68,6 +72,11 @@ module.exports = class Hyperswarm extends EventEmitter {
     this._firewall = firewall
 
     this.dht.on('network-change', this._handleNetworkChange.bind(this))
+  }
+
+  _maybeRelayConnection () {
+    if (!this.relayThrough) return null
+    return this.relayThrough()
   }
 
   _enqueue (peerInfo) {
@@ -148,11 +157,14 @@ module.exports = class Hyperswarm extends EventEmitter {
       return
     }
 
+    const relayThrough = this._maybeRelayConnection()
     const conn = this.dht.connect(peerInfo.publicKey, {
       relayAddresses: peerInfo.relayAddresses,
-      keyPair: this.keyPair
+      keyPair: this.keyPair,
+      relayThrough
     })
     this._allConnections.add(conn)
+
     this.connecting++
     this._clientConnections++
     let opened = false
