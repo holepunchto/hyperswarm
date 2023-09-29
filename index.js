@@ -76,8 +76,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
   _maybeRelayConnection () {
     if (!this.relayThrough) return null
-    const isRandomized = this.dht.host && (this.dht.port === 0)
-    return this.relayThrough(isRandomized)
+    return this.relayThrough()
   }
 
   _enqueue (peerInfo) {
