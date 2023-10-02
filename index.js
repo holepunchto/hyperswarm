@@ -74,9 +74,9 @@ module.exports = class Hyperswarm extends EventEmitter {
     this.dht.on('network-change', this._handleNetworkChange.bind(this))
   }
 
-  _maybeRelayConnection () {
+  _maybeRelayConnection (force) {
     if (!this.relayThrough) return null
-    return this.relayThrough()
+    return this.relayThrough(force)
   }
 
   _enqueue (peerInfo) {
@@ -157,7 +157,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       return
     }
 
-    const relayThrough = this._maybeRelayConnection()
+    const relayThrough = this._maybeRelayConnection(peerInfo.forceRelaying)
     const conn = this.dht.connect(peerInfo.publicKey, {
       relayAddresses: peerInfo.relayAddresses,
       keyPair: this.keyPair,
@@ -185,7 +185,13 @@ module.exports = class Hyperswarm extends EventEmitter {
 
       this.emit('update')
     })
-    conn.on('error', noop)
+    conn.on('error', err => {
+      if (this.relayThrough && (err.code === 'HOLEPUNCH_ABORTED')) {
+        peerInfo.forceRelaying = true
+        // Reset the attempts in order to fast connect to relay
+        peerInfo.attempts = 0
+      }
+    })
     conn.on('open', () => {
       opened = true
       this._connectDone()
