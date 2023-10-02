@@ -186,7 +186,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       this.emit('update')
     })
     conn.on('error', err => {
-      if (this.relayThrough && (err.code === 'HOLEPUNCH_ABORTED')) {
+      if (this.relayThrough && shouldForceRelaying(err.code)) {
         peerInfo.forceRelaying = true
         // Reset the attempts in order to fast connect to relay
         peerInfo.attempts = 0
@@ -504,4 +504,10 @@ function noop () { }
 
 function allowAll () {
   return false
+}
+
+function shouldForceRelaying (code) {
+  return (code === 'HOLEPUNCH_ABORTED') ||
+    (code === 'HOLEPUNCH_DOUBLE_RANDOMIZED_NATS') ||
+    (code === 'REMOTE_NOT_HOLEPUNCHABLE')
 }
