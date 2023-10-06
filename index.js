@@ -17,6 +17,8 @@ const ERR_MISSING_TOPIC = 'Topic is required and must be a 32-byte buffer'
 const ERR_DESTROYED = 'Swarm has been destroyed'
 const ERR_DUPLICATE = 'Duplicate connection'
 
+const KEEP_ALIVE = b4a.alloc(0)
+
 module.exports = class Hyperswarm extends EventEmitter {
   constructor (opts = {}) {
     super()
@@ -270,10 +272,12 @@ module.exports = class Hyperswarm extends EventEmitter {
     const existing = this._allConnections.get(conn.remotePublicKey)
 
     if (existing) {
-      // if both connections are from the same peer, pick newest. otherwise tie break based on pub keys
-      const keepNew = conn.isInitiator === existing.isInitiator || b4a.compare(conn.publicKey, conn.remotePublicKey) > 0
+      const expectedInitiator = b4a.compare(conn.publicKey, conn.remotePublicKey) > 0
+      // if both connections are from the same peer, pick the one thats expected to initiate in a tie break
+      const keepNew = expectedInitiator === conn.isInitiator
 
       if (keepNew === false) {
+        existing.write(KEEP_ALIVE) // check to see if its still alive actually
         conn.on('error', noop)
         conn.destroy(new Error(ERR_DUPLICATE))
         return
