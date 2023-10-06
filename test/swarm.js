@@ -583,11 +583,15 @@ test('peer-discovery object deleted when corresponding connection closes (server
   const connected = t.test('connection')
   connected.plan(1)
 
+  const otherConnected = t.test('connection')
+  otherConnected.plan(1)
+
   swarm2.on('connection', (conn) => {
     connected.pass('swarm2')
     conn.on('error', noop)
   })
   swarm1.on('connection', (conn) => {
+    otherConnected.pass('swarm1')
     conn.on('error', noop)
   })
 
@@ -598,6 +602,7 @@ test('peer-discovery object deleted when corresponding connection closes (server
   await swarm2.flush()
 
   await connected
+  await otherConnected
 
   t.is(swarm1.peers.size, 1)
   await swarm2.destroy()
