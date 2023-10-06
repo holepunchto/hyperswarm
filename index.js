@@ -19,6 +19,8 @@ const ERR_DUPLICATE = 'Duplicate connection'
 
 const KEEP_ALIVE = b4a.alloc(0)
 
+let counter = 0
+
 module.exports = class Hyperswarm extends EventEmitter {
   constructor (opts = {}) {
     super()
@@ -33,6 +35,8 @@ module.exports = class Hyperswarm extends EventEmitter {
       firewall = allowAll
     } = opts
     this.keyPair = keyPair
+
+    this.counter = ++counter
 
     this.dht = opts.dht || new DHT({
       bootstrap: opts.bootstrap,
@@ -454,12 +458,16 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   async destroy ({ force } = {}) {
+    console.log(this.counter, 'swarm begins destroy')
     if (this.destroyed && !force) return
     this.destroyed = true
 
     this._timer.destroy()
+    console.log(this.counter, 'Swarm imer destroyed')
 
     if (!force) await this.clear()
+
+    console.log(this.counter, 'Swarm closing server')
 
     await this.server.close()
 
@@ -467,8 +475,10 @@ module.exports = class Hyperswarm extends EventEmitter {
       const flush = this._pendingFlushes.pop()
       flush.onflush(false)
     }
+    console.log(this.counter, 'swarm handled all pending flushes')
 
     await this.dht.destroy({ force })
+    console.log(this.counter, 'swarm fully finished')
   }
 
   async suspend () {
