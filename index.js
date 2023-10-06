@@ -186,7 +186,8 @@ module.exports = class Hyperswarm extends EventEmitter {
       this.emit('update')
     })
     conn.on('error', err => {
-      if (this.relayThrough && shouldForceRelaying(err.code)) {
+      const manyAttemptsWithoutData = (peerInfo.attempts > 1) && !peerInfo.receivedData
+      if (this.relayThrough && (shouldForceRelaying(err.code) || manyAttemptsWithoutData)) {
         peerInfo.forceRelaying = true
         // Reset the attempts in order to fast connect to relay
         peerInfo.attempts = 0
@@ -204,6 +205,10 @@ module.exports = class Hyperswarm extends EventEmitter {
 
       this.emit('update')
     })
+    conn.once('data', () => {
+      peerInfo.receivedData = true
+    })
+    conn.pause()
 
     this.emit('update')
   }
