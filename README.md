@@ -62,6 +62,12 @@ See the [`PeerInfo`](https://github.com/holepunchto/hyperswarm/blob/v3/README.md
 #### `swarm.dht`
 A [`hyperdht`](https://github.com/holepunchto/hyperdht) instance. Useful if you want lower-level control over Hyperswarm's networking.
 
+### `swarm.clientConnections`
+The amount of open connections from client peers connecting with you.
+
+### `swarm.serverConnections`
+THe amount of open connections to serving peers you connected with.
+
 #### `swarm.on('connection', (socket, peerInfo) => {})`
 Emitted whenever the swarm connects to a new peer.
 
