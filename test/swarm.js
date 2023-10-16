@@ -1,6 +1,7 @@
 const test = require('brittle')
 const { timeout } = require('nonsynchronous')
 const createTestnet = require('hyperdht/testnet')
+const b4a = require('b4a')
 
 const Hyperswarm = require('..')
 
@@ -655,6 +656,55 @@ test('peer-discovery object deleted when corresponding connection closes (client
 
   t.is(swarm2.peers.size, 1)
   await swarm1.destroy()
+})
+
+test.solo('joining and awaiting swarm.flush() on both sides => connection made', async t => {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
+  const swarm1 = new Hyperswarm({ bootstrap })
+  const swarm2 = new Hyperswarm({ bootstrap })
+
+  t.is(swarm1.connections.size, 0, 'Sanity check: initial connections.size is 0')
+
+  const key1 = b4a.from('a'.repeat(64), 'hex')
+  swarm1.join(key1)
+  await swarm1.flush()
+
+  swarm2.join(key1)
+  await swarm2.flush()
+
+  // await eventFlush() // Does NOT work
+  // await new Promise(resolve => setTimeout(resolve, 0)) // Works
+
+  t.is(swarm1.connections.size, 1, 'Swarm1 established connection')
+  t.is(swarm2.connections.size, 1, 'Swarm2 established connection')
+
+  await Promise.all([swarm1.destroy(), swarm2.destroy()])
+})
+
+test('joining and awaiting joinObj.flushed() on both sides => connection made', async t => {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
+  const swarm1 = new Hyperswarm({ bootstrap })
+  const swarm2 = new Hyperswarm({ bootstrap })
+
+  t.is(swarm1.connections.size, 0, 'Sanity check: initial connections.size is 0')
+
+  const key1 = b4a.from('a'.repeat(64), 'hex')
+  const joinObj1 = swarm1.join(key1)
+  await joinObj1.flushed()
+
+  const joinObj2 = swarm2.join(key1)
+  await joinObj2.flushed()
+
+  // await eventFlush() // Does NOT work
+  // await new Promise(resolve => setTimeout(resolve, 0)) // Does NOT work
+  // await new Promise(resolve => setTimeout(resolve, 1000)) // Works
+
+  t.is(swarm1.connections.size, 1, 'Swarm1 established connection')
+  t.is(swarm2.connections.size, 1, 'Swarm2 established connection')
+
+  await Promise.all([swarm1.destroy(), swarm2.destroy()])
 })
 
 function noop () {}
