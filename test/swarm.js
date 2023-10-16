@@ -658,13 +658,25 @@ test('peer-discovery object deleted when corresponding connection closes (client
   await swarm1.destroy()
 })
 
-test.solo('joining and awaiting swarm.flush() on both sides => connection made', async t => {
+test('joining and awaiting swarm.flush() on both sides => connection made on last flusher', async t => {
+  t.plan(4)
   const { bootstrap } = await createTestnet(3, t.teardown)
 
   const swarm1 = new Hyperswarm({ bootstrap })
   const swarm2 = new Hyperswarm({ bootstrap })
+  t.teardown(async () => {
+    await Promise.all([swarm1.destroy(), swarm2.destroy()])
+  })
 
   t.is(swarm1.connections.size, 0, 'Sanity check: initial connections.size is 0')
+
+  swarm1.on('connection', (conn) => {
+    conn.on('error', noop)
+    conn.on('data', (d) => {
+      t.is(b4a.toString(d), 'Please echo me', 'Swarm 1 received data')
+      conn.write(d)
+    })
+  })
 
   const key1 = b4a.from('a'.repeat(64), 'hex')
   swarm1.join(key1)
@@ -673,38 +685,14 @@ test.solo('joining and awaiting swarm.flush() on both sides => connection made',
   swarm2.join(key1)
   await swarm2.flush()
 
-  // await eventFlush() // Does NOT work
-  // await new Promise(resolve => setTimeout(resolve, 0)) // Works
-
-  t.is(swarm1.connections.size, 1, 'Swarm1 established connection')
   t.is(swarm2.connections.size, 1, 'Swarm2 established connection')
 
-  await Promise.all([swarm1.destroy(), swarm2.destroy()])
-})
-
-test('joining and awaiting joinObj.flushed() on both sides => connection made', async t => {
-  const { bootstrap } = await createTestnet(3, t.teardown)
-
-  const swarm1 = new Hyperswarm({ bootstrap })
-  const swarm2 = new Hyperswarm({ bootstrap })
-
-  t.is(swarm1.connections.size, 0, 'Sanity check: initial connections.size is 0')
-
-  const key1 = b4a.from('a'.repeat(64), 'hex')
-  const joinObj1 = swarm1.join(key1)
-  await joinObj1.flushed()
-
-  const joinObj2 = swarm2.join(key1)
-  await joinObj2.flushed()
-
-  // await eventFlush() // Does NOT work
-  // await new Promise(resolve => setTimeout(resolve, 0)) // Does NOT work
-  // await new Promise(resolve => setTimeout(resolve, 1000)) // Works
-
-  t.is(swarm1.connections.size, 1, 'Swarm1 established connection')
-  t.is(swarm2.connections.size, 1, 'Swarm2 established connection')
-
-  await Promise.all([swarm1.destroy(), swarm2.destroy()])
+  const connection = [...swarm2.connections.entries()][0][0]
+  connection.on('data', async d => {
+    t.is(b4a.toString(d), 'Please echo me', 'connection works correctly')
+  })
+  connection.on('error', noop)
+  connection.write(b4a.from('Please echo me'))
 })
 
 function noop () {}
