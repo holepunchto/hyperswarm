@@ -659,7 +659,7 @@ test('peer-discovery object deleted when corresponding connection closes (client
 })
 
 test('joining and awaiting swarm.flush() on both sides => connection made on last flusher', async t => {
-  t.plan(4)
+  t.plan(6)
   const { bootstrap } = await createTestnet(3, t.teardown)
 
   const swarm1 = new Hyperswarm({ bootstrap })
@@ -690,6 +690,8 @@ test('joining and awaiting swarm.flush() on both sides => connection made on las
   const connection = [...swarm2.connections.entries()][0][0]
   connection.on('data', async d => {
     t.is(b4a.toString(d), 'Please echo me', 'connection works correctly')
+    t.is(swarm1.connections.size, 1, 'Swarm1 has 1 connection')
+    t.is(swarm2.connections.size, 1, 'Swarm2 has 1 connection')
   })
   connection.on('error', noop)
   connection.write(b4a.from('Please echo me'))
