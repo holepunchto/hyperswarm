@@ -668,7 +668,7 @@ test('joining and awaiting swarm.flush() on both sides => connection made on las
     await Promise.all([swarm1.destroy(), swarm2.destroy()])
   })
 
-  t.is(swarm1.connections.size, 0, 'Sanity check: initial connections.size is 0')
+  t.is(swarm2.connections.size, 0, 'Sanity check: initial connections.size is 0')
 
   swarm1.on('connection', (conn) => {
     conn.on('error', noop)
