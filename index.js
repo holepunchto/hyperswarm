@@ -44,9 +44,8 @@ module.exports = class Hyperswarm extends EventEmitter {
     }, this._handleServerConnection.bind(this))
 
     this.destroyed = false
-    this.suspended = false
     this._destroying = null
-
+    this.suspended = false
     this.maxPeers = maxPeers
     this.maxClientConnections = maxClientConnections
     this.maxServerConnections = maxServerConnections
