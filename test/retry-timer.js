@@ -27,12 +27,14 @@ test('retry timer - proven peer reinsertion', { skip: !isLinux }, async (t) => {
 
   rt.add(peerInfo)
 
-  await timeout(BACKOFFS[0] + MAX_JITTER)
+  const msMargin = 50
+  await timeout(BACKOFFS[0] + MAX_JITTER + msMargin)
+  t.is(calls, 1)
 
   setQuickRetry(peerInfo)
   rt.add(peerInfo)
 
-  await timeout(BACKOFFS[0] + MAX_JITTER)
+  await timeout(BACKOFFS[0] + MAX_JITTER + msMargin)
 
   t.is(calls, 2)
 
