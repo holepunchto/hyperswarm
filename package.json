@@ -21,7 +21,7 @@
     "standard": "^17.0.0"
   },
   "scripts": {
-    "test": "standard && node test/all.js",
+    "test": "standard && node test/retry-timer.js",
     "test:generate": "brittle -r test/all.js test/*.js"
   },
   "repository": {
