@@ -171,6 +171,25 @@ module.exports = class Hyperswarm extends EventEmitter {
     this._clientConnections++
     let opened = false
 
+    conn.on('open', () => {
+      opened = true
+      this._connectDone()
+      this.connections.add(conn)
+      conn.removeListener('error', noop)
+      peerInfo._connected()
+      peerInfo.client = true
+      this.emit('connection', conn, peerInfo)
+      this._flushMaybe(peerInfo)
+
+      this.emit('update')
+    })
+    conn.on('error', err => {
+      if (this.relayThrough && shouldForceRelaying(err.code)) {
+        peerInfo.forceRelaying = true
+        // Reset the attempts in order to fast connect to relay
+        peerInfo.attempts = 0
+      }
+    })
     conn.on('close', () => {
       if (!opened) this._connectDone()
       this.connections.delete(conn)
@@ -184,25 +203,6 @@ module.exports = class Hyperswarm extends EventEmitter {
       if (!opened) this._flushMaybe(peerInfo)
 
       this._attemptClientConnections()
-
-      this.emit('update')
-    })
-    conn.on('error', err => {
-      if (this.relayThrough && shouldForceRelaying(err.code)) {
-        peerInfo.forceRelaying = true
-        // Reset the attempts in order to fast connect to relay
-        peerInfo.attempts = 0
-      }
-    })
-    conn.on('open', () => {
-      opened = true
-      this._connectDone()
-      this.connections.add(conn)
-      conn.removeListener('error', noop)
-      peerInfo._connected()
-      peerInfo.client = true
-      this.emit('connection', conn, peerInfo)
-      this._flushMaybe(peerInfo)
 
       this.emit('update')
     })
