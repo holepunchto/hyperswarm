@@ -475,6 +475,9 @@ module.exports = class Hyperswarm extends EventEmitter {
     if (this.suspended) return
 
     const promises = []
+
+    promises.push(this.server.suspend())
+
     for (const discovery of this._discovery.values()) {
       promises.push(discovery.suspend())
     }
