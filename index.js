@@ -474,16 +474,19 @@ module.exports = class Hyperswarm extends EventEmitter {
   async suspend () {
     if (this.suspended) return
 
+    const promises = []
     for (const discovery of this._discovery.values()) {
-      discovery.suspend()
+      promises.push(discovery.suspend())
     }
 
     for (const connection of this._allConnections) {
       connection.destroy()
     }
 
-    await this.dht.suspend()
+    promises.push(this.dht.suspend())
     this.suspended = true
+
+    await Promise.allSettled(promises)
   }
 
   async resume () {
