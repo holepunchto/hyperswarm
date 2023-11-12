@@ -316,7 +316,11 @@ module.exports = class Hyperswarm extends EventEmitter {
     if (b4a.equals(publicKey, this.keyPair.publicKey)) return null
     const keyString = b4a.toString(publicKey, 'hex')
     let peerInfo = this.peers.get(keyString)
-    if (peerInfo) return peerInfo
+
+    if (peerInfo) {
+      peerInfo.relayAddresses = relayAddresses // new is always better
+      return peerInfo
+    }
 
     peerInfo = new PeerInfo({
       publicKey,
