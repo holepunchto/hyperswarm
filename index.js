@@ -490,10 +490,10 @@ module.exports = class Hyperswarm extends EventEmitter {
       connection.destroy()
     }
 
-    promises.push(this.dht.suspend())
     this.suspended = true
 
     await Promise.allSettled(promises)
+    await this.dht.suspend()
   }
 
   async resume () {
