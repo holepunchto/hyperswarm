@@ -1,6 +1,6 @@
 const test = require('brittle')
-const { timeout } = require('nonsynchronous')
 const createTestnet = require('hyperdht/testnet')
+const { timeout } = require('./helpers')
 
 const Hyperswarm = require('..')
 

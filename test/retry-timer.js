@@ -1,6 +1,6 @@
 const test = require('brittle')
 const crypto = require('hypercore-crypto')
-const { timeout } = require('nonsynchronous')
+const { timeout } = require('./helpers')
 
 const RetryTimer = require('../lib/retry-timer')
 const PeerInfo = require('../lib/peer-info')
