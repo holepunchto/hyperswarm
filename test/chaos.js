@@ -1,8 +1,7 @@
 const test = require('brittle')
 const crypto = require('hypercore-crypto')
-const random = require('math-random-seed')
-const { timeout } = require('nonsynchronous')
 const createTestnet = require('hyperdht/testnet')
+const { timeout } = require('./helpers')
 
 const Hyperswarm = require('..')
 
@@ -18,7 +17,6 @@ test('chaos - recovers after random disconnections (takes ~60s)', async (t) => {
 
   const { bootstrap } = await createTestnet(3, t.teardown)
 
-  const SEED = 'hyperswarm v3'
   const NUM_SWARMS = 10
   const NUM_TOPICS = 15
   const NUM_FORCE_DISCONNECTS = 30
@@ -31,7 +29,6 @@ test('chaos - recovers after random disconnections (takes ~60s)', async (t) => {
   const topics = []
   const connections = []
   const peersBySwarm = new Map()
-  const rand = random(SEED)
 
   for (let i = 0; i < NUM_SWARMS; i++) {
     const swarm = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: 0 })
@@ -60,10 +57,10 @@ test('chaos - recovers after random disconnections (takes ~60s)', async (t) => {
   }
 
   for (const topic of topics) {
-    const numSwarms = Math.round(rand() * NUM_SWARMS)
+    const numSwarms = Math.round(Math.random() * NUM_SWARMS)
     const topicSwarms = []
     for (let i = 0; i < numSwarms; i++) {
-      topicSwarms.push(swarms[Math.floor(rand() * NUM_SWARMS)])
+      topicSwarms.push(swarms[Math.floor(Math.random() * NUM_SWARMS)])
     }
     for (const swarm of topicSwarms) {
       const peers = peersBySwarm.get(swarm)
@@ -80,10 +77,10 @@ test('chaos - recovers after random disconnections (takes ~60s)', async (t) => {
 
   // Randomly destroy connections during the chaos period.
   for (let i = 0; i < NUM_FORCE_DISCONNECTS; i++) {
-    const timeout = Math.floor(rand() * CHAOS_DURATION) // Leave a lot of room at the end for reestablishing connections (timeouts)
+    const timeout = Math.floor(Math.random() * CHAOS_DURATION) // Leave a lot of room at the end for reestablishing connections (timeouts)
     setTimeout(() => {
       if (!connections.length) return
-      const idx = Math.floor(rand() * connections.length)
+      const idx = Math.floor(Math.random() * connections.length)
       const conn = connections[idx]
       conn.destroy()
     }, timeout)

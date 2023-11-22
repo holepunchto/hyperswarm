@@ -15,9 +15,7 @@
   },
   "devDependencies": {
     "brittle": "^3.0.2",
-    "hypercore-crypto": "^2.3.0",
-    "math-random-seed": "^2.0.0",
-    "nonsynchronous": "^1.2.0",
+    "hypercore-crypto": "^3.4.0",
     "standard": "^17.0.0"
   },
   "scripts": {
