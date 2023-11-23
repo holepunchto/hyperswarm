@@ -58,9 +58,9 @@ test('chaos - recovers after random disconnections (takes ~60s)', async (t) => {
 
   for (const topic of topics) {
     const numSwarms = Math.round(Math.random() * NUM_SWARMS)
-    const topicSwarms = []
+    const topicSwarms = new Set()
     for (let i = 0; i < numSwarms; i++) {
-      topicSwarms.push(swarms[Math.floor(Math.random() * NUM_SWARMS)])
+      topicSwarms.add(swarms[Math.floor(Math.random() * NUM_SWARMS)])
     }
     for (const swarm of topicSwarms) {
       const peers = peersBySwarm.get(swarm)
@@ -74,6 +74,16 @@ test('chaos - recovers after random disconnections (takes ~60s)', async (t) => {
 
   await Promise.all(swarms.map(s => s.flush()))
   await timeout(STARTUP_DURATION)
+
+  for (const [swarm, expectedPeers] of peersBySwarm) {
+    t.alike(swarm.connections.size, expectedPeers.size, 'swarm has the correct number of connections after startup')
+    const missingKeys = []
+    for (const conn of swarm.connections) {
+      const key = conn.remotePublicKey.toString('hex')
+      if (!expectedPeers.has(key)) missingKeys.push(key)
+    }
+    t.alike(missingKeys.length, 0, 'swarm is not missing any expected peers after startup')
+  }
 
   // Randomly destroy connections during the chaos period.
   for (let i = 0; i < NUM_FORCE_DISCONNECTS; i++) {
