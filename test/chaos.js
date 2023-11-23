@@ -5,25 +5,25 @@ const { timeout } = require('./helpers')
 
 const Hyperswarm = require('..')
 
+const NUM_SWARMS = 10
+const NUM_TOPICS = 15
+const NUM_FORCE_DISCONNECTS = 30
+
+const STARTUP_DURATION = 1000 * 5
+const TEST_DURATION = 1000 * 45
+const CHAOS_DURATION = 1000 * 10
+
 const BACKOFFS = [
   100,
-  200,
-  300,
-  400
+  1000,
+  CHAOS_DURATION, // Summed value till here should be > CHAOS_DURATION, and this particular value should be less than TEST_DURATION - CHAOS_DURATION
+  10000 // Note: the fourth backoff is irrelevant for this test, as it only triggers when peerInfo.explicit is true
 ]
 
 test('chaos - recovers after random disconnections (takes ~60s)', async (t) => {
   t.timeout(90000)
 
   const { bootstrap } = await createTestnet(3, t.teardown)
-
-  const NUM_SWARMS = 10
-  const NUM_TOPICS = 15
-  const NUM_FORCE_DISCONNECTS = 30
-
-  const STARTUP_DURATION = 1000 * 5
-  const TEST_DURATION = 1000 * 45
-  const CHAOS_DURATION = 1000 * 10
 
   const swarms = []
   const topics = []
@@ -72,7 +72,7 @@ test('chaos - recovers after random disconnections (takes ~60s)', async (t) => {
     }
   }
 
-  await Promise.all(swarms.map(s => s.flush()))
+  for (const s of swarms) await s.flush()
   await timeout(STARTUP_DURATION)
 
   for (const [swarm, expectedPeers] of peersBySwarm) {
