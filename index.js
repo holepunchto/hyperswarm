@@ -500,6 +500,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     if (!this.suspended) return
 
     await this.dht.resume()
+    await this.server.resume()
 
     for (const discovery of this._discovery.values()) {
       discovery.resume()
