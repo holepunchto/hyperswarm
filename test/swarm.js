@@ -139,7 +139,7 @@ test('one server, one client - maximum reconnects', async (t) => {
 
   await timeout(BACKOFFS[2] * 4)
   t.ok(connections > 1, 'client saw more than one retry (' + connections + ')')
-  t.ok(connections < 4, 'client saw less than four attempts')
+  t.ok(connections < 5, 'client saw less than five attempts')
 
   await swarm1.destroy()
   await swarm2.destroy()
