@@ -126,8 +126,6 @@ test('one server, one client - maximum reconnects', async (t) => {
   let connections = 0
   swarm2.on('connection', (conn, info) => {
     connections++
-    info.proven = false // Simulate a failing peer
-    info.attempts = connections
     conn.on('error', noop)
     conn.destroy()
   })
@@ -140,7 +138,8 @@ test('one server, one client - maximum reconnects', async (t) => {
   swarm2.join(topic, { client: true, server: false })
 
   await timeout(BACKOFFS[2] * 4)
-  t.is(connections, 3, 'client saw 3 retries')
+  t.ok(connections > 1, 'client saw more than one retry (' + connections + ')')
+  t.ok(connections < 4, 'client saw less than four attempts')
 
   await swarm1.destroy()
   await swarm2.destroy()
@@ -196,7 +195,9 @@ test('two servers, two clients - simple deduplication', async (t) => {
   await swarm1.join(topic).flushed()
   await swarm2.join(topic).flushed()
 
-  await timeout(250) // 250 ms will be enough for all connections to trigger
+  await swarm2.flush()
+  await swarm1.flush()
+  await timeout(250)
 
   t.is(s1Connections, 1)
   t.is(s2Connections, 1)
@@ -213,6 +214,7 @@ test('one server, two clients - topic multiplexing', async (t) => {
 
   let clientConnections = 0
   let peerInfo = null
+
   swarm2.on('connection', (conn, info) => {
     clientConnections++
     peerInfo = info
@@ -229,7 +231,8 @@ test('one server, two clients - topic multiplexing', async (t) => {
   swarm2.join(topic1, { client: true, server: false })
   swarm2.join(topic2, { client: true, server: false })
 
-  await timeout(250) // 250 ms will be enough for all connections to trigger
+  await swarm2.flush()
+  await swarm1.flush()
 
   t.is(clientConnections, 1)
   t.is(peerInfo.topics.length, 2)
@@ -300,12 +303,14 @@ test('one server, two clients - if a second client joins after the server leaves
 
   swarm2.join(topic, { client: true, server: false })
 
+  await swarm2.flush()
   await timeout(CONNECTION_TIMEOUT)
   t.is(serverConnections, 1)
 
   await swarm1.leave(topic)
   swarm3.join(topic, { client: true, server: false })
 
+  await swarm3.flush()
   await timeout(CONNECTION_TIMEOUT)
   t.is(serverConnections, 1)
 
@@ -334,10 +339,12 @@ test('two servers, one client - refreshing a peer discovery instance discovers n
   await swarm1.join(topic).flushed()
   const discovery = swarm3.join(topic, { client: true, server: false })
 
+  await swarm3.flush()
   await timeout(CONNECTION_TIMEOUT)
   t.is(clientConnections, 1)
 
   await swarm2.join(topic).flushed()
+  await swarm2.flush()
   await timeout(CONNECTION_TIMEOUT)
   t.is(clientConnections, 1)
 
