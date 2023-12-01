@@ -392,6 +392,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     discovery = new PeerDiscovery(this, topic, {
       wait: discovery ? discovery.destroy() : null,
+      suspended: this.suspended,
       onpeer: peer => this._handlePeer(peer, topic)
     })
     this._discovery.set(topicString, discovery)
