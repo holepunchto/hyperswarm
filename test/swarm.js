@@ -249,10 +249,10 @@ test('one server, two clients - first connection', async (t) => {
   const swarm3 = new Hyperswarm({ bootstrap })
 
   const connected = t.test('connection')
-  connected.plan(3)
+  connected.plan(4)
 
   swarm1.on('connection', (conn) => {
-    connected.pass('swarm1')
+    connected.pass('swarm1') // Once per client (swarm2 & swarm3)
     conn.on('error', noop)
     conn.destroy()
   })
