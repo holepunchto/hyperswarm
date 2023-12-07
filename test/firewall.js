@@ -1,6 +1,6 @@
 const test = require('brittle')
 const createTestnet = require('hyperdht/testnet')
-const { timeout } = require('./helpers')
+const { timeout, flushConnections } = require('./helpers')
 
 const Hyperswarm = require('..')
 
@@ -32,6 +32,7 @@ test('firewalled server - bad client is rejected', async (t) => {
 
   swarm1.join(topic, { client: true, server: false })
   await swarm1.flush()
+  await flushConnections(swarm1)
 
   t.alike(serverConnections, 0, 'server did not receive an incoming connection')
 
@@ -60,6 +61,7 @@ test('firewalled client - bad server is rejected', async (t) => {
 
   swarm2.join(topic, { client: true, server: false })
   await swarm2.flush()
+  await flushConnections(swarm2)
 
   t.alike(clientConnections, 0, 'client did not receive an incoming connection')
 

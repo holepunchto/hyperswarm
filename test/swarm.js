@@ -1,6 +1,6 @@
 const test = require('brittle')
 const createTestnet = require('hyperdht/testnet')
-const { timeout } = require('./helpers')
+const { timeout, flushConnections } = require('./helpers')
 
 const Hyperswarm = require('..')
 
@@ -199,7 +199,10 @@ test('two servers, two clients - simple deduplication', async (t) => {
   await swarm2.join(topic).flushed()
 
   await swarm2.flush()
+  await flushConnections(swarm2)
+
   await swarm1.flush()
+  await flushConnections(swarm1)
 })
 
 test('one server, two clients - topic multiplexing', async (t) => {
@@ -300,10 +303,16 @@ test('one server, two clients - if a second client joins after the server leaves
   swarm2.join(topic, { client: true, server: false })
 
   await swarm2.flush()
+  await flushConnections(swarm2)
 
   await swarm1.leave(topic)
+  await swarm1.flush()
+  await flushConnections(swarm1)
+
   swarm3.join(topic, { client: true, server: false })
+
   await swarm3.flush()
+  await flushConnections(swarm3)
 
   t.is(swarm2.connections.size, 1)
   t.is(swarm3.connections.size, 0)
@@ -334,14 +343,17 @@ test('two servers, one client - refreshing a peer discovery instance discovers n
   const discovery = swarm3.join(topic, { client: true, server: false })
 
   await swarm3.flush()
+  await flushConnections(swarm3)
   t.is(clientConnections, 1)
 
   await swarm2.join(topic).flushed()
   await swarm2.flush()
+  await flushConnections(swarm2)
   t.is(clientConnections, 1)
 
   await discovery.refresh()
   await swarm3.flush()
+  await flushConnections(swarm3)
   t.is(clientConnections, 2)
 
   await swarm1.destroy()
