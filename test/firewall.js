@@ -31,7 +31,6 @@ test('firewalled server - bad client is rejected', async (t) => {
   await swarm2.join(topic, { client: false, server: true }).flushed()
 
   swarm1.join(topic, { client: true, server: false })
-  await swarm1.flush()
   await flushConnections(swarm1)
 
   t.alike(serverConnections, 0, 'server did not receive an incoming connection')
@@ -60,7 +59,6 @@ test('firewalled client - bad server is rejected', async (t) => {
   await swarm1.join(topic, { client: false, server: true }).flushed()
 
   swarm2.join(topic, { client: true, server: false })
-  await swarm2.flush()
   await flushConnections(swarm2)
 
   t.alike(clientConnections, 0, 'client did not receive an incoming connection')

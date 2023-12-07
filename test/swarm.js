@@ -174,7 +174,12 @@ test('one server, one client - banned peer does not reconnect', async (t) => {
 })
 
 test('two servers, two clients - simple deduplication', async (t) => {
-  t.plan(2)
+  const connection1Test = t.test('connection1')
+  const connection2Test = t.test('connection2')
+
+  connection1Test.plan(1)
+  connection2Test.plan(1)
+
   const { bootstrap } = await createTestnet(3, t.teardown)
 
   const swarm1 = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: 0 })
@@ -186,11 +191,11 @@ test('two servers, two clients - simple deduplication', async (t) => {
   })
 
   swarm1.on('connection', (conn) => {
-    t.pass('Swarm 1 connection')
+    connection1Test.pass('Swarm 1 connection')
     conn.on('error', noop)
   })
   swarm2.on('connection', (conn) => {
-    t.pass('Swarm 2 connection')
+    connection2Test.pass('Swarm 2 connection')
     conn.on('error', noop)
   })
 
@@ -198,10 +203,7 @@ test('two servers, two clients - simple deduplication', async (t) => {
   await swarm1.join(topic).flushed()
   await swarm2.join(topic).flushed()
 
-  await swarm2.flush()
   await flushConnections(swarm2)
-
-  await swarm1.flush()
   await flushConnections(swarm1)
 })
 
@@ -302,16 +304,12 @@ test('one server, two clients - if a second client joins after the server leaves
 
   swarm2.join(topic, { client: true, server: false })
 
-  await swarm2.flush()
   await flushConnections(swarm2)
 
   await swarm1.leave(topic)
-  await swarm1.flush()
   await flushConnections(swarm1)
 
   swarm3.join(topic, { client: true, server: false })
-
-  await swarm3.flush()
   await flushConnections(swarm3)
 
   t.is(swarm2.connections.size, 1)
@@ -342,17 +340,14 @@ test('two servers, one client - refreshing a peer discovery instance discovers n
   await swarm1.join(topic).flushed()
   const discovery = swarm3.join(topic, { client: true, server: false })
 
-  await swarm3.flush()
   await flushConnections(swarm3)
   t.is(clientConnections, 1)
 
   await swarm2.join(topic).flushed()
-  await swarm2.flush()
   await flushConnections(swarm2)
   t.is(clientConnections, 1)
 
   await discovery.refresh()
-  await swarm3.flush()
   await flushConnections(swarm3)
   t.is(clientConnections, 2)
 
