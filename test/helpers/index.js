@@ -4,5 +4,6 @@ exports.timeout = function timeout (ms) {
 
 exports.flushConnections = async function (swarm) {
   await swarm.flush()
-  return Promise.all(Array.from(swarm.connections).map(e => e.flush()))
+  await Promise.all(Array.from(swarm.connections).map(e => e.flush()))
+  await new Promise(resolve => setImmediate(resolve))
 }
