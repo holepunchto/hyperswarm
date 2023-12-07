@@ -4,7 +4,6 @@ const { timeout } = require('./helpers')
 
 const Hyperswarm = require('..')
 
-const CONNECTION_TIMEOUT = 100
 const BACKOFFS = [
   100,
   200,
@@ -32,8 +31,7 @@ test('firewalled server - bad client is rejected', async (t) => {
   await swarm2.join(topic, { client: false, server: true }).flushed()
 
   swarm1.join(topic, { client: true, server: false })
-
-  await timeout(CONNECTION_TIMEOUT)
+  await swarm1.flush()
 
   t.alike(serverConnections, 0, 'server did not receive an incoming connection')
 
@@ -61,8 +59,7 @@ test('firewalled client - bad server is rejected', async (t) => {
   await swarm1.join(topic, { client: false, server: true }).flushed()
 
   swarm2.join(topic, { client: true, server: false })
-
-  await timeout(CONNECTION_TIMEOUT)
+  await swarm2.flush()
 
   t.alike(clientConnections, 0, 'client did not receive an incoming connection')
 

@@ -174,20 +174,23 @@ test('one server, one client - banned peer does not reconnect', async (t) => {
 })
 
 test('two servers, two clients - simple deduplication', async (t) => {
+  t.plan(2)
   const { bootstrap } = await createTestnet(3, t.teardown)
 
   const swarm1 = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: 0 })
   const swarm2 = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: 0 })
 
-  let s1Connections = 0
-  let s2Connections = 0
+  t.teardown(async () => {
+    await swarm1.destroy()
+    await swarm2.destroy()
+  })
 
   swarm1.on('connection', (conn) => {
-    s1Connections++
+    t.pass('Swarm 1 connection')
     conn.on('error', noop)
   })
   swarm2.on('connection', (conn) => {
-    s2Connections++
+    t.pass('Swarm 2 connection')
     conn.on('error', noop)
   })
 
@@ -197,13 +200,6 @@ test('two servers, two clients - simple deduplication', async (t) => {
 
   await swarm2.flush()
   await swarm1.flush()
-  await timeout(250)
-
-  t.is(s1Connections, 1)
-  t.is(s2Connections, 1)
-
-  await swarm1.destroy()
-  await swarm2.destroy()
 })
 
 test('one server, two clients - topic multiplexing', async (t) => {
@@ -283,15 +279,15 @@ test('one server, two clients - first connection', async (t) => {
 })
 
 test('one server, two clients - if a second client joins after the server leaves, they will not connect', async (t) => {
+  t.plan(2)
+
   const { bootstrap } = await createTestnet(3, t.teardown)
 
   const swarm1 = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: 0 })
   const swarm2 = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: 0 })
   const swarm3 = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: 0 })
 
-  let serverConnections = 0
   swarm1.on('connection', (conn) => {
-    serverConnections++
     conn.on('error', noop)
   })
 
@@ -304,15 +300,13 @@ test('one server, two clients - if a second client joins after the server leaves
   swarm2.join(topic, { client: true, server: false })
 
   await swarm2.flush()
-  await timeout(CONNECTION_TIMEOUT)
-  t.is(serverConnections, 1)
 
   await swarm1.leave(topic)
   swarm3.join(topic, { client: true, server: false })
-
   await swarm3.flush()
-  await timeout(CONNECTION_TIMEOUT)
-  t.is(serverConnections, 1)
+
+  t.is(swarm2.connections.size, 1)
+  t.is(swarm3.connections.size, 0)
 
   await swarm1.destroy()
   await swarm2.destroy()
@@ -340,12 +334,10 @@ test('two servers, one client - refreshing a peer discovery instance discovers n
   const discovery = swarm3.join(topic, { client: true, server: false })
 
   await swarm3.flush()
-  await timeout(CONNECTION_TIMEOUT)
   t.is(clientConnections, 1)
 
   await swarm2.join(topic).flushed()
   await swarm2.flush()
-  await timeout(CONNECTION_TIMEOUT)
   t.is(clientConnections, 1)
 
   await discovery.refresh()
