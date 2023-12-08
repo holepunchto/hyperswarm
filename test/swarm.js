@@ -37,9 +37,7 @@ test('one server, one client - first connection', async (t) => {
 
   const topic = Buffer.alloc(32).fill('hello world')
   await swarm1.join(topic, { server: true, client: false }).flushed()
-
   swarm2.join(topic, { client: true, server: false })
-  await flushConnections(swarm2)
 })
 
 test('two servers - first connection', async (t) => {
@@ -207,9 +205,6 @@ test('two servers, two clients - simple deduplication', async (t) => {
   const topic = Buffer.alloc(32).fill('hello world')
   await swarm1.join(topic).flushed()
   await swarm2.join(topic).flushed()
-
-  await flushConnections(swarm2)
-  await flushConnections(swarm1)
 })
 
 test('one server, two clients - topic multiplexing', async (t) => {
@@ -567,10 +562,9 @@ test('multiple discovery sessions with different opts', async (t) => {
   await swarm1.flush()
 
   const discovery1 = swarm2.join(topic, { client: true, server: false })
-  const discovery2 = swarm2.join(topic, { client: false, server: true })
+  swarm2.join(topic, { client: false, server: true })
 
   await discovery1.destroy() // should not prevent server connections
-  await discovery2.flushed()
 })
 
 test('closing all discovery sessions clears all peer-discovery objects', async t => {
