@@ -41,6 +41,7 @@ test('firewalled server - bad client is rejected', async (t) => {
 
 test('firewalled client - bad server is rejected', async (t) => {
   const { bootstrap } = await createTestnet(3, t.teardown)
+  t.plan(2)
 
   const swarm1 = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: 0 })
   const swarm2 = new Hyperswarm({
@@ -48,7 +49,9 @@ test('firewalled client - bad server is rejected', async (t) => {
     backoffs: BACKOFFS,
     jitter: 0,
     firewall: remotePublicKey => {
-      return remotePublicKey.equals(swarm1.keyPair.publicKey)
+      const firewalled = remotePublicKey.equals(swarm1.keyPair.publicKey)
+      t.ok(firewalled, 'The peer got firewalled')
+      return firewalled
     }
   })
 
