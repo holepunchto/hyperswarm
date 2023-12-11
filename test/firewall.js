@@ -1,10 +1,9 @@
 const test = require('brittle')
 const createTestnet = require('hyperdht/testnet')
-const { timeout } = require('./helpers')
+const { timeout, flushConnections } = require('./helpers')
 
 const Hyperswarm = require('..')
 
-const CONNECTION_TIMEOUT = 100
 const BACKOFFS = [
   100,
   200,
@@ -32,8 +31,7 @@ test('firewalled server - bad client is rejected', async (t) => {
   await swarm2.join(topic, { client: false, server: true }).flushed()
 
   swarm1.join(topic, { client: true, server: false })
-
-  await timeout(CONNECTION_TIMEOUT)
+  await flushConnections(swarm1)
 
   t.alike(serverConnections, 0, 'server did not receive an incoming connection')
 
@@ -43,6 +41,7 @@ test('firewalled server - bad client is rejected', async (t) => {
 
 test('firewalled client - bad server is rejected', async (t) => {
   const { bootstrap } = await createTestnet(3, t.teardown)
+  t.plan(2)
 
   const swarm1 = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: 0 })
   const swarm2 = new Hyperswarm({
@@ -50,7 +49,9 @@ test('firewalled client - bad server is rejected', async (t) => {
     backoffs: BACKOFFS,
     jitter: 0,
     firewall: remotePublicKey => {
-      return remotePublicKey.equals(swarm1.keyPair.publicKey)
+      const firewalled = remotePublicKey.equals(swarm1.keyPair.publicKey)
+      t.ok(firewalled, 'The peer got firewalled')
+      return firewalled
     }
   })
 
@@ -61,8 +62,7 @@ test('firewalled client - bad server is rejected', async (t) => {
   await swarm1.join(topic, { client: false, server: true }).flushed()
 
   swarm2.join(topic, { client: true, server: false })
-
-  await timeout(CONNECTION_TIMEOUT)
+  await flushConnections(swarm2)
 
   t.alike(clientConnections, 0, 'client did not receive an incoming connection')
 
