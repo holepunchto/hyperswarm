@@ -4,7 +4,6 @@ const { timeout, flushConnections } = require('./helpers')
 
 const Hyperswarm = require('..')
 
-const CONNECTION_TIMEOUT = 100
 const BACKOFFS = [
   100,
   200,
@@ -362,47 +361,50 @@ test('two servers, one client - refreshing a peer discovery instance discovers n
 })
 
 test('one server, one client - correct deduplication when a client connection is destroyed', async (t) => {
+  t.plan(4)
   const { bootstrap } = await createTestnet(3, t.teardown)
 
   const swarm1 = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: 0 })
   const swarm2 = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: 0 })
+  t.teardown(async () => {
+    await swarm1.destroy()
+    await swarm2.destroy()
+  })
 
   let clientConnections = 0
   let serverConnections = 0
   let clientData = 0
   let serverData = 0
 
-  const RECONNECT_TIMEOUT = CONNECTION_TIMEOUT * 4
-
   swarm1.on('connection', (conn) => {
     serverConnections++
     conn.on('error', noop)
-    conn.on('data', () => serverData++)
+    conn.on('data', () => {
+      if (++serverData >= 2) {
+        t.is(serverConnections, 2, 'Server opened second connection')
+        t.pass(serverData, 2, 'Received data from second connection')
+      }
+    })
     conn.write('hello world')
   })
   swarm2.on('connection', (conn) => {
     clientConnections++
     conn.on('error', noop)
-    conn.on('data', () => clientData++)
+    conn.on('data', () => {
+      if (++clientData >= 2) {
+        t.is(clientConnections, 2, 'Client opened second connection')
+        t.is(clientData, 2, 'Received data from second connection')
+      }
+    })
     conn.write('hello world')
-    if (clientConnections === 1) setTimeout(() => conn.destroy(), 100) // Destroy the first client connection
+
+    if (clientConnections === 1) setTimeout(() => conn.destroy(), 50) // Destroy the first client connection
   })
 
   const topic = Buffer.alloc(32).fill('hello world')
 
   await swarm1.join(topic, { server: true, client: false }).flushed()
   swarm2.join(topic, { server: false, client: true })
-  await swarm2.flush()
-
-  await timeout(RECONNECT_TIMEOUT) // Wait for the first connection to be destroyed/reestablished.
-
-  t.is(clientConnections, 2)
-  t.is(serverConnections, 2)
-  t.is(clientData, 2)
-  t.is(serverData, 2)
-
-  await swarm1.destroy()
-  await swarm2.destroy()
 })
 
 test('constructor options - debug options forwarded to DHT constructor', async (t) => {
