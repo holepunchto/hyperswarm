@@ -256,11 +256,14 @@ test('one server, two clients - first connection', async (t) => {
   const swarm2 = new Hyperswarm({ bootstrap })
   const swarm3 = new Hyperswarm({ bootstrap })
 
-  const connection1Test = t.test('connection1')
+  const connection1To2Test = t.test('connection1')
+  const connection1To3Test = t.test('connection1')
+
   const connection2Test = t.test('connection2')
   const connection3Test = t.test('connection3')
 
-  connection1Test.plan(2)
+  connection1To2Test.plan(1)
+  connection1To3Test.plan(1)
   connection2Test.plan(1)
   connection3Test.plan(1)
 
@@ -272,11 +275,11 @@ test('one server, two clients - first connection', async (t) => {
 
   swarm1.on('connection', (conn, info) => {
     if (b4a.equals(info.publicKey, swarm2.keyPair.publicKey)) {
-      connection1Test.pass('Swarm1 connected with swarm2')
+      connection1To2Test.pass('Swarm1 connected with swarm2')
     } else if (b4a.equals(info.publicKey, swarm3.keyPair.publicKey)) {
-      connection1Test.pass('Swarm1 connected with swarm3')
+      connection1To3Test.pass('Swarm1 connected with swarm3')
     } else {
-      connection1Test.fail('Unexpected connection')
+      t.fail('Unexpected connection')
     }
     conn.on('error', noop)
   })
