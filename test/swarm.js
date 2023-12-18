@@ -284,19 +284,11 @@ test('one server, two clients - first connection', async (t) => {
     conn.on('error', noop)
   })
   swarm2.on('connection', (conn, info) => {
-    if (b4a.equals(info.publicKey, swarm1.keyPair.publicKey)) {
-      connection2Test.pass('swarm2 connected with swarm1')
-    } else {
-      t.fail('Unexpected connection')
-    }
+    connection2Test.ok(b4a.equals(info.publicKey, swarm1.keyPair.publicKey), 'swarm2 connected with swarm1')
     conn.on('error', noop)
   })
   swarm3.on('connection', (conn, info) => {
-    if (b4a.equals(info.publicKey, swarm1.keyPair.publicKey)) {
-      connection3Test.pass('swarm3 connected with swarm1')
-    } else {
-      t.fail('Unexpected connection')
-    }
+    connection3Test.ok(b4a.equals(info.publicKey, swarm1.keyPair.publicKey), 'swarm3 connected with swarm1')
     conn.on('error', noop)
   })
 
