@@ -256,8 +256,8 @@ test('one server, two clients - first connection', async (t) => {
   const swarm2 = new Hyperswarm({ bootstrap })
   const swarm3 = new Hyperswarm({ bootstrap })
 
-  const connection1To2Test = t.test('connection1')
-  const connection1To3Test = t.test('connection1')
+  const connection1To2Test = t.test('connection 1 to 2')
+  const connection1To3Test = t.test('connection 1 to 3')
 
   const connection2Test = t.test('connection2')
   const connection3Test = t.test('connection3')
