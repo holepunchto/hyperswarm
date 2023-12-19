@@ -1,6 +1,7 @@
 const test = require('brittle')
 const crypto = require('hypercore-crypto')
 const createTestnet = require('hyperdht/testnet')
+const safetyCatch = require('safety-catch')
 const { timeout } = require('./helpers')
 
 const Hyperswarm = require('..')
@@ -37,7 +38,7 @@ test('chaos - recovers after random disconnections (takes ~60s)', async (t) => {
     swarm.on('connection', conn => {
       connections.push(conn)
 
-      conn.on('error', noop)
+      conn.on('error', safetyCatch)
       conn.on('close', () => {
         clearInterval(timer)
         const idx = connections.indexOf(conn)
@@ -110,5 +111,3 @@ test('chaos - recovers after random disconnections (takes ~60s)', async (t) => {
 
   for (const swarm of swarms) await swarm.destroy()
 })
-
-function noop () {}

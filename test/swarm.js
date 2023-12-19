@@ -1,5 +1,6 @@
 const test = require('brittle')
 const createTestnet = require('hyperdht/testnet')
+const safetyCatch = require('safety-catch')
 const { timeout, flushConnections } = require('./helpers')
 
 const Hyperswarm = require('..')
@@ -26,11 +27,11 @@ test('one server, one client - first connection', async (t) => {
 
   swarm2.on('connection', (conn) => {
     t.pass('swarm2')
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
     conn.end()
   })
   swarm1.on('connection', (conn) => {
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
     conn.end()
   })
 
@@ -57,12 +58,12 @@ test('two servers - first connection', async (t) => {
   })
 
   swarm1.on('connection', (conn) => {
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
     connection1Test.pass('swarm1')
     conn.end()
   })
   swarm2.on('connection', (conn) => {
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
     connection2Test.pass('swarm2')
     conn.end()
   })
@@ -94,7 +95,7 @@ test('one server, one client - single reconnect', async (t) => {
   let serverDisconnected = false
 
   swarm2.on('connection', (conn) => {
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
 
     if (!hasClientConnected) {
       hasClientConnected = true
@@ -105,7 +106,7 @@ test('one server, one client - single reconnect', async (t) => {
   })
 
   swarm1.on('connection', async (conn) => {
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
 
     if (!serverDisconnected) {
       serverDisconnected = true
@@ -135,11 +136,11 @@ test('one server, one client - maximum reconnects', async (t) => {
   let connections = 0
   swarm2.on('connection', (conn, info) => {
     connections++
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
     conn.destroy()
   })
   swarm1.on('connection', (conn) => {
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
   })
 
   const topic = Buffer.alloc(32).fill('hello world')
@@ -164,11 +165,11 @@ test('one server, one client - banned peer does not reconnect', async (t) => {
   swarm2.on('connection', (conn, info) => {
     connections++
     info.ban(true)
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
     conn.destroy()
   })
   swarm1.on('connection', (conn) => {
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
   })
 
   const topic = Buffer.alloc(32).fill('hello world')
@@ -201,11 +202,11 @@ test('two servers, two clients - simple deduplication', async (t) => {
 
   swarm1.on('connection', (conn) => {
     connection1Test.pass('Swarm 1 connection')
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
   })
   swarm2.on('connection', (conn) => {
     connection2Test.pass('Swarm 2 connection')
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
   })
 
   const topic = Buffer.alloc(32).fill('hello world')
@@ -225,10 +226,10 @@ test('one server, two clients - topic multiplexing', async (t) => {
   swarm2.on('connection', (conn, info) => {
     clientConnections++
     peerInfo = info
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
   })
 
-  swarm1.on('connection', (conn) => conn.on('error', noop))
+  swarm1.on('connection', (conn) => conn.on('error', safetyCatch))
 
   const topic1 = Buffer.alloc(32).fill('hello world')
   const topic2 = Buffer.alloc(32).fill('hi world')
@@ -271,17 +272,17 @@ test('one server, two clients - first connection', async (t) => {
 
   swarm1.on('connection', (conn) => {
     connection1Test.pass('swarm1')
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
     conn.destroy()
   })
   swarm2.on('connection', (conn) => {
     connection2Test.pass('swarm2')
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
     conn.destroy()
   })
   swarm3.on('connection', (conn) => {
     connection3Test.pass('swarm3')
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
     conn.destroy()
   })
 
@@ -304,11 +305,11 @@ test('one server, two clients - if a second client joins after the server leaves
   const swarm3 = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: 0 })
 
   swarm1.on('connection', (conn) => {
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
   })
 
-  swarm2.on('connection', (conn) => conn.on('error', noop))
-  swarm3.on('connection', (conn) => conn.on('error', noop))
+  swarm2.on('connection', (conn) => conn.on('error', safetyCatch))
+  swarm3.on('connection', (conn) => conn.on('error', safetyCatch))
 
   const topic = Buffer.alloc(32).fill('hello world')
   await swarm1.join(topic).flushed()
@@ -341,11 +342,11 @@ test('two servers, one client - refreshing a peer discovery instance discovers n
   let clientConnections = 0
   swarm3.on('connection', (conn) => {
     clientConnections++
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
   })
 
-  swarm1.on('connection', (conn) => conn.on('error', noop))
-  swarm2.on('connection', (conn) => conn.on('error', noop))
+  swarm1.on('connection', (conn) => conn.on('error', safetyCatch))
+  swarm2.on('connection', (conn) => conn.on('error', safetyCatch))
 
   const topic = Buffer.alloc(32).fill('hello world')
   await swarm1.join(topic).flushed()
@@ -385,7 +386,7 @@ test('one server, one client - correct deduplication when a client connection is
 
   swarm1.on('connection', (conn) => {
     serverConnections++
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
     conn.on('data', () => {
       if (++serverData >= 2) {
         t.is(serverConnections, 2, 'Server opened second connection')
@@ -396,7 +397,7 @@ test('one server, one client - correct deduplication when a client connection is
   })
   swarm2.on('connection', (conn) => {
     clientConnections++
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
     conn.on('data', () => {
       if (++clientData >= 2) {
         t.is(clientConnections, 2, 'Client opened second connection')
@@ -443,11 +444,11 @@ test('constructor options - debug options forwarded to DHT constructor', async (
 
   swarm1.once('connection', (conn) => {
     connected.pass('swarm1')
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
   })
   swarm2.once('connection', (conn) => {
     connected.pass('swarm2')
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
   })
 
   const topic = Buffer.alloc(32).fill('hello world')
@@ -477,12 +478,12 @@ test('flush when max connections reached', async (t) => {
   await swarm1.join(topic, { server: true }).flushed()
 
   await swarm2
-    .on('connection', (conn) => conn.on('error', noop))
+    .on('connection', (conn) => conn.on('error', safetyCatch))
     .join(topic, { client: true })
     .flushed()
 
   await swarm3
-    .on('connection', (conn) => conn.on('error', noop))
+    .on('connection', (conn) => conn.on('error', safetyCatch))
     .join(topic, { client: true })
     .flushed()
 
@@ -508,7 +509,7 @@ test('rejoining with different client/server opts refreshes', async (t) => {
   await swarm1.join(topic, { client: true, server: true }).flushed()
 
   await swarm2
-    .on('connection', (conn) => conn.on('error', noop))
+    .on('connection', (conn) => conn.on('error', safetyCatch))
     .join(topic, { client: true })
     .flushed()
 
@@ -559,12 +560,12 @@ test('multiple discovery sessions with different opts', async (t) => {
 
   swarm1.on('connection', (conn) => {
     connection1Test.pass('swarm1')
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
   })
 
   swarm2.on('connection', (conn) => {
     connection2Test.pass('swarm2')
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
   })
 
   await swarm1.join(topic).flushed()
@@ -610,11 +611,11 @@ test('peer-discovery object deleted when corresponding connection closes (server
 
   swarm2.on('connection', (conn) => {
     connected.pass('swarm2')
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
   })
   swarm1.on('connection', (conn) => {
     otherConnected.pass('swarm1')
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
   })
 
   const topic = Buffer.alloc(32).fill('hello world')
@@ -661,10 +662,10 @@ test('peer-discovery object deleted when corresponding connection closes (client
 
   swarm2.on('connection', (conn) => {
     connected.pass('swarm2')
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
   })
   swarm1.on('connection', (conn) => {
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
   })
 
   const topic = Buffer.alloc(32).fill('hello world')
@@ -676,8 +677,6 @@ test('peer-discovery object deleted when corresponding connection closes (client
   t.is(swarm2.peers.size, 1)
   await swarm1.destroy()
 })
-
-function noop () {}
 
 function eventFlush () {
   return new Promise(resolve => setImmediate(resolve))

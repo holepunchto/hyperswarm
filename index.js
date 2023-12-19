@@ -2,6 +2,7 @@ const { EventEmitter } = require('events')
 const DHT = require('hyperdht')
 const spq = require('shuffled-priority-queue')
 const b4a = require('b4a')
+const safetyCatch = require('safety-catch')
 
 const PeerInfo = require('./lib/peer-info')
 const RetryTimer = require('./lib/retry-timer')
@@ -175,7 +176,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       opened = true
       this._connectDone()
       this.connections.add(conn)
-      conn.removeListener('error', noop)
+      conn.removeListener('error', safetyCatch)
       peerInfo._connected()
       peerInfo.client = true
       this.emit('connection', conn, peerInfo)
@@ -247,13 +248,13 @@ module.exports = class Hyperswarm extends EventEmitter {
     existing.on('close', () => {
       if (closed) return
 
-      conn.removeListener('error', noop)
+      conn.removeListener('error', safetyCatch)
       conn.removeListener('close', onclose)
 
       this._handleServerConnection(conn)
     })
 
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
     conn.on('close', onclose)
 
     function onclose () {
@@ -265,7 +266,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   _handleServerConnection (conn) {
     if (this.destroyed) {
       // TODO: Investigate why a final server connection can be received after close
-      conn.on('error', noop)
+      conn.on('error', safetyCatch)
       return conn.destroy(ERR_DESTROYED)
     }
 
@@ -278,12 +279,12 @@ module.exports = class Hyperswarm extends EventEmitter {
 
       if (keepNew === false) {
         existing.write(KEEP_ALIVE) // check to see if its still alive actually
-        conn.on('error', noop)
+        conn.on('error', safetyCatch)
         conn.destroy(new Error(ERR_DUPLICATE))
         return
       }
 
-      existing.on('error', noop)
+      existing.on('error', safetyCatch)
       existing.destroy(new Error(ERR_DUPLICATE))
       this._handleServerConnectionSwap(existing, conn)
       return
@@ -515,8 +516,6 @@ module.exports = class Hyperswarm extends EventEmitter {
     return this._discovery.values()
   }
 }
-
-function noop () { }
 
 function allowAll () {
   return false

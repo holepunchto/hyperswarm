@@ -1,5 +1,6 @@
 const test = require('brittle')
 const createTestnet = require('hyperdht/testnet')
+const safetyCatch = require('safety-catch')
 
 const Hyperswarm = require('..')
 
@@ -21,7 +22,7 @@ test('join peer - can establish direct connections to public keys', async (t) =>
   let s1Connected = false
 
   swarm2.on('connection', conn => {
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
     if (!s2Connected) {
       firstConnection.pass('swarm2 got its first connection')
       s2Connected = true
@@ -29,7 +30,7 @@ test('join peer - can establish direct connections to public keys', async (t) =>
     connections.pass('swarm2 got a connection')
   })
   swarm1.on('connection', conn => {
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
     if (!s1Connected) {
       firstConnection.pass('swarm1 got its first connection')
       s1Connected = true
@@ -157,12 +158,12 @@ test('leave peer - no memory leak if other side closed connection first', async 
   swarm2.on('connection', conn => {
     conn.once('close', () => close.pass('swarm2 connection closed'))
     open.pass('swarm2 got a connection')
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
   })
   swarm1.on('connection', conn => {
     conn.once('close', () => close.pass('swarm1 connection closed'))
     open.pass('swarm1 got a connection')
-    conn.on('error', noop)
+    conn.on('error', safetyCatch)
   })
 
   swarm1.joinPeer(swarm2.keyPair.publicKey)
@@ -183,5 +184,3 @@ test('leave peer - no memory leak if other side closed connection first', async 
 
   swarm1.leavePeer(swarm2.keyPair.publicKey)
 })
-
-function noop () {}
