@@ -1,6 +1,7 @@
 const test = require('brittle')
 const createTestnet = require('hyperdht/testnet')
 const { timeout, flushConnections } = require('./helpers')
+const b4a = require('b4a')
 
 const Hyperswarm = require('..')
 
@@ -255,11 +256,14 @@ test('one server, two clients - first connection', async (t) => {
   const swarm2 = new Hyperswarm({ bootstrap })
   const swarm3 = new Hyperswarm({ bootstrap })
 
-  const connection1Test = t.test('connection1')
+  const connection1To2Test = t.test('connection 1 to 2')
+  const connection1To3Test = t.test('connection 1 to 3')
+
   const connection2Test = t.test('connection2')
   const connection3Test = t.test('connection3')
 
-  connection1Test.plan(1)
+  connection1To2Test.plan(1)
+  connection1To3Test.plan(1)
   connection2Test.plan(1)
   connection3Test.plan(1)
 
@@ -269,29 +273,29 @@ test('one server, two clients - first connection', async (t) => {
     await swarm3.destroy()
   })
 
-  swarm1.on('connection', (conn) => {
-    connection1Test.pass('swarm1')
+  swarm1.on('connection', (conn, info) => {
+    if (b4a.equals(info.publicKey, swarm2.keyPair.publicKey)) {
+      connection1To2Test.pass('Swarm1 connected with swarm2')
+    } else if (b4a.equals(info.publicKey, swarm3.keyPair.publicKey)) {
+      connection1To3Test.pass('Swarm1 connected with swarm3')
+    } else {
+      t.fail('Unexpected connection')
+    }
     conn.on('error', noop)
-    conn.destroy()
   })
-  swarm2.on('connection', (conn) => {
-    connection2Test.pass('swarm2')
+  swarm2.on('connection', (conn, info) => {
+    connection2Test.ok(b4a.equals(info.publicKey, swarm1.keyPair.publicKey), 'swarm2 connected with swarm1')
     conn.on('error', noop)
-    conn.destroy()
   })
-  swarm3.on('connection', (conn) => {
-    connection3Test.pass('swarm3')
+  swarm3.on('connection', (conn, info) => {
+    connection3Test.ok(b4a.equals(info.publicKey, swarm1.keyPair.publicKey), 'swarm3 connected with swarm1')
     conn.on('error', noop)
-    conn.destroy()
   })
 
   const topic = Buffer.alloc(32).fill('hello world')
   await swarm1.join(topic, { server: true, client: false }).flushed()
   swarm2.join(topic, { server: false, client: true })
   swarm3.join(topic, { server: false, client: true })
-
-  await swarm2.flush()
-  await swarm3.flush()
 })
 
 test('one server, two clients - if a second client joins after the server leaves, they will not connect', async (t) => {
