@@ -1,5 +1,6 @@
 const test = require('brittle')
 const createTestnet = require('hyperdht/testnet')
+const safetyCatch = require('safety-catch')
 const Hyperswarm = require('../')
 
 test('many servers', async t => {
@@ -23,7 +24,7 @@ test('many servers', async t => {
     swarm.on('connection', conn => {
       missing.add(conn.remotePublicKey.toString('hex'))
 
-      conn.on('error', noop)
+      conn.on('error', safetyCatch)
       conn.on('close', function () {
         missing.delete(conn.remotePublicKey.toString('hex'))
       })
@@ -51,5 +52,3 @@ test('many servers', async t => {
 
   for (const swarm of swarms) await swarm.destroy()
 })
-
-function noop () {}
