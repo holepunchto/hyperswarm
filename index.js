@@ -69,8 +69,8 @@ module.exports = class Hyperswarm extends EventEmitter {
     this._flushTick = 0
 
     this._drainingQueue = false
-    this._clientConnections = 0
-    this._serverConnections = 0
+    this.clientConnections = 0
+    this.serverConnections = 0
     this._firewall = firewall
 
     this.dht.on('network-change', this._handleNetworkChange.bind(this))
@@ -115,7 +115,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   _flushAllMaybe () {
-    if (this.connecting > 0 || (this._allConnections.size < this.maxPeers && this._clientConnections < this.maxClientConnections)) {
+    if (this.connecting > 0 || (this._allConnections.size < this.maxPeers && this.clientConnections < this.maxClientConnections)) {
       return false
     }
 
@@ -132,7 +132,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       !this.suspended &&
       this.connecting < this.maxParallel &&
       this._allConnections.size < this.maxPeers &&
-      this._clientConnections < this.maxClientConnections
+      this.clientConnections < this.maxClientConnections
   }
 
   _shouldRequeue (peerInfo) {
@@ -168,7 +168,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     this._allConnections.add(conn)
 
     this.connecting++
-    this._clientConnections++
+    this.clientConnections++
     let opened = false
 
     conn.on('open', () => {
@@ -194,7 +194,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       if (!opened) this._connectDone()
       this.connections.delete(conn)
       this._allConnections.delete(conn)
-      this._clientConnections--
+      this.clientConnections--
       peerInfo._disconnected()
 
       peerInfo.waiting = this._shouldRequeue(peerInfo) && this._timer.add(peerInfo)
@@ -293,12 +293,12 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     this.connections.add(conn)
     this._allConnections.add(conn)
-    this._serverConnections++
+    this.serverConnections++
 
     conn.on('close', () => {
       this.connections.delete(conn)
       this._allConnections.delete(conn)
-      this._serverConnections--
+      this.serverConnections--
 
       this._maybeDeletePeer(peerInfo)
 
