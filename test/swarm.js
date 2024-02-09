@@ -681,6 +681,84 @@ test('peer-discovery object deleted when corresponding connection closes (client
   await swarm1.destroy()
 })
 
+test('sessions', async function (t) {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
+  const root = new Hyperswarm({ bootstrap })
+  const s1 = root.session()
+  const s2 = root.session()
+
+  await s1.destroy()
+
+  t.is(root.destroyed, false)
+  t.is(s1.destroyed, true)
+  t.is(s2.destroyed, false)
+
+  t.is(root.dht.destroyed, false)
+  t.is(s1.dht.destroyed, false)
+  t.is(s2.dht.destroyed, false)
+
+  await root.destroy()
+
+  t.is(root.destroyed, true)
+  t.is(s1.destroyed, true)
+  t.is(s2.destroyed, true)
+
+  t.is(root.dht.destroyed, true)
+  t.is(s1.dht.destroyed, true)
+  t.is(s2.dht.destroyed, true)
+})
+
+test('close event', async function (t) {
+  t.plan(1)
+
+  const { bootstrap } = await createTestnet(3, t.teardown)
+  const swarm = new Hyperswarm({ bootstrap })
+
+  swarm.once('close', function () {
+    t.pass('swarm closed')
+  })
+
+  await swarm.destroy()
+})
+
+test('destroy order of sessions and root', async function (t) {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
+  const root = new Hyperswarm({ bootstrap })
+  const s1 = root.session()
+  const s2 = root.session()
+
+  const connected = t.test('connection')
+  connected.plan(2)
+
+  s1.on('connection', (socket) => {
+    socket.on('error', noop)
+    connected.pass('new s1 connection')
+  })
+
+  s2.on('connection', (socket) => {
+    socket.on('error', noop)
+    connected.pass('new s2 connection')
+  })
+
+  const topic = Buffer.alloc(32).fill('hello world')
+  await s1.join(topic, { server: true, client: false }).flushed()
+
+  s2.join(topic, { client: true, server: false })
+  await s2.flush()
+
+  await connected
+
+  let order = 0
+  root.on('close', () => t.is(++order, 3))
+  s1.on('close', () => t.is(++order, 1))
+  s2.on('close', () => t.is(++order, 2))
+
+  s1.destroy()
+  await root.destroy()
+})
+
 function noop () {}
 
 function eventFlush () {

@@ -44,6 +44,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     }, this._handleServerConnection.bind(this))
 
     this.destroyed = false
+    this._destroying = null
     this.suspended = false
     this.maxPeers = maxPeers
     this.maxClientConnections = maxClientConnections
@@ -56,6 +57,11 @@ module.exports = class Hyperswarm extends EventEmitter {
     this.peers = new Map()
     this.explicitPeers = new Set()
     this.listening = null
+
+    this._sessions = new Set()
+    this._opts = opts
+    this._root = opts._root
+    if (this._root) this._root._sessions.add(this)
 
     this._discovery = new Map()
     this._timer = new RetryTimer(this._requeue.bind(this), {
@@ -73,7 +79,8 @@ module.exports = class Hyperswarm extends EventEmitter {
     this._serverConnections = 0
     this._firewall = firewall
 
-    this.dht.on('network-change', this._handleNetworkChange.bind(this))
+    this._handleNetworkChange = this._handleNetworkChange.bind(this)
+    if (!this._root) this.dht.on('network-change', this._handleNetworkChange)
   }
 
   _maybeRelayConnection (force) {
@@ -366,6 +373,10 @@ module.exports = class Hyperswarm extends EventEmitter {
       refreshes.push(discovery.refresh())
     }
 
+    for (const session of this._sessions) {
+      refreshes.push(session._handleNetworkChange())
+    }
+
     await Promise.allSettled(refreshes)
   }
 
@@ -458,9 +469,32 @@ module.exports = class Hyperswarm extends EventEmitter {
     return cleared
   }
 
-  async destroy ({ force } = {}) {
-    if (this.destroyed && !force) return
+  session (opts = {}) {
+    return new Hyperswarm({
+      ...this._opts,
+      seed: undefined,
+      keyPair: undefined,
+      ...opts,
+      dht: this.dht,
+      _root: this._root || this
+    })
+  }
+
+  async destroy (opts) {
+    if (this._destroying) return this._destroying
+    this._destroying = this._destroy(opts)
+    return this._destroying
+  }
+
+  async _destroy ({ force } = {}) {
+    if (this.destroyed) return
     this.destroyed = true
+
+    if (!this._root) this.dht.off('network-change', this._handleNetworkChange)
+
+    for (const session of this._sessions) {
+      await session.destroy()
+    }
 
     this._timer.destroy()
 
@@ -473,7 +507,10 @@ module.exports = class Hyperswarm extends EventEmitter {
       flush.onflush(false)
     }
 
-    await this.dht.destroy({ force })
+    if (this._root) this._root._sessions.delete(this)
+    else await this.dht.destroy({ force })
+
+    this.emit('close')
   }
 
   async suspend () {
