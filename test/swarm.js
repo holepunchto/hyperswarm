@@ -681,6 +681,32 @@ test('peer-discovery object deleted when corresponding connection closes (client
   await swarm1.destroy()
 })
 
+test('flush limit', async (t) => {
+  t.plan(3)
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
+  const swarm1 = new Hyperswarm({ bootstrap })
+  const swarm2 = new Hyperswarm({ bootstrap })
+
+  t.teardown(async () => {
+    await swarm1.destroy()
+    await swarm2.destroy()
+  })
+
+  const topic = Buffer.alloc(32).fill('hello world')
+
+  swarm1.join(topic, { server: true, client: false })
+  await swarm1.flush()
+
+  swarm2.join(topic, { client: true, server: false })
+  await swarm2.flush({ limit: 1 })
+
+  t.is(swarm1.rawListeners().length, 0, 'No listeners after flush')
+  t.is(swarm2.rawListeners().length, 0, 'No listeners after flush')
+
+  t.pass('Flushes after first connection')
+})
+
 function noop () {}
 
 function eventFlush () {
