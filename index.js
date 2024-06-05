@@ -333,7 +333,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     return peerInfo
   }
 
-  _handleUpdate = () => {
+  _handleUpdate () {
     this.stats.updates++
   }
 
@@ -480,7 +480,6 @@ module.exports = class Hyperswarm extends EventEmitter {
     }
 
     await this.dht.destroy({ force })
-    this.removeListener('update', this._handleUpdate)
   }
 
   async suspend () {
