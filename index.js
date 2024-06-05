@@ -56,6 +56,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     this.peers = new Map()
     this.explicitPeers = new Set()
     this.listening = null
+    this.stats = { updates: 0 }
 
     this._discovery = new Map()
     this._timer = new RetryTimer(this._requeue.bind(this), {
@@ -74,6 +75,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     this._firewall = firewall
 
     this.dht.on('network-change', this._handleNetworkChange.bind(this))
+    this.on('update', this._handleUpdate)
   }
 
   _maybeRelayConnection (force) {
@@ -329,6 +331,10 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     this.peers.set(keyString, peerInfo)
     return peerInfo
+  }
+
+  _handleUpdate () {
+    this.stats.updates++
   }
 
   _maybeDeletePeer (peerInfo) {
