@@ -304,6 +304,13 @@ module.exports = class Hyperswarm extends EventEmitter {
       return
     }
 
+    // The _handleServerConnectionSwam path above calls _handleServerConnection
+    // again, so this is the moment where the conn is actually considered 'attempted'
+    this.stats.connects.attempted++
+    conn.on('open', () => {
+      this.stats.connects.opened++
+    })
+
     const peerInfo = this._upsertPeer(conn.remotePublicKey, null)
 
     this.connections.add(conn)
@@ -314,6 +321,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       this.connections.delete(conn)
       this._allConnections.delete(conn)
       this._serverConnections--
+      this.stats.connects.closed++
 
       this._maybeDeletePeer(peerInfo)
 
