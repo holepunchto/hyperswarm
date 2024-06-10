@@ -56,7 +56,14 @@ module.exports = class Hyperswarm extends EventEmitter {
     this.peers = new Map()
     this.explicitPeers = new Set()
     this.listening = null
-    this.stats = { updates: 0 }
+    this.stats = {
+      updates: 0,
+      connections: {
+        opened: 0,
+        closed: 0,
+        attempted: 0
+      }
+    }
 
     this._discovery = new Map()
     this._timer = new RetryTimer(this._requeue.bind(this), {
@@ -169,12 +176,16 @@ module.exports = class Hyperswarm extends EventEmitter {
     })
     this._allConnections.add(conn)
 
+    this.stats.connections.attempted++
+
     this.connecting++
     this._clientConnections++
     let opened = false
 
     conn.on('open', () => {
       opened = true
+      this.stats.connections.opened++
+
       this._connectDone()
       this.connections.add(conn)
       conn.removeListener('error', noop)
@@ -194,6 +205,8 @@ module.exports = class Hyperswarm extends EventEmitter {
     })
     conn.on('close', () => {
       if (!opened) this._connectDone()
+      this.stats.connections.closed++
+
       this.connections.delete(conn)
       this._allConnections.delete(conn)
       this._clientConnections--
