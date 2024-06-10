@@ -21,12 +21,12 @@ test('connectionsOpened and connectionsClosed stats', async (t) => {
 
   swarm2.on('connection', (conn) => {
     conn.on('error', noop)
-    tOpen.is(swarm2.stats.connections.opened, 1, 'opened connection is in stats')
-    tOpen.is(swarm2.stats.connections.attempted, 1, 'attemped connection is in stats')
-    tClose.is(swarm2.stats.connections.closed, 0, 'sanity check')
+    tOpen.is(swarm2.stats.connects.opened, 1, 'opened connection is in stats')
+    tOpen.is(swarm2.stats.connects.attempted, 1, 'attemped connection is in stats')
+    tClose.is(swarm2.stats.connects.closed, 0, 'sanity check')
 
     conn.on('close', () => {
-      tClose.is(swarm2.stats.connections.closed, 1, 'closed connection is in stats')
+      tClose.is(swarm2.stats.connects.closed, 1, 'closed connection is in stats')
     })
 
     conn.destroy()

@@ -58,7 +58,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     this.listening = null
     this.stats = {
       updates: 0,
-      connections: {
+      connects: {
         opened: 0,
         closed: 0,
         attempted: 0
@@ -176,7 +176,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     })
     this._allConnections.add(conn)
 
-    this.stats.connections.attempted++
+    this.stats.connects.attempted++
 
     this.connecting++
     this._clientConnections++
@@ -184,7 +184,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     conn.on('open', () => {
       opened = true
-      this.stats.connections.opened++
+      this.stats.connects.opened++
 
       this._connectDone()
       this.connections.add(conn)
@@ -205,7 +205,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     })
     conn.on('close', () => {
       if (!opened) this._connectDone()
-      this.stats.connections.closed++
+      this.stats.connects.closed++
 
       this.connections.delete(conn)
       this._allConnections.delete(conn)
