@@ -443,7 +443,11 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   // Returns a promise
-  async flush () {
+  async flush (opts = {}) {
+    if (opts.limit) {
+      return this.flushLimit(opts.limit)
+    }
+
     const allFlushed = [...this._discovery.values()].map(v => v.flushed())
     await Promise.all(allFlushed)
     if (this._flushAllMaybe()) return true
@@ -454,6 +458,27 @@ module.exports = class Hyperswarm extends EventEmitter {
         onflush: resolve,
         missing: this._queue.length + pendingSize,
         tick: this._flushTick++
+      })
+    })
+  }
+
+  async flushLimit (limit) {
+    return new Promise((resolve) => {
+      if (this.connections.size >= limit) {
+        resolve(true)
+      }
+
+      function checkConnections () {
+        if (this.connections.size >= limit) {
+          this.removeListener('connection', checkConnections)
+          resolve(true)
+        }
+      }
+
+      this.on('connection', checkConnections)
+      this.flush().then((res) => {
+        this.removeListener('connection', checkConnections)
+        resolve(res)
       })
     })
   }
