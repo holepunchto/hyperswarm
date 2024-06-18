@@ -1,7 +1,10 @@
 const test = require('brittle')
-const { DEV_BLIND_RELAY_KEYS } = require('@holepunchto/keet-default-config')
 
-const relayThrough = (force) => force ? DEV_BLIND_RELAY_KEYS : null
+const { DEV_BLIND_RELAY_KEYS } = require('@holepunchto/keet-default-config')
+const HypercoreId = require('hypercore-id-encoding')
+const DEV_RELAY_KEYS = DEV_BLIND_RELAY_KEYS.map(HypercoreId.decode)
+const relayThrough = (force) => force ? DEV_RELAY_KEYS : null
+
 const Hyperswarm = require('..')
 
 test.solo('one server, one client - single reconnect', { timeout: 60000 }, async (t) => {
