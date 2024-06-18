@@ -32,13 +32,15 @@ test.solo('one server, one client - single reconnect', async (t) => {
       disconnected = true
 
       reconnectsTest.pass('client terminates initial connection')
-      conn.destroy()
+      conn.destroy(new Error('whoops'))
       return
     }
     reconnectsTest.pass('agent reconnected')
   })
 
-  swarm1.joinPeer(serverKey.publicKey)
+  const topic = Buffer.alloc(32).fill('billie-fast-reconnect')
+  await swarm1.join(topic, { client: true, server: false }).flushed()
+//   swarm1.joinPeer(serverKey.publicKey)
 })
 
 function noop () {}
