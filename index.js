@@ -162,10 +162,15 @@ module.exports = class Hyperswarm extends EventEmitter {
     }
 
     const relayThrough = this._maybeRelayConnection(peerInfo.forceRelaying)
+    const invalidateStream = peerInfo.invalidateStream
+    if (invalidateStream) {
+      console.log('re-connecting with invalidateStream', invalidateStream)
+    }
     const conn = this.dht.connect(peerInfo.publicKey, {
       relayAddresses: peerInfo.relayAddresses,
       keyPair: this.keyPair,
-      relayThrough
+      relayThrough,
+      invalidateStream: invalidateStream || 0
     })
     this._allConnections.add(conn)
 
@@ -198,6 +203,10 @@ module.exports = class Hyperswarm extends EventEmitter {
       this._allConnections.delete(conn)
       this._clientConnections--
       peerInfo._disconnected()
+      if (conn.rawStream) {
+        console.log('close', conn.rawStream.id)
+        peerInfo.invalidateStream = conn.rawStream.id
+      }
 
       peerInfo.waiting = this._shouldRequeue(peerInfo) && this._timer.add(peerInfo)
       this._maybeDeletePeer(peerInfo)
@@ -264,16 +273,24 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   // Called when the DHT receives a new server connection.
-  _handleServerConnection (conn) {
+  _handleServerConnection (conn, extra) {
     if (this.destroyed) {
       // TODO: Investigate why a final server connection can be received after close
       conn.on('error', noop)
       return conn.destroy(ERR_DESTROYED)
     }
-
     const existing = this._allConnections.get(conn.remotePublicKey)
 
     if (existing) {
+      console.log('****************************************')
+      // Check to see if this new connection invalidates our existing connection
+      const existingStream = existing.rawStream?.id
+      console.log(extra)
+      const invalidateStream = extra && extra.invalidateStream
+      console.log('existingStream', existingStream)
+      console.log('invalidateStream', invalidateStream)
+      console.log('invalidate?', existingStream === invalidateStream)
+
       const expectedInitiator = b4a.compare(conn.publicKey, conn.remotePublicKey) > 0
       // if both connections are from the same peer, pick the one thats expected to initiate in a tie break
       const keepNew = expectedInitiator === conn.isInitiator
