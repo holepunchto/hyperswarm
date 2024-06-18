@@ -15,11 +15,12 @@
   "dependencies": {
     "b4a": "^1.3.1",
     "bare-events": "^2.2.0",
-    "hyperdht": "^6.11.0",
+    "hyperdht": "file:../hyperdht",
     "safety-catch": "^1.0.2",
     "shuffled-priority-queue": "^2.1.0"
   },
   "devDependencies": {
+    "@holepunchto/keet-default-config": "^1.3.0",
     "brittle": "^3.0.2",
     "hypercore-crypto": "^3.4.0",
     "standard": "^17.0.0"

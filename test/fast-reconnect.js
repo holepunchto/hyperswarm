@@ -1,14 +1,15 @@
 const test = require('brittle')
+const { DEV_BLIND_RELAY_KEYS } = require('@holepunchto/keet-default-config')
 
+const relayThrough = (force) => force ? DEV_BLIND_RELAY_KEYS : null
 const Hyperswarm = require('..')
 
-test.solo('one server, one client - single reconnect', async (t) => {
+test.solo('one server, one client - single reconnect', { timeout: 60000 }, async (t) => {
   // const { bootstrap } = await createTestnet(3, t.teardown)
   const bootstrap = undefined // ['192.168.1.193:49738']
 
   const seed = Buffer.alloc(32).fill('billie-fast-reconnect')
-
-  const swarm1 = new Hyperswarm({ seed, bootstrap })
+  const swarm1 = new Hyperswarm({ seed, bootstrap, relayThrough })
   console.log('my key:', swarm1.keyPair.publicKey.toString('hex'))
 
   const reconnectsTest = t.test('reconnects')
@@ -20,6 +21,7 @@ test.solo('one server, one client - single reconnect', async (t) => {
   })
 
   swarm1.on('connection', async (conn) => {
+    console.log('conn.rawStream.remoteHost', conn.rawStream.remoteHost)
     console.log('conn.publicKey', conn.publicKey.toString('hex'))
     console.log('conn.remotePublicKey', conn.remotePublicKey.toString('hex'))
     conn.on('error', console.log.bind(console))

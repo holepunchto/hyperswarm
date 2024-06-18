@@ -1,12 +1,14 @@
 const test = require('brittle')
+const { DEV_BLIND_RELAY_KEYS } = require('@holepunchto/keet-default-config')
 
+const relayThrough = (force) => force ? DEV_BLIND_RELAY_KEYS : null
 const Hyperswarm = require('..')
 const HyperDHT = require('hyperdht')
 
-test.solo('one server, one client - single reconnect', async (t) => {
+test.solo('one server, one client - single reconnect', { timeout: 60000 }, async (t) => {
   // const { bootstrap } = await createTestnet(3, t.teardown)
   const bootstrap = undefined // ['192.168.1.193:49738']
-  const swarm1 = new Hyperswarm({ bootstrap })
+  const swarm1 = new Hyperswarm({ bootstrap, relayThrough })
   console.log('my key:', swarm1.keyPair.publicKey.toString('hex'))
 
   const seed = Buffer.alloc(32).fill('billie-fast-reconnect')
@@ -24,6 +26,7 @@ test.solo('one server, one client - single reconnect', async (t) => {
   let disconnected = false
 
   swarm1.on('connection', async (conn) => {
+    console.log('conn.rawStream.remoteHost', conn.rawStream.remoteHost)
     console.log('conn.publicKey', conn.publicKey.toString('hex'))
     console.log('conn.remotePublicKey', conn.remotePublicKey.toString('hex'))
     conn.on('error', noop)
@@ -32,7 +35,7 @@ test.solo('one server, one client - single reconnect', async (t) => {
       disconnected = true
 
       reconnectsTest.pass('client terminates initial connection')
-      conn.destroy(new Error('whoops'))
+      conn.rawStream.destroy()
       return
     }
     reconnectsTest.pass('agent reconnected')
