@@ -284,16 +284,20 @@ module.exports = class Hyperswarm extends EventEmitter {
     if (existing) {
       console.log('****************************************')
       // Check to see if this new connection invalidates our existing connection
-      const existingStream = existing.rawStream?.remoteId
+      const existingStreamId = existing.rawStream?.remoteId
       console.log(extra)
-      const invalidateStream = extra && extra.invalidateStream
-      console.log('existingStream', existingStream)
-      console.log('invalidateStream', invalidateStream)
-      console.log('invalidate?', existingStream === invalidateStream)
+      const invalidateStreamId = extra && extra.invalidateStream
+      console.log('existingStream', existingStreamId)
+      console.log('invalidateStream', invalidateStreamId)
+      console.log('invalidate?', existingStreamId === invalidateStreamId)
 
       const expectedInitiator = b4a.compare(conn.publicKey, conn.remotePublicKey) > 0
-      // if both connections are from the same peer, pick the one thats expected to initiate in a tie break
-      const keepNew = expectedInitiator === conn.isInitiator
+      // If both connections are from the same peer,
+      // - pick the new one if the new stream invalidates our existing stream
+      // - otherwise, pick the one thats expected to initiate in a tie break
+      const keepNew = invalidateStreamId
+        ? existingStreamId === invalidateStreamId
+        : expectedInitiator === conn.isInitiator
 
       if (keepNew === false) {
         existing.write(KEEP_ALIVE) // check to see if its still alive actually

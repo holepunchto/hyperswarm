@@ -28,7 +28,9 @@ test.solo('one server, one client - single reconnect', { timeout: 120000 }, asyn
     console.log('conn.rawStream.id', conn.rawStream.id, 'conn.rawStream.remoteId', conn.rawStream.remoteId)
   })
 
-  const topic = Buffer.alloc(32).fill('billie-fast-reconnect')
+  // const topic = Buffer.alloc(32).fill('billie-fast-reconnect')
   swarm1.listen()
-  await swarm1.join(topic, { client: false, server: true }).flushed()
+  // await swarm1.join(topic, { client: false, server: true }).flushed()
+
+  await reconnectsTest
 })
