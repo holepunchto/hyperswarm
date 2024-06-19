@@ -1,12 +1,22 @@
 const test = require('brittle')
 
+function customLogger (data) {
+  console.log(`TRACE ${data.id} ${Object.keys(data.caller.props || []).join(',')} ${data.caller.filename}:${data.caller.line}:${data.caller.column}`)
+}
+require('hypertrace').setTraceFunction(customLogger)
+
+const { DEV_BLIND_RELAY_KEYS } = require('@holepunchto/keet-default-config')
+const HypercoreId = require('hypercore-id-encoding')
+const DEV_RELAY_KEYS = DEV_BLIND_RELAY_KEYS.map(HypercoreId.decode)
+const relayThrough = (force) => force ? DEV_RELAY_KEYS : null
+
 const Hyperswarm = require('..')
 const HyperDHT = require('hyperdht')
 
 test.solo('one server, one client - single reconnect', { timeout: 120000 }, async (t) => {
   // const { bootstrap } = await createTestnet(3, t.teardown)
   const bootstrap = undefined // ['192.168.1.193:49738']
-  const swarm1 = new Hyperswarm({ bootstrap })
+  const swarm1 = new Hyperswarm({ bootstrap, relayThrough })
   console.log('my key:', swarm1.keyPair.publicKey.toString('hex'))
 
   const seed = Buffer.alloc(32).fill('billie-fast-reconnect')
