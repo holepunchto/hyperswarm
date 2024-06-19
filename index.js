@@ -207,7 +207,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       if (conn.rawStream) {
         console.log('close', conn.streamId)
         console.log('conn.handshakeHash', conn.handshakeHash)
-        peerInfo.invalidateStream = NoiseSecretStream.id(conn.handshakeHash, conn.isInitiator)
+        peerInfo.invalidateStream = NoiseSecretStream.id(conn.handshakeHash, !conn.isInitiator)
         console.log(peerInfo)
       }
 
@@ -287,12 +287,12 @@ module.exports = class Hyperswarm extends EventEmitter {
     if (existing) {
       console.log('****************************************')
       // Check to see if this new connection invalidates our existing connection
-      const existingStreamId = existing.rawStream?.remoteId
+      const existingStreamId = existing.id
       console.log(extra)
       const invalidateStreamId = extra && extra.invalidateStream
       console.log('existingStream', existingStreamId)
       console.log('invalidateStream', invalidateStreamId)
-      console.log('invalidate?', b4a.equals(existingStreamId, invalidateStreamId))
+      console.log('invalidate?', existingStreamId && b4a.equals(existingStreamId, invalidateStreamId))
 
       const expectedInitiator = b4a.compare(conn.publicKey, conn.remotePublicKey) > 0
       // If both connections are from the same peer,
