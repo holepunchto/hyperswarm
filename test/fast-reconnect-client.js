@@ -25,10 +25,11 @@ test.solo('one server, one client - single reconnect', { timeout: 120000 }, asyn
 
   swarm1.on('connection', async (conn) => {
     console.log('conn.rawStream.remoteHost', conn.rawStream.remoteHost)
-    console.log('conn.publicKey', conn.publicKey.toString('hex'))
-    console.log('conn.remotePublicKey', conn.remotePublicKey.toString('hex'))
+    // console.log('conn.publicKey', conn.publicKey.toString('hex'))
+    // console.log('conn.remotePublicKey', conn.remotePublicKey.toString('hex'))
     conn.on('error', noop)
-    console.log('conn.rawStream.id', conn.rawStream.id, 'conn.rawStream.remoteId', conn.rawStream.remoteId)
+    // console.log('conn.rawStream.id', conn.rawStream.id, 'conn.rawStream.remoteId', conn.rawStream.remoteId)
+    console.log('conn.streamId', conn.streamId)
     if (!disconnected) {
       disconnected = true
 
@@ -41,13 +42,14 @@ test.solo('one server, one client - single reconnect', { timeout: 120000 }, asyn
     swarm1.leavePeer(serverKey.publicKey)
   })
 
-  async function waitAndDestroy(conn, timeout) {
-    await new Promise(r => setTimeout(() => r(), timeout) )
+  async function waitAndDestroy (conn, timeout) {
+    await new Promise(r => setTimeout(() => r(), timeout))
     conn.rawStream.destroy()
     console.log('aaaaaand turn wifi back on now')
   }
 
   swarm1.joinPeer(serverKey.publicKey)
+  await reconnectsTest
 })
 
 function noop () {}

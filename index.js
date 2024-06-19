@@ -1,4 +1,5 @@
 const { EventEmitter } = require('events')
+const NoiseSecretStream = require('@hyperswarm/secret-stream')
 const DHT = require('hyperdht')
 const spq = require('shuffled-priority-queue')
 const b4a = require('b4a')
@@ -170,7 +171,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       relayAddresses: peerInfo.relayAddresses,
       keyPair: this.keyPair,
       relayThrough,
-      invalidateStream: invalidateStream || 0
+      invalidateStream: invalidateStream || null
     })
     this._allConnections.add(conn)
 
@@ -204,8 +205,10 @@ module.exports = class Hyperswarm extends EventEmitter {
       this._clientConnections--
       peerInfo._disconnected()
       if (conn.rawStream) {
-        console.log('close', conn.rawStream.id)
-        peerInfo.invalidateStream = conn.rawStream.id
+        console.log('close', conn.streamId)
+        console.log('conn.handshakeHash', conn.handshakeHash)
+        peerInfo.invalidateStream = NoiseSecretStream.id(conn.handshakeHash, conn.isInitiator)
+        console.log(peerInfo)
       }
 
       peerInfo.waiting = this._shouldRequeue(peerInfo) && this._timer.add(peerInfo)
@@ -289,14 +292,14 @@ module.exports = class Hyperswarm extends EventEmitter {
       const invalidateStreamId = extra && extra.invalidateStream
       console.log('existingStream', existingStreamId)
       console.log('invalidateStream', invalidateStreamId)
-      console.log('invalidate?', existingStreamId === invalidateStreamId)
+      console.log('invalidate?', b4a.equals(existingStreamId, invalidateStreamId))
 
       const expectedInitiator = b4a.compare(conn.publicKey, conn.remotePublicKey) > 0
       // If both connections are from the same peer,
       // - pick the new one if the new stream invalidates our existing stream
       // - otherwise, pick the one thats expected to initiate in a tie break
       const keepNew = invalidateStreamId
-        ? existingStreamId === invalidateStreamId
+        ? b4a.equals(existingStreamId === invalidateStreamId)
         : expectedInitiator === conn.isInitiator
 
       if (keepNew === false) {

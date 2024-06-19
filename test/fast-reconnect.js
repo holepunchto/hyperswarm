@@ -1,4 +1,8 @@
 const test = require('brittle')
+function customLogger (data) {
+  console.log(`TRACE ${data.id} ${Object.keys(data.caller.props || []).join(',')} ${data.caller.filename}:${data.caller.line}:${data.caller.column}`)
+}
+require('hypertrace').setTraceFunction(customLogger)
 
 const Hyperswarm = require('..')
 
@@ -20,12 +24,13 @@ test.solo('one server, one client - single reconnect', { timeout: 120000 }, asyn
 
   swarm1.on('connection', async (conn) => {
     console.log('conn.rawStream.remoteHost', conn.rawStream.remoteHost)
-    console.log('conn.publicKey', conn.publicKey.toString('hex'))
-    console.log('conn.remotePublicKey', conn.remotePublicKey.toString('hex'))
+    // console.log('conn.publicKey', conn.publicKey.toString('hex'))
+    // console.log('conn.remotePublicKey', conn.remotePublicKey.toString('hex'))
     conn.on('error', console.log.bind(console))
     conn.on('close', console.log.bind(console))
     reconnectsTest.pass('agent connected')
-    console.log('conn.rawStream.id', conn.rawStream.id, 'conn.rawStream.remoteId', conn.rawStream.remoteId)
+    // console.log('conn.rawStream.id', conn.rawStream.id, 'conn.rawStream.remoteId', conn.rawStream.remoteId)
+    console.log('conn.streamId', conn.streamId)
   })
 
   // const topic = Buffer.alloc(32).fill('billie-fast-reconnect')
