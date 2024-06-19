@@ -1,17 +1,12 @@
 const test = require('brittle')
 
-const { DEV_BLIND_RELAY_KEYS } = require('@holepunchto/keet-default-config')
-const HypercoreId = require('hypercore-id-encoding')
-const DEV_RELAY_KEYS = DEV_BLIND_RELAY_KEYS.map(HypercoreId.decode)
-const relayThrough = (force) => force ? DEV_RELAY_KEYS : null
-
 const Hyperswarm = require('..')
 const HyperDHT = require('hyperdht')
 
-test.solo('one server, one client - single reconnect', { timeout: 60000 }, async (t) => {
+test.solo('one server, one client - single reconnect', { timeout: 120000 }, async (t) => {
   // const { bootstrap } = await createTestnet(3, t.teardown)
   const bootstrap = undefined // ['192.168.1.193:49738']
-  const swarm1 = new Hyperswarm({ bootstrap, relayThrough })
+  const swarm1 = new Hyperswarm({ bootstrap })
   console.log('my key:', swarm1.keyPair.publicKey.toString('hex'))
 
   const seed = Buffer.alloc(32).fill('billie-fast-reconnect')
@@ -38,15 +33,18 @@ test.solo('one server, one client - single reconnect', { timeout: 60000 }, async
       disconnected = true
 
       reconnectsTest.pass('client terminates initial connection')
+      console.log('turn off wifi now')
+      await new Promise(r => setTimeout(() => r(), 8000) )
       conn.rawStream.destroy()
+      console.log('aaaaaand turn wifi back on now')
       return
     }
     reconnectsTest.pass('agent reconnected')
   })
 
   const topic = Buffer.alloc(32).fill('billie-fast-reconnect')
-  await swarm1.join(topic, { client: true, server: false }).flushed()
-//   swarm1.joinPeer(serverKey.publicKey)
+  // await swarm1.join(topic, { client: true, server: false }).flushed()
+  swarm1.joinPeer(serverKey.publicKey)
 })
 
 function noop () {}
