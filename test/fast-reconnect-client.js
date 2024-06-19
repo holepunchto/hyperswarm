@@ -34,16 +34,19 @@ test.solo('one server, one client - single reconnect', { timeout: 120000 }, asyn
 
       reconnectsTest.pass('client terminates initial connection')
       console.log('turn off wifi now')
-      await new Promise(r => setTimeout(() => r(), 8000) )
-      conn.rawStream.destroy()
-      console.log('aaaaaand turn wifi back on now')
+      waitAndDestroy(conn, 8000)
       return
     }
     reconnectsTest.pass('agent reconnected')
+    swarm1.leavePeer(serverKey.publicKey)
   })
 
-  const topic = Buffer.alloc(32).fill('billie-fast-reconnect')
-  // await swarm1.join(topic, { client: true, server: false }).flushed()
+  async function waitAndDestroy(conn, timeout) {
+    await new Promise(r => setTimeout(() => r(), timeout) )
+    conn.rawStream.destroy()
+    console.log('aaaaaand turn wifi back on now')
+  }
+
   swarm1.joinPeer(serverKey.publicKey)
 })
 
