@@ -284,7 +284,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     if (existing) {
       console.log('****************************************')
       // Check to see if this new connection invalidates our existing connection
-      const existingStream = existing.rawStream?.id
+      const existingStream = existing.rawStream?.remoteId
       console.log(extra)
       const invalidateStream = extra && extra.invalidateStream
       console.log('existingStream', existingStream)
