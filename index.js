@@ -1,5 +1,4 @@
 const { EventEmitter } = require('events')
-const NoiseSecretStream = require('@hyperswarm/secret-stream')
 const DHT = require('hyperdht')
 const spq = require('shuffled-priority-queue')
 const b4a = require('b4a')
@@ -189,7 +188,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       console.log('close', conn.streamId)
       console.log('conn.handshakeHash', conn.handshakeHash)
       console.log('conn.isInitiator', conn.isInitiator)
-      peerInfo.invalidateStream = NoiseSecretStream.id(conn.handshakeHash, !conn.isInitiator)
+      peerInfo.invalidateStream = conn.remoteStreamId
       console.log('peerInfo.invalidateStream', peerInfo.invalidateStream)
       this.emit('connection', conn, peerInfo)
       this._flushMaybe(peerInfo)
