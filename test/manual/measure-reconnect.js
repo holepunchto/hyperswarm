@@ -18,10 +18,10 @@ const relayThrough = (force) => force ? DEV_RELAY_KEYS : null
 
 const Hyperswarm = require('../..')
 
-const seed = Buffer.alloc(32).fill('billie-fast-reconnect')
-const topic = seed
+const topic = Buffer.alloc(32).fill('measure-reconnect')
+const seed = Buffer.alloc(32).fill('measure-reconnect' + require('os').hostname())
 
-const swarm = new Hyperswarm({ relayThrough })
+const swarm = new Hyperswarm({ seed, relayThrough })
 
 swarm.dht.on('network-change', () => {
   console.log('NETWORK CHANGE')
@@ -47,3 +47,7 @@ swarm.on('connection', async (conn) => {
 
 console.time('INITIAL CONNECTION TIME')
 swarm.join(topic)
+
+// process.on('SIGINT', () => {
+//   swarm.leave(topic).then(() => process.exit())
+// })
