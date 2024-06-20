@@ -186,6 +186,11 @@ module.exports = class Hyperswarm extends EventEmitter {
       conn.removeListener('error', noop)
       peerInfo._connected()
       peerInfo.client = true
+      console.log('close', conn.streamId)
+      console.log('conn.handshakeHash', conn.handshakeHash)
+      console.log('conn.isInitiator', conn.isInitiator)
+      peerInfo.invalidateStream = NoiseSecretStream.id(conn.handshakeHash, !conn.isInitiator)
+      console.log('peerInfo.invalidateStream', peerInfo.invalidateStream)
       this.emit('connection', conn, peerInfo)
       this._flushMaybe(peerInfo)
 
@@ -204,10 +209,6 @@ module.exports = class Hyperswarm extends EventEmitter {
       this._allConnections.delete(conn)
       this._clientConnections--
       peerInfo._disconnected()
-      console.log('close', conn.streamId)
-      console.log('conn.handshakeHash', conn.handshakeHash)
-      peerInfo.invalidateStream = NoiseSecretStream.id(conn.handshakeHash, !conn.isInitiator)
-      console.log(peerInfo)
 
       peerInfo.waiting = this._shouldRequeue(peerInfo) && this._timer.add(peerInfo)
       this._maybeDeletePeer(peerInfo)
