@@ -1,5 +1,3 @@
-const test = require('brittle')
-
 function customLogger (data) {
   console.log(`TRACE ${data.id} ${Object.keys(data.caller.props || []).join(',')} ${data.caller.filename}:${data.caller.line}:${data.caller.column}`)
 }
@@ -13,56 +11,26 @@ const relayThrough = (force) => force ? DEV_RELAY_KEYS : null
 const Hyperswarm = require('..')
 const HyperDHT = require('hyperdht')
 
-test.solo('one server, one client - single reconnect', { timeout: 120000 }, async (t) => {
-  // const { bootstrap } = await createTestnet(3, t.teardown)
-  const bootstrap = undefined // ['192.168.1.193:49738']
-  const swarm1 = new Hyperswarm({ bootstrap, relayThrough })
-  console.log('my key:', swarm1.keyPair.publicKey.toString('hex'))
+const swarm1 = new Hyperswarm({ relayThrough })
 
-  const seed = Buffer.alloc(32).fill('billie-fast-reconnect')
-  const serverKey = HyperDHT.keyPair(seed)
-  console.log('server key:', serverKey.publicKey)
+swarm1.dht.on('network-change', () => console.time('RECONNECTION TIME'))
 
-  const reconnectsTest = t.test('reconnects')
+const seed = Buffer.alloc(32).fill('billie-fast-reconnect')
+const serverKey = HyperDHT.keyPair(seed)
 
-  reconnectsTest.plan(2)
+let connected = false
 
-  t.teardown(async () => {
-    await swarm1.destroy()
-  })
-
-  let disconnected = false
-
-  swarm1.on('connection', async (conn) => {
-    console.log('conn.rawStream.remoteHost', conn.rawStream.remoteHost)
-    // console.log('conn.publicKey', conn.publicKey.toString('hex'))
-    // console.log('conn.remotePublicKey', conn.remotePublicKey.toString('hex'))
-    conn.on('error', noop)
-    // console.log('conn.rawStream.id', conn.rawStream.id, 'conn.rawStream.remoteId', conn.rawStream.remoteId)
-    console.log('conn.streamId', conn.streamId)
-    if (!disconnected) {
-      disconnected = true
-
-      reconnectsTest.pass('client terminates initial connection')
-      waitAndSwitch(conn, 15000)
-      return
-    }
-    console.timeEnd('RECONNECTION TIME')
-    reconnectsTest.pass('agent reconnected')
-    swarm1.leavePeer(serverKey.publicKey)
-  })
-
-  async function waitAndSwitch (conn, timeout) {
-    conn.write('data sent before switching wifi')
-    console.log('SWITCH WIFI NETWORKS NOW')
-    swarm1.dht.once('network-change', () => console.time('RECONNECTION TIME'))
-    await new Promise(resolve => setTimeout(() => resolve(), timeout))
-    conn.write('data sent after switching wifi')
-    console.log('aaaaaand lets see what happens now')
+swarm1.on('connection', async (conn) => {
+  console.log('conn.rawStream.remoteHost', conn.rawStream.remoteHost)
+  conn.on('error', console.log.bind(console))
+  conn.on('close', console.log.bind(console))
+  if (!connected) {
+    connected = true
+    console.timeEnd('INITIAL CONNECTION TIME')
+    return
   }
-
-  swarm1.joinPeer(serverKey.publicKey)
-  await reconnectsTest
+  console.timeEnd('RECONNECTION TIME')
 })
 
-function noop () {}
+console.time('INITIAL CONNECTION TIME')
+swarm1.joinPeer(serverKey.publicKey)
