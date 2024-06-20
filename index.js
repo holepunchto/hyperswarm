@@ -366,6 +366,11 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   async _handleNetworkChange () {
+    // prioritize figuring out if existing connections are dead
+    for (const conn of this._allConnections) {
+      conn.sendKeepAlive?.()
+    }
+
     const refreshes = []
 
     for (const discovery of this._discovery.values()) {
