@@ -37,6 +37,9 @@ test.solo('one server, one client - single reconnect', { timeout: 120000 }, asyn
     reconnectsTest.pass('agent connected')
     // console.log('conn.rawStream.id', conn.rawStream.id, 'conn.rawStream.remoteId', conn.rawStream.remoteId)
     console.log('conn.streamId', conn.streamId)
+    conn.on('data', (data) => {
+      console.log(data.toString('utf8'))
+    })
   })
 
   // const topic = Buffer.alloc(32).fill('billie-fast-reconnect')
