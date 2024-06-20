@@ -15,17 +15,13 @@
   "dependencies": {
     "b4a": "^1.3.1",
     "bare-events": "^2.2.0",
-    "hyperdht": "file:../hyperdht",
+    "hyperdht": "^6.11.0",
     "safety-catch": "^1.0.2",
     "shuffled-priority-queue": "^2.1.0"
   },
   "devDependencies": {
-    "@holepunchto/keet-default-config": "^1.3.0",
-    "@hyperswarm/secret-stream": "^6.5.0",
     "brittle": "^3.0.2",
     "hypercore-crypto": "^3.4.0",
-    "hypercore-id-encoding": "^1.3.0",
-    "hypertrace": "^1.4.2",
     "standard": "^17.0.0"
   },
   "scripts": {

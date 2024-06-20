@@ -162,15 +162,11 @@ module.exports = class Hyperswarm extends EventEmitter {
     }
 
     const relayThrough = this._maybeRelayConnection(peerInfo.forceRelaying)
-    const invalidateStream = peerInfo.invalidateStream
-    if (invalidateStream) {
-      console.log('re-connecting with invalidateStream', invalidateStream)
-    }
     const conn = this.dht.connect(peerInfo.publicKey, {
       relayAddresses: peerInfo.relayAddresses,
       keyPair: this.keyPair,
       relayThrough,
-      invalidateStream: invalidateStream || null
+      invalidateStream: peerInfo.invalidateStream
     })
     this._allConnections.add(conn)
 
@@ -185,11 +181,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       conn.removeListener('error', noop)
       peerInfo._connected()
       peerInfo.client = true
-      console.log('close', conn.streamId)
-      console.log('conn.handshakeHash', conn.handshakeHash)
-      console.log('conn.isInitiator', conn.isInitiator)
       peerInfo.invalidateStream = conn.remoteStreamId
-      console.log('peerInfo.invalidateStream', peerInfo.invalidateStream)
       this.emit('connection', conn, peerInfo)
       this._flushMaybe(peerInfo)
 
@@ -283,15 +275,9 @@ module.exports = class Hyperswarm extends EventEmitter {
     const existing = this._allConnections.get(conn.remotePublicKey)
 
     if (existing) {
-      console.log('****************************************')
       // Check to see if this new connection invalidates our existing connection
-      const existingStreamId = existing.streamId
       const invalidateStreamId = extra && extra.invalidateStream
-      console.log('existingStreamId  ', existingStreamId)
-      console.log('invalidateStreamId', invalidateStreamId)
-
-      const existingIsInvalidated = invalidateStreamId && existingStreamId && b4a.equals(existingStreamId, invalidateStreamId)
-      console.log('existingIsInvalidated', existingIsInvalidated)
+      const existingIsInvalidated = invalidateStreamId && existing.streamId && b4a.equals(existing.streamId, invalidateStreamId)
       const expectedInitiator = b4a.compare(conn.publicKey, conn.remotePublicKey) > 0
       // If both connections are from the same peer,
       // - pick the new one if the new stream invalidates our existing stream
