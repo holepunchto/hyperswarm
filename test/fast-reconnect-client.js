@@ -47,6 +47,7 @@ test.solo('one server, one client - single reconnect', { timeout: 120000 }, asyn
       waitAndSwitch(conn, 15000)
       return
     }
+    console.timeEnd('RECONNECTION TIME')
     reconnectsTest.pass('agent reconnected')
     swarm1.leavePeer(serverKey.publicKey)
   })
@@ -54,6 +55,7 @@ test.solo('one server, one client - single reconnect', { timeout: 120000 }, asyn
   async function waitAndSwitch (conn, timeout) {
     conn.write('data sent before switching wifi')
     console.log('SWITCH WIFI NETWORKS NOW')
+    swarm1.dht.once('network-change', () => console.time('RECONNECTION TIME'))
     await new Promise(resolve => setTimeout(() => resolve(), timeout))
     conn.write('data sent after switching wifi')
     console.log('aaaaaand lets see what happens now')
