@@ -44,7 +44,7 @@ test.solo('one server, one client - single reconnect', { timeout: 120000 }, asyn
       disconnected = true
 
       reconnectsTest.pass('client terminates initial connection')
-      waitAndSwitch(conn, 8000)
+      waitAndSwitch(conn, 15000)
       return
     }
     reconnectsTest.pass('agent reconnected')
@@ -53,7 +53,7 @@ test.solo('one server, one client - single reconnect', { timeout: 120000 }, asyn
 
   async function waitAndSwitch (conn, timeout) {
     conn.write('data sent before switching wifi')
-    console.log('switch wifi networks now')
+    console.log('SWITCH WIFI NETWORKS NOW')
     await new Promise(resolve => setTimeout(() => resolve(), timeout))
     conn.write('data sent after switching wifi')
     console.log('aaaaaand lets see what happens now')
