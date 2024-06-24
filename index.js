@@ -161,7 +161,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       return
     }
 
-    const relayThrough = this._maybeRelayConnection(peerInfo.forceRelaying)
+    const relayThrough = this._maybeRelayConnection(peerInfo.forceRelaying || peerInfo.attempts === 0)
     const conn = this.dht.connect(peerInfo.publicKey, {
       relayAddresses: peerInfo.relayAddresses,
       keyPair: this.keyPair,
