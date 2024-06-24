@@ -36,7 +36,7 @@ const clientSeed = Buffer.alloc(32).fill('measure-relay-maf-billie-client')
 
 const seed = arg === 'server' ? serverSeed : clientSeed
 
-const swarm = new Hyperswarm({ seed })
+const swarm = new Hyperswarm({ seed, relayThrough })
 const dht = swarm.dht
 
 const server = dht.createServer({ relayThrough }, (conn) => {
