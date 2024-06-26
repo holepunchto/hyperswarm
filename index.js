@@ -277,8 +277,8 @@ module.exports = class Hyperswarm extends EventEmitter {
       // If both connections are from the same peer,
       // - pick the new one if the new stream's timestamp is greater than our existing stream's timestamp
       // - otherwise, pick the one thats expected to initiate in a tie break
-      const existingTime = existing.userData?.timestamp
-      const incomingTime = conn.userData?.timestamp
+      const existingTime = existing.timestamp
+      const incomingTime = conn.timestamp
       const existingIsOutdated = incomingTime && existingTime && incomingTime > existingTime
       const expectedInitiator = b4a.compare(conn.publicKey, conn.remotePublicKey) > 0
       const keepNew = existingIsOutdated || (expectedInitiator === conn.isInitiator)
