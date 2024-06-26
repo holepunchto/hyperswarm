@@ -165,7 +165,8 @@ module.exports = class Hyperswarm extends EventEmitter {
     const conn = this.dht.connect(peerInfo.publicKey, {
       relayAddresses: peerInfo.relayAddresses,
       keyPair: this.keyPair,
-      relayThrough
+      relayThrough,
+      timestamp: Date.now()
     })
     this._allConnections.add(conn)
 
@@ -270,13 +271,17 @@ module.exports = class Hyperswarm extends EventEmitter {
       conn.on('error', noop)
       return conn.destroy(ERR_DESTROYED)
     }
-
     const existing = this._allConnections.get(conn.remotePublicKey)
 
     if (existing) {
+      // If both connections are from the same peer,
+      // - pick the new one if the new stream's timestamp is greater than our existing stream's timestamp
+      // - otherwise, pick the one thats expected to initiate in a tie break
+      const existingTime = existing.userData?.timestamp
+      const incomingTime = conn.userData?.timestamp
+      const existingIsOutdated = incomingTime && existingTime && incomingTime > existingTime
       const expectedInitiator = b4a.compare(conn.publicKey, conn.remotePublicKey) > 0
-      // if both connections are from the same peer, pick the one thats expected to initiate in a tie break
-      const keepNew = expectedInitiator === conn.isInitiator
+      const keepNew = existingIsOutdated || (expectedInitiator === conn.isInitiator)
 
       if (keepNew === false) {
         existing.write(KEEP_ALIVE) // check to see if its still alive actually
