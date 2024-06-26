@@ -270,6 +270,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       conn.on('error', noop)
       return conn.destroy(ERR_DESTROYED)
     }
+
     const existing = this._allConnections.get(conn.remotePublicKey)
 
     if (existing) {
