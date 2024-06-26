@@ -165,8 +165,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     const conn = this.dht.connect(peerInfo.publicKey, {
       relayAddresses: peerInfo.relayAddresses,
       keyPair: this.keyPair,
-      relayThrough,
-      timestamp: Date.now()
+      relayThrough
     })
     this._allConnections.add(conn)
 
