@@ -274,9 +274,13 @@ module.exports = class Hyperswarm extends EventEmitter {
     const existing = this._allConnections.get(conn.remotePublicKey)
 
     if (existing) {
+      // If both connections are from the same peer,
+      // - pick the new one if the existing stream is already established (has sent and received bytes),
+      //   because the other client must have lost that connection and be reconnecting
+      // - otherwise, pick the one thats expected to initiate in a tie break
+      const existingIsOutdated = existing.rawBytesRead > 0 && existing.rawBytesWritten > 0
       const expectedInitiator = b4a.compare(conn.publicKey, conn.remotePublicKey) > 0
-      // if both connections are from the same peer, pick the one thats expected to initiate in a tie break
-      const keepNew = expectedInitiator === conn.isInitiator
+      const keepNew = existingIsOutdated || (expectedInitiator === conn.isInitiator)
 
       if (keepNew === false) {
         existing.write(KEEP_ALIVE) // check to see if its still alive actually
