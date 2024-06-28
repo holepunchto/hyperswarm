@@ -59,9 +59,16 @@ module.exports = class Hyperswarm extends EventEmitter {
     this.stats = {
       updates: 0,
       connects: {
-        opened: 0,
-        closed: 0,
-        attempted: 0
+        client: {
+          opened: 0,
+          closed: 0,
+          attempted: 0
+        },
+        server: {
+          // Note: there is no notion of 'attempts' for server connections
+          opened: 0,
+          closed: 0
+        }
       }
     }
 
@@ -176,7 +183,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     })
     this._allConnections.add(conn)
 
-    this.stats.connects.attempted++
+    this.stats.connects.client.attempted++
 
     this.connecting++
     this._clientConnections++
@@ -184,7 +191,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     conn.on('open', () => {
       opened = true
-      this.stats.connects.opened++
+      this.stats.connects.client.opened++
 
       this._connectDone()
       this.connections.add(conn)
@@ -205,7 +212,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     })
     conn.on('close', () => {
       if (!opened) this._connectDone()
-      this.stats.connects.closed++
+      this.stats.connects.client.closed++
 
       this.connections.delete(conn)
       this._allConnections.delete(conn)
@@ -304,12 +311,8 @@ module.exports = class Hyperswarm extends EventEmitter {
       return
     }
 
-    // The _handleServerConnectionSwam path above calls _handleServerConnection
-    // again, so this is the moment where the conn is actually considered 'attempted'
-    this.stats.connects.attempted++
-    conn.on('open', () => {
-      this.stats.connects.opened++
-    })
+    // When reaching here, the connection will always be 'opened' next tick
+    this.stats.connects.server.opened++
 
     const peerInfo = this._upsertPeer(conn.remotePublicKey, null)
 
@@ -321,7 +324,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       this.connections.delete(conn)
       this._allConnections.delete(conn)
       this._serverConnections--
-      this.stats.connects.closed++
+      this.stats.connects.server.closed++
 
       this._maybeDeletePeer(peerInfo)
 
