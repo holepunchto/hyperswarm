@@ -54,7 +54,21 @@ module.exports = class Hyperswarm extends EventEmitter {
     this.peers = new Map()
     this.explicitPeers = new Set()
     this.listening = null
-    this.stats = { updates: 0 }
+    this.stats = {
+      updates: 0,
+      connects: {
+        client: {
+          opened: 0,
+          closed: 0,
+          attempted: 0
+        },
+        server: {
+          // Note: there is no notion of 'attempts' for server connections
+          opened: 0,
+          closed: 0
+        }
+      }
+    }
 
     this._discovery = new Map()
     this._timer = new RetryTimer(this._requeue.bind(this), {
@@ -167,12 +181,16 @@ module.exports = class Hyperswarm extends EventEmitter {
     })
     this._allConnections.add(conn)
 
+    this.stats.connects.client.attempted++
+
     this.connecting++
     this._clientConnections++
     let opened = false
 
     conn.on('open', () => {
       opened = true
+      this.stats.connects.client.opened++
+
       this._connectDone()
       this.connections.add(conn)
       conn.removeListener('error', noop)
@@ -192,6 +210,8 @@ module.exports = class Hyperswarm extends EventEmitter {
     })
     conn.on('close', () => {
       if (!opened) this._connectDone()
+      this.stats.connects.client.closed++
+
       this.connections.delete(conn)
       this._allConnections.delete(conn)
       this._clientConnections--
@@ -272,9 +292,13 @@ module.exports = class Hyperswarm extends EventEmitter {
     const existing = this._allConnections.get(conn.remotePublicKey)
 
     if (existing) {
+      // If both connections are from the same peer,
+      // - pick the new one if the existing stream is already established (has sent and received bytes),
+      //   because the other client must have lost that connection and be reconnecting
+      // - otherwise, pick the one thats expected to initiate in a tie break
+      const existingIsOutdated = existing.rawBytesRead > 0 && existing.rawBytesWritten > 0
       const expectedInitiator = b4a.compare(conn.publicKey, conn.remotePublicKey) > 0
-      // if both connections are from the same peer, pick the one thats expected to initiate in a tie break
-      const keepNew = expectedInitiator === conn.isInitiator
+      const keepNew = existingIsOutdated || (expectedInitiator === conn.isInitiator)
 
       if (keepNew === false) {
         existing.sendKeepAlive()
@@ -289,6 +313,9 @@ module.exports = class Hyperswarm extends EventEmitter {
       return
     }
 
+    // When reaching here, the connection will always be 'opened' next tick
+    this.stats.connects.server.opened++
+
     const peerInfo = this._upsertPeer(conn.remotePublicKey, null)
 
     this.connections.add(conn)
@@ -299,6 +326,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       this.connections.delete(conn)
       this._allConnections.delete(conn)
       this._serverConnections--
+      this.stats.connects.server.closed++
 
       this._maybeDeletePeer(peerInfo)
 
