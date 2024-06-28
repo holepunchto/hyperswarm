@@ -17,8 +17,6 @@ const ERR_MISSING_TOPIC = 'Topic is required and must be a 32-byte buffer'
 const ERR_DESTROYED = 'Swarm has been destroyed'
 const ERR_DUPLICATE = 'Duplicate connection'
 
-const KEEP_ALIVE = b4a.alloc(0)
-
 module.exports = class Hyperswarm extends EventEmitter {
   constructor (opts = {}) {
     super()
@@ -303,7 +301,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       const keepNew = existingIsOutdated || (expectedInitiator === conn.isInitiator)
 
       if (keepNew === false) {
-        existing.write(KEEP_ALIVE) // check to see if its still alive actually
+        existing.sendKeepAlive()
         conn.on('error', noop)
         conn.destroy(new Error(ERR_DUPLICATE))
         return
@@ -394,6 +392,11 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   async _handleNetworkChange () {
+    // prioritize figuring out if existing connections are dead
+    for (const conn of this._allConnections) {
+      conn.sendKeepAlive()
+    }
+
     const refreshes = []
 
     for (const discovery of this._discovery.values()) {
