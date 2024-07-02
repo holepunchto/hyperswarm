@@ -40,6 +40,8 @@ module.exports = class Hyperswarm extends EventEmitter {
       firewall: this._handleFirewall.bind(this),
       relayThrough: this._maybeRelayConnection.bind(this)
     }, this._handleServerConnection.bind(this))
+    // forward relay events to the swarm
+    this.server.on('relaying', data => this.emit('relaying', data))
 
     this.destroyed = false
     this.suspended = false
