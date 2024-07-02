@@ -29,6 +29,7 @@ const topic = Buffer.alloc(32).fill('measure-reconnect')
 const seed = Buffer.alloc(32).fill('measure-reconnect' + require('os').hostname())
 
 const swarm = new Hyperswarm({ seed, relayThrough })
+console.log(`PUBLIC_KEY ${swarm.keyPair.publicKey.toString('hex').slice(0, 8)}...`)
 
 swarm.dht.on('network-change', () => {
   console.log('NETWORK CHANGE')
