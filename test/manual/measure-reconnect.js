@@ -39,7 +39,7 @@ swarm.dht.on('network-change', () => {
 let connected = false
 
 swarm.on('relaying', ({ publicKey, relayThrough }) => {
-  console.log(`connecting to ${publicKey.toString('hex').slice(0, 8)}... via ${relayThrough.toString('hex').slice(0, 8)}...`)
+  console.log(`RELAYING THROUGH ${relayThrough.toString('hex').slice(0, 8)}... to ${publicKey.toString('hex').slice(0, 8)}...`)
 })
 
 swarm.on('connection', async (conn) => {
