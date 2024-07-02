@@ -9,11 +9,18 @@
 function customLogger (data) {
   console.log(`   ... ${data.id} ${Object.keys(data.caller.props || []).join(',')} ${data.caller.filename}:${data.caller.line}:${data.caller.column}`)
 }
-require('hypertrace').setTraceFunction(customLogger)
+try {
+  require('hypertrace').setTraceFunction(customLogger)
+} catch {
+  console.log('Please run:')
+  console.log('npm install --no-save hypertrace hypercore-id-encoding @holepunchto/keet-default-config')
+  process.exit(1)
+}
 
 const { DEV_BLIND_RELAY_KEYS } = require('@holepunchto/keet-default-config')
 const HypercoreId = require('hypercore-id-encoding')
 const DEV_RELAY_KEYS = DEV_BLIND_RELAY_KEYS.map(HypercoreId.decode)
+console.log('DEV_RELAY_KEYS', DEV_RELAY_KEYS.map(b => b.toString('hex').slice(0, 8) + '...'))
 const relayThrough = (force) => force ? DEV_RELAY_KEYS : null
 
 const Hyperswarm = require('../..')
@@ -29,6 +36,10 @@ swarm.dht.on('network-change', () => {
 })
 
 let connected = false
+
+swarm.on('relaying', ({ publicKey, relayThrough }) => {
+  console.log(`connecting to ${publicKey.toString('hex').slice(0, 8)}... via ${relayThrough.toString('hex').slice(0, 8)}...`)
+})
 
 swarm.on('connection', async (conn) => {
   console.log(conn.rawStream.remoteHost)
@@ -48,6 +59,6 @@ swarm.on('connection', async (conn) => {
 console.time('INITIAL CONNECTION TIME')
 swarm.join(topic)
 
-// process.on('SIGINT', () => {
-//   swarm.leave(topic).then(() => process.exit())
-// })
+process.on('SIGINT', () => {
+  swarm.leave(topic).then(() => process.exit())
+})

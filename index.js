@@ -187,6 +187,13 @@ module.exports = class Hyperswarm extends EventEmitter {
     this._clientConnections++
     let opened = false
 
+    conn.on('relaying', ({ relayThrough }) => {
+      this.emit('relaying', {
+        publicKey: peerInfo.publicKey,
+        relayThrough
+      })
+    })
+
     conn.on('open', () => {
       opened = true
       this.stats.connects.client.opened++
