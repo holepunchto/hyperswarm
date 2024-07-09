@@ -2,21 +2,31 @@
  * The goal of this test is to measure how quickly a client reconnects
  * after manually switching networks / e.g. from wifi to mobile data.
  *
- * It requires some extra modules to get the relays:
- * npm install --no-save hypertrace hypercore-id-encoding @holepunchto/keet-default-config
+ * It requires some extra packages that are private to Holepunch to get the relay keys,
+ * which is why these aren't devDependencies.
  */
 
-function customLogger (data) {
-  console.log(`   ... ${data.object.className}.${data.id} ${Object.keys(data.caller.props || []).join(',')} ${data.caller.filename}:${data.caller.line}:${data.caller.column}`)
-}
+// Automatically install required packages.
 try {
-  require('hypertrace').setTraceFunction(customLogger)
+  require.resolve('hypertrace')
+  require.resolve('hypercore-id-encoding')
+  require.resolve('@holepunchto/keet-default-config')
+  require.resolve('picocolors')
 } catch {
-  console.log('Please run:')
-  console.log('npm install --no-save hypertrace hypercore-id-encoding @holepunchto/keet-default-config')
-  process.exit(1)
+  const { execSync } = require('child_process')
+  execSync('npm install --no-save hypertrace hypercore-id-encoding @holepunchto/keet-default-config picocolors')
 }
 
+const pc = require('picocolors')
+function customLogger (data) {
+  const className = pc.gray(`[${data.object.className}]`)
+  const event = pc.blue(data.id)
+  const filename = pc.gray(`${data.caller.filename.replace(process.cwd(), '.')}:${data.caller.line}:${data.caller.column}`)
+  const props = `{ ${Object.keys(data.caller.props || []).join(',')} }`
+  console.log(`${className} ${event} ${props} ${filename}`)
+}
+
+require('hypertrace').setTraceFunction(customLogger)
 const { DEV_BLIND_RELAY_KEYS } = require('@holepunchto/keet-default-config')
 const HypercoreId = require('hypercore-id-encoding')
 const DEV_RELAY_KEYS = DEV_BLIND_RELAY_KEYS.map(HypercoreId.decode)
@@ -43,7 +53,6 @@ swarm.on('connection', async (conn) => {
 
   conn.relay.on('relay', () => console.log('RELAY: RELAY'))
   conn.relay.on('unrelay', () => console.log('RELAY: UNRELAY'))
-  conn.relay.on('abort', () => console.log('RELAY: ABORTED'))
 
   conn.on('error', (...args) => console.log('error:', ...args))
   conn.on('close', (...args) => console.log('close:', ...args))
