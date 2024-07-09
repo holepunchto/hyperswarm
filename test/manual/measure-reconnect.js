@@ -12,11 +12,13 @@ try {
   require.resolve('hypercore-id-encoding')
   require.resolve('@holepunchto/keet-default-config')
   require.resolve('picocolors')
+  require.resolve('graceful-goodbye')
 } catch {
   const { execSync } = require('child_process')
-  execSync('npm install --no-save hypertrace hypercore-id-encoding @holepunchto/keet-default-config picocolors')
+  execSync('npm install --no-save hypertrace hypercore-id-encoding @holepunchto/keet-default-config picocolors graceful-goodbye')
 }
 
+const goodbye = require('graceful-goodbye')
 const pc = require('picocolors')
 function customLogger (data) {
   const className = pc.gray(`[${data.object.className}]`)
@@ -70,6 +72,8 @@ swarm.on('connection', async (conn) => {
 console.time('INITIAL CONNECTION TIME')
 swarm.join(topic)
 
-process.on('SIGINT', () => {
-  swarm.leave(topic).then(() => process.exit())
+goodbye(async () => {
+  console.log('\nleaving topic...')
+  await swarm.leave(topic)
+  console.log('bye')
 })
