@@ -1,3 +1,6 @@
+#!/usr/bin/env npx npm-auto
+/* While this script *can* be run via node, you may have to install random dependencies. It is easier to run it through npm-auto */
+
 /**
  * The goal of this test is to measure how quickly a client reconnects
  * after manually switching networks / e.g. from wifi to mobile data.
@@ -5,18 +8,6 @@
  * It requires some extra packages that are private to Holepunch to get the relay keys,
  * which is why these aren't devDependencies.
  */
-
-// Automatically install required packages.
-try {
-  require.resolve('hypertrace')
-  require.resolve('hypercore-id-encoding')
-  require.resolve('@holepunchto/keet-default-config')
-  require.resolve('picocolors')
-  require.resolve('graceful-goodbye')
-} catch {
-  const { execSync } = require('child_process')
-  execSync('npm install --no-save hypertrace hypercore-id-encoding @holepunchto/keet-default-config picocolors graceful-goodbye')
-}
 
 const goodbye = require('graceful-goodbye')
 const pc = require('picocolors')
