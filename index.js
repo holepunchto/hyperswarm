@@ -187,26 +187,30 @@ module.exports = class Hyperswarm extends EventEmitter {
     this._clientConnections++
     let opened = false
 
+    const maybeForceRelayNext = (err) => {
+      if (this.relayThrough && shouldForceRelaying(err.code)) {
+        peerInfo.forceRelaying = true
+        // Reset the attempts in order to fast connect to relay
+        peerInfo.attempts = 0
+      }
+    }
+
+    // Removed once a connection is opened
+    conn.on('error', maybeForceRelayNext)
+
     conn.on('open', () => {
       opened = true
       this.stats.connects.client.opened++
 
       this._connectDone()
       this.connections.add(conn)
-      conn.removeListener('error', noop)
+      conn.removeListener('error', maybeForceRelayNext)
       peerInfo._connected()
       peerInfo.client = true
       this.emit('connection', conn, peerInfo)
       this._flushMaybe(peerInfo)
 
       this.emit('update')
-    })
-    conn.on('error', err => {
-      if (this.relayThrough && shouldForceRelaying(err.code)) {
-        peerInfo.forceRelaying = true
-        // Reset the attempts in order to fast connect to relay
-        peerInfo.attempts = 0
-      }
     })
     conn.on('close', () => {
       if (!opened) this._connectDone()
