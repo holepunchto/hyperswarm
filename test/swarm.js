@@ -681,6 +681,35 @@ test('peer-discovery object deleted when corresponding connection closes (client
   await swarm1.destroy()
 })
 
+test('no default error handler set when connection event is emitted', async (t) => {
+  t.plan(2)
+
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
+  const swarm1 = new Hyperswarm({ bootstrap })
+  const swarm2 = new Hyperswarm({ bootstrap })
+
+  t.teardown(async () => {
+    await swarm1.destroy()
+    await swarm2.destroy()
+  })
+
+  swarm2.on('connection', (conn) => {
+    t.is(conn.listeners('error').length, 0, 'no error listeners')
+    conn.on('error', noop)
+    conn.end()
+  })
+  swarm1.on('connection', (conn) => {
+    t.is(conn.listeners('error').length, 0, 'no error listeners')
+    conn.on('error', noop)
+    conn.end()
+  })
+
+  const topic = Buffer.alloc(32).fill('hello world')
+  await swarm1.join(topic, { server: true, client: false }).flushed()
+  swarm2.join(topic, { client: true, server: false })
+})
+
 function noop () {}
 
 function eventFlush () {
