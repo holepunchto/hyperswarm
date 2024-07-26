@@ -710,7 +710,7 @@ test('no default error handler set when connection event is emitted', async (t) 
   swarm2.join(topic, { client: true, server: false })
 })
 
-test('peerDiscovery unslabs closestNodes', async (t) => {
+test('peerDiscovery has unslabbed closestNodes', async (t) => {
   const { bootstrap } = await createTestnet(3, t.teardown)
 
   const swarm1 = new Hyperswarm({ bootstrap })
