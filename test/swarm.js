@@ -710,6 +710,43 @@ test('no default error handler set when connection event is emitted', async (t) 
   swarm2.join(topic, { client: true, server: false })
 })
 
+test('peerDiscovery unslabs closestNodes', async (t) => {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
+  const swarm1 = new Hyperswarm({ bootstrap })
+  const swarm2 = new Hyperswarm({ bootstrap })
+
+  const tConnect = t.test('connected')
+  tConnect.plan(2)
+
+  t.teardown(async () => {
+    await swarm1.destroy()
+    await swarm2.destroy()
+  })
+
+  swarm2.on('connection', (conn) => {
+    conn.on('error', noop)
+    tConnect.pass('swarm2 connected')
+  })
+  swarm1.on('connection', (conn) => {
+    conn.on('error', noop)
+    tConnect.pass('swarm1 connected')
+  })
+
+  const topic = Buffer.alloc(32).fill('hello world')
+  await swarm1.join(topic, { server: true, client: false }).flushed()
+  swarm2.join(topic, { client: true, server: false })
+
+  await tConnect
+
+  const closestNodes = [...swarm1._discovery.values()][0]._closestNodes
+  const bufferSizes = closestNodes.map(n => n.id.buffer.byteLength)
+  t.is(bufferSizes[0], 32, 'unslabbed clostestNodes entry')
+
+  const hasUnslabbeds = bufferSizes.filter(s => s !== 32).length !== 0
+  t.is(hasUnslabbeds, false, 'sanity check: all are unslabbed')
+})
+
 function noop () {}
 
 function eventFlush () {

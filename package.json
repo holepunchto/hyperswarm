@@ -17,7 +17,8 @@
     "bare-events": "^2.2.0",
     "hyperdht": "^6.11.0",
     "safety-catch": "^1.0.2",
-    "shuffled-priority-queue": "^2.1.0"
+    "shuffled-priority-queue": "^2.1.0",
+    "unslab": "^1.2.0"
   },
   "devDependencies": {
     "brittle": "^3.0.2",
