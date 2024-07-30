@@ -356,7 +356,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     }
 
     peerInfo = new PeerInfo({
-      publicKey: unslab(publicKey),
+      publicKey,
       relayAddresses
     })
 
