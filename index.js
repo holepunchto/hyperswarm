@@ -2,6 +2,7 @@ const { EventEmitter } = require('events')
 const DHT = require('hyperdht')
 const spq = require('shuffled-priority-queue')
 const b4a = require('b4a')
+const unslab = require('unslab')
 
 const PeerInfo = require('./lib/peer-info')
 const RetryTimer = require('./lib/retry-timer')
@@ -423,6 +424,8 @@ module.exports = class Hyperswarm extends EventEmitter {
   // TODO: When you rejoin, it should reannounce + bump lookup priority
   join (topic, opts = {}) {
     if (!topic) throw new Error(ERR_MISSING_TOPIC)
+    topic = unslab(topic)
+
     const topicString = b4a.toString(topic, 'hex')
 
     let discovery = this._discovery.get(topicString)

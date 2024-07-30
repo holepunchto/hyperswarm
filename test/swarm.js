@@ -747,6 +747,49 @@ test('peerDiscovery has unslabbed closestNodes', async (t) => {
   t.is(hasUnslabbeds, false, 'sanity check: all are unslabbed')
 })
 
+test('topic and peer get unslabbed in PeerInfo', async (t) => {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
+  const swarm1 = new Hyperswarm({ bootstrap })
+  const swarm2 = new Hyperswarm({ bootstrap })
+
+  t.plan(3)
+
+  t.teardown(async () => {
+    await swarm1.destroy()
+    await swarm2.destroy()
+  })
+
+  swarm2.on('connection', (conn) => {
+    t.is(
+      [...swarm2.peers.values()][0].publicKey.buffer.byteLength,
+      32,
+      'unslabbed publicKey in peerInfo'
+    )
+    t.is([...swarm2.peers.values()][0].topics[0].buffer.byteLength,
+      32,
+      'unslabbed topic in peerInfo'
+    )
+
+    conn.on('error', noop)
+    conn.end()
+  })
+  swarm1.on('connection', (conn) => {
+    t.is(
+      [...swarm1.peers.values()][0].publicKey.buffer.byteLength,
+      32,
+      'unslabbed publicKey in peerInfo'
+    )
+
+    conn.on('error', noop)
+    conn.end()
+  })
+
+  const topic = Buffer.alloc(32).fill('hello world')
+  await swarm1.join(topic, { server: true, client: false }).flushed()
+  swarm2.join(topic, { client: true, server: false })
+})
+
 function noop () {}
 
 function eventFlush () {
