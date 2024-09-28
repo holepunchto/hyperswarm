@@ -616,9 +616,15 @@ test('peer-discovery object deleted when corresponding connection closes (server
     connected.pass('swarm2')
     conn.on('error', noop)
   })
+
+  let resolveConnClosed = null
+  const connClosed = new Promise(resolve => {
+    resolveConnClosed = resolve
+  })
   swarm1.on('connection', (conn) => {
     otherConnected.pass('swarm1')
     conn.on('error', noop)
+    conn.on('close', resolveConnClosed)
   })
 
   const topic = Buffer.alloc(32).fill('hello world')
@@ -634,7 +640,7 @@ test('peer-discovery object deleted when corresponding connection closes (server
   await swarm2.destroy()
 
   // Ensure other side detects closed connection
-  await eventFlush()
+  await connClosed
 
   t.is(swarm1.peers.size, 0, 'No peerInfo memory leak')
 
@@ -791,7 +797,3 @@ test('topic and peer get unslabbed in PeerInfo', async (t) => {
 })
 
 function noop () {}
-
-function eventFlush () {
-  return new Promise(resolve => setImmediate(resolve))
-}
