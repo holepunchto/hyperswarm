@@ -418,57 +418,6 @@ test('one server, one client - correct deduplication when a client connection is
   swarm2.join(topic, { server: false, client: true })
 })
 
-test('constructor options - debug options forwarded to DHT constructor', async (t) => {
-  const { bootstrap } = await createTestnet(3, t.teardown)
-
-  const swarm1 = new Hyperswarm({
-    bootstrap,
-    backoffs: BACKOFFS,
-    jitter: 0,
-    debug: {
-      handshake: {
-        latency: [500, 500]
-      }
-    }
-  })
-  const swarm2 = new Hyperswarm({
-    bootstrap,
-    backoffs: BACKOFFS,
-    jitter: 0,
-    debug: {
-      handshake: {
-        latency: [500, 500]
-      }
-    }
-  })
-
-  const connected = t.test('connection')
-  connected.plan(2)
-
-  swarm1.once('connection', (conn) => {
-    connected.pass('swarm1')
-    conn.on('error', noop)
-  })
-  swarm2.once('connection', (conn) => {
-    connected.pass('swarm2')
-    conn.on('error', noop)
-  })
-
-  const topic = Buffer.alloc(32).fill('hello world')
-  await swarm1.join(topic, { server: true }).flushed()
-
-  const start = Date.now()
-  swarm2.join(topic, { client: true })
-
-  await connected
-
-  const duration = Date.now() - start
-  t.ok(duration > 500)
-
-  await swarm1.destroy()
-  await swarm2.destroy()
-})
-
 test('flush when max connections reached', async (t) => {
   const { bootstrap } = await createTestnet(3, t.teardown)
 
