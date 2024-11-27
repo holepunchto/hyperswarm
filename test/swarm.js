@@ -745,4 +745,12 @@ test('topic and peer get unslabbed in PeerInfo', async (t) => {
   swarm2.join(topic, { client: true, server: false })
 })
 
+test('port opt gets passed on to hyperdht', async (t) => {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
+  const swarm1 = new Hyperswarm({ bootstrap, port: [10000, 10100] })
+  t.alike(swarm1.dht.io.portRange, [10000, 10100])
+  await swarm1.destroy()
+})
+
 function noop () {}
