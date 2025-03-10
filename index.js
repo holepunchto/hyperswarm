@@ -143,6 +143,12 @@ module.exports = class Hyperswarm extends EventEmitter {
     return true
   }
 
+  _shouldConnectExplicit () {
+    return !this.destroyed &&
+      !this.suspended &&
+      this.connecting < this.maxParallel
+  }
+
   _shouldConnect () {
     return !this.destroyed &&
       !this.suspended &&
@@ -162,16 +168,16 @@ module.exports = class Hyperswarm extends EventEmitter {
     return false
   }
 
-  _connect (peerInfo) {
+  _connect (peerInfo, queued) {
     if (peerInfo.banned || this._allConnections.has(peerInfo.publicKey)) {
-      this._flushMaybe(peerInfo)
+      if (queued) this._flushMaybe(peerInfo)
       return
     }
 
     // TODO: Support async firewalling at some point.
     if (this._handleFirewall(peerInfo.publicKey, null)) {
       peerInfo.ban(true)
-      this._flushMaybe(peerInfo)
+      if (queued) this._flushMaybe(peerInfo)
       return
     }
 
@@ -210,7 +216,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       peerInfo._connected()
       peerInfo.client = true
       this.emit('connection', conn, peerInfo)
-      this._flushMaybe(peerInfo)
+      if (queued) this._flushMaybe(peerInfo)
 
       this.emit('update')
     })
@@ -226,7 +232,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       peerInfo.waiting = this._shouldRequeue(peerInfo) && this._timer.add(peerInfo)
       this._maybeDeletePeer(peerInfo)
 
-      if (!opened) this._flushMaybe(peerInfo)
+      if (!opened && queued) this._flushMaybe(peerInfo)
 
       this._attemptClientConnections()
 
@@ -248,10 +254,16 @@ module.exports = class Hyperswarm extends EventEmitter {
     // Guard against re-entries - unsure if it still needed but doesn't hurt
     if (this._drainingQueue) return
     this._drainingQueue = true
+
+    for (const peerInfo of this.explicitPeers) {
+      if (!this._shouldConnectExplicit()) break
+      this._connect(peerInfo, false)
+    }
+
     while (this._queue.length && this._shouldConnect()) {
       const peerInfo = this._queue.shift()
       peerInfo.queued = false
-      this._connect(peerInfo)
+      this._connect(peerInfo, true)
     }
     this._drainingQueue = false
     if (this.connecting === 0) this._flushAllMaybe()
