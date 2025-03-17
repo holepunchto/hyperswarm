@@ -10,6 +10,10 @@
     "events": {
       "bare": "bare-events",
       "default": "events"
+    },
+    "process": {
+      "bare": "bare-process",
+      "default": "process"
     }
   },
   "dependencies": {
@@ -21,13 +25,15 @@
     "unslab": "^1.3.0"
   },
   "devDependencies": {
+    "bare-process": "^4.1.2",
     "brittle": "^3.0.2",
     "hypercore-crypto": "^3.4.0",
     "standard": "^17.0.0"
   },
   "scripts": {
     "test": "standard && node test/all.js",
-    "test:generate": "brittle -r test/all.js test/*.js"
+    "test:generate": "brittle -r test/all.js test/*.js",
+    "test:bare": "bare test/all.js"
   },
   "repository": {
     "type": "git",

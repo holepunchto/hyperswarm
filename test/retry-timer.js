@@ -1,3 +1,4 @@
+const process = require('process')
 const test = require('brittle')
 const crypto = require('hypercore-crypto')
 const { timeout } = require('./helpers')
