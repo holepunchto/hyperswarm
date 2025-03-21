@@ -257,6 +257,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     for (const peerInfo of this.explicitPeers) {
       if (!this._shouldConnectExplicit()) break
+      if (peerInfo.attempts >= 5 || (Date.now() - peerInfo.disconnectedTime) < peerInfo.attempts * 1000) continue
       this._connect(peerInfo, false)
     }
 
