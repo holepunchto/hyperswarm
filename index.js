@@ -464,7 +464,12 @@ module.exports = class Hyperswarm extends EventEmitter {
     if (!this._discovery.has(topicString)) return Promise.resolve()
 
     const discovery = this._discovery.get(topicString)
-    await discovery.destroy()
+
+    try {
+      await discovery.destroy()
+    } catch {
+      // ignore, prop network
+    }
 
     if (this._discovery.get(topicString) === discovery) {
       this._discovery.delete(topicString)
