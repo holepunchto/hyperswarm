@@ -1,8 +1,8 @@
-const process = require('process')
 const test = require('brittle')
 const crypto = require('hypercore-crypto')
-const { timeout } = require('./helpers')
+const whichRuntime = require('which-runtime')
 
+const { timeout } = require('./helpers')
 const RetryTimer = require('../lib/retry-timer')
 const PeerInfo = require('../lib/peer-info')
 
@@ -14,7 +14,7 @@ const BACKOFFS = [
 ]
 const MAX_JITTER = 20
 
-const isLinux = process.platform === 'linux'
+const isLinux = whichRuntime.isLinux
 
 // Windows and Mac CI are slow, running on Linux only is enough
 test('retry timer - proven peer reinsertion', { skip: !isLinux }, async (t) => {
