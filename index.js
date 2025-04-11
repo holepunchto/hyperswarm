@@ -92,7 +92,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     this.dht.on('network-change', this._handleNetworkChange.bind(this))
     this.on('update', this._handleUpdate)
     // Ensure GC'ed on exit
-    this._ungoodbye = goodbye(() => this.destroy())
+    this._ungoodbye = goodbye(this.destroy.bind(this))
   }
 
   _maybeRelayConnection (force) {
