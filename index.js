@@ -539,7 +539,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     await this.dht.destroy({ force })
   }
 
-  async suspend () {
+  async suspend ({ log = noop } = {}) {
     if (this.suspended) return
 
     const promises = []
@@ -556,15 +556,21 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     this.suspended = true
 
+    log('Suspending server and discovery...')
     await Promise.allSettled(promises)
-    await this.dht.suspend()
+    log('Done, suspending the dht...')
+    await this.dht.suspend({ log })
+    log('Done, swarm fully suspended')
   }
 
-  async resume () {
+  async resume ({ log = noop } = {}) {
     if (!this.suspended) return
 
+    log('Resuming the dht')
     await this.dht.resume()
+    log('Done, resuming the server')
     await this.server.resume()
+    log('Done, all discovery')
 
     for (const discovery of this._discovery.values()) {
       discovery.resume()
