@@ -3,6 +3,7 @@ const DHT = require('hyperdht')
 const spq = require('shuffled-priority-queue')
 const b4a = require('b4a')
 const unslab = require('unslab')
+const goodbye = require('graceful-goodbye')
 
 const PeerInfo = require('./lib/peer-info')
 const RetryTimer = require('./lib/retry-timer')
@@ -90,6 +91,8 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     this.dht.on('network-change', this._handleNetworkChange.bind(this))
     this.on('update', this._handleUpdate)
+    // Ensure GC'ed on exit
+    this._ungoodbye = goodbye(() => this.destroy())
   }
 
   _maybeRelayConnection (force) {
@@ -537,6 +540,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     }
 
     await this.dht.destroy({ force })
+    this._ungoodbye()
   }
 
   async suspend () {
