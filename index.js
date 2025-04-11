@@ -302,7 +302,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
   // Called when the DHT receives a new server connection.
   _handleServerConnection (conn) {
-    if (this.destroyed) {
+    if (this.destroyed || this.suspended) {
       // TODO: Investigate why a final server connection can be received after close
       conn.on('error', noop)
       return conn.destroy(ERR_DESTROYED)
