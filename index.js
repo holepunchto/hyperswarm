@@ -528,6 +528,8 @@ module.exports = class Hyperswarm extends EventEmitter {
     if (this.destroyed && !force) return
     this.destroyed = true
 
+    this._ungoodbye()
+
     this._timer.destroy()
 
     if (!force) await this.clear()
@@ -540,7 +542,6 @@ module.exports = class Hyperswarm extends EventEmitter {
     }
 
     await this.dht.destroy({ force })
-    this._ungoodbye()
   }
 
   async suspend () {
