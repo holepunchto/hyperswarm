@@ -544,10 +544,10 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     const promises = []
 
-    promises.push(this.server.suspend())
+    promises.push(this.server.suspend({ log }))
 
     for (const discovery of this._discovery.values()) {
-      promises.push(discovery.suspend())
+      promises.push(discovery.suspend({ log }))
     }
 
     for (const connection of this._allConnections) {
@@ -556,7 +556,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     this.suspended = true
 
-    log('Suspending server and discovery...')
+    log('Suspending server and discovery... (' + promises.length + ')')
     await Promise.allSettled(promises)
     log('Done, suspending the dht...')
     await this.dht.suspend({ log })
