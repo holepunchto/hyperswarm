@@ -23,11 +23,13 @@
   "devDependencies": {
     "brittle": "^3.0.2",
     "hypercore-crypto": "^3.4.0",
-    "standard": "^17.0.0"
+    "standard": "^17.0.0",
+    "which-runtime": "^1.2.1"
   },
   "scripts": {
     "test": "standard && node test/all.js",
-    "test:generate": "brittle -r test/all.js test/*.js"
+    "test:generate": "brittle -r test/all.js test/*.js",
+    "test:bare": "bare test/all.js"
   },
   "repository": {
     "type": "git",
