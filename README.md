@@ -81,6 +81,7 @@ Start discovering and connecting to peers sharing a common topic. As new peers a
 `opts` can include:
 * `server`: Accept server connections for this topic by announcing yourself to the DHT. Defaults to `true`.
 * `client`: Actively search for and connect to discovered servers. Defaults to `true`.
+* `limit`: Set the max number of peers to connect to when joining the topic. Defaults to `Infinity`.
 
 Returns a [`PeerDiscovery`](https://github.com/holepunchto/hyperswarm/blob/v3/README.md#peerdiscovery-api) object.
 
