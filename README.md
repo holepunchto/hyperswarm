@@ -57,7 +57,7 @@ A set of all active client/server connections.
 #### `swarm.peers`
 A Map containing all connected peers, of the form: `(Noise public key hex string) -> PeerInfo object`
 
-See the [`PeerInfo`](https://github.com/holepunchto/hyperswarm/blob/v3/README.md#peerinfo-api) API for more details.
+See the [`PeerInfo`](#peerinfo-api) API for more details.
 
 #### `swarm.dht`
 A [`hyperdht`](https://github.com/holepunchto/hyperdht) instance. Useful if you want lower-level control over Hyperswarm's networking.
@@ -67,7 +67,7 @@ Emitted whenever the swarm connects to a new peer.
 
 `socket` is an end-to-end (Noise) encrypted Duplex stream
 
-`peerInfo` is a [`PeerInfo`](https://github.com/holepunchto/hyperswarm/blob/v3/README.md#peerinfo-api) instance
+`peerInfo` is a [`PeerInfo`](#peerinfo-api) instance
 
 #### `swarm.on('update', () => {})`
 Emitted when internal values are changed, useful for user interfaces.
@@ -83,7 +83,7 @@ Start discovering and connecting to peers sharing a common topic. As new peers a
 * `client`: Actively search for and connect to discovered servers. Defaults to `true`.
 * `limit`: Set the max number of peers to connect to when joining the topic. Defaults to `Infinity`.
 
-Returns a [`PeerDiscovery`](https://github.com/holepunchto/hyperswarm/blob/v3/README.md#peerdiscovery-api) object.
+Returns a [`PeerDiscovery`](#peerdiscovery-api) object.
 
 #### Clients and Servers
 In Hyperswarm, there are two ways for peers to join the swarm: client mode and server mode. If you've previously used Hyperswarm v2, these were called "lookup" and "announce", but we now think "client" and "server" are more descriptive.
@@ -116,7 +116,7 @@ Stop attempting direct connections to a known peer.
 If a direct connection is already established, that connection will __not__ be destroyed by `leavePeer`.
 
 #### `const discovery = swarm.status(topic)`
-Get the [`PeerDiscovery`](https://github.com/holepunchto/hyperswarm/blob/v3/README.md#peerdiscovery-api) object associated with the topic, if it exists.
+Get the [`PeerDiscovery`](#peerdiscovery-api) object associated with the topic, if it exists.
 
 #### `await swarm.listen()`
 Explicitly start listening for incoming connections. This will be called internally after the first `join`, so it rarely needs to be called manually.
