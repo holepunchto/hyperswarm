@@ -127,6 +127,18 @@ Once a `flush()` has completed, the swarm will have connected to every peer it c
 
 `flush()` is not topic-specific, so it will wait for every pending DHT operation and connection to be processed -- it's quite heavyweight, so it could take a while. In most cases, it's not necessary, as connections are emitted by `swarm.on('connection')` immediately after they're opened.  
 
+#### `await swarm.suspend({ log: () => {} })`
+
+Suspend the swarm disconnecting all peers, suspends server listening and stops discovery of new peers. Useful for suspending when the runtime suspends to pause networking.
+
+`log` is a logging function, which defaults to a noop function.
+
+#### `await swarm.resume({ log: () => {} })`
+
+Resume a suspended swarm refreshing discovery of new peers and servers. Useful for reannouncing to the DHT and reconnecting to peers when the runtime resumes.
+
+`log` is a logging function, which defaults to a noop function.
+
 ## PeerDiscovery API
 
 `swarm.join` returns a `PeerDiscovery` instance which allows you to both control discovery behavior, and respond to lifecycle changes during discovery.
