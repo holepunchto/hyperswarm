@@ -252,7 +252,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   // Called when the PeerQueue indicates a connection should be attempted.
   _attemptClientConnections () {
     // Guard against re-entries - unsure if it still needed but doesn't hurt
-    if (this._drainingQueue) return
+    if (this._drainingQueue || this.suspended) return
     this._drainingQueue = true
 
     for (const peerInfo of this.explicitPeers) {
@@ -551,8 +551,10 @@ module.exports = class Hyperswarm extends EventEmitter {
       promises.push(discovery.suspend({ log }))
     }
 
+    const pending = []
     for (const connection of this._allConnections) {
       connection.destroy()
+      pending.push(new Promise(resolve => connection.on('close', resolve)))
     }
 
     this.suspended = true
@@ -562,6 +564,15 @@ module.exports = class Hyperswarm extends EventEmitter {
     log('Done, suspending the dht...')
     await this.dht.suspend({ log })
     log('Done, swarm fully suspended')
+
+    await Promise.all(pending)
+
+    // reset queue
+    this._timer = new RetryTimer(this._requeue.bind(this), {
+      backoffs: this._timer.backoffs,
+      jitter: this._timer.jitter
+    })
+    this._queue = spq()
   }
 
   async resume ({ log = noop } = {}) {
@@ -577,8 +588,8 @@ module.exports = class Hyperswarm extends EventEmitter {
       discovery.resume()
     }
 
-    this._attemptClientConnections()
     this.suspended = false
+    this._attemptClientConnections()
   }
 
   topics () {
