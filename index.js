@@ -568,6 +568,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     await Promise.all(pending)
 
     // reset queue
+    this._timer.destroy()
     this._timer = new RetryTimer(this._requeue.bind(this), {
       backoffs: this._timer.backoffs,
       jitter: this._timer.jitter
