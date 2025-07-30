@@ -1,4 +1,5 @@
 const { EventEmitter } = require('events')
+const { getStreamError } = require('streamx')
 const DHT = require('hyperdht')
 const spq = require('shuffled-priority-queue')
 const b4a = require('b4a')
@@ -224,6 +225,11 @@ module.exports = class Hyperswarm extends EventEmitter {
       if (!opened) this._connectDone()
       this.stats.connects.client.closed++
 
+      const err = getStreamError(conn)
+      if (shouldBan(err)) {
+        peerInfo.ban(true)
+      }
+
       this.connections.delete(conn)
       this._allConnections.delete(conn)
       this._clientConnections--
@@ -342,6 +348,11 @@ module.exports = class Hyperswarm extends EventEmitter {
     this._serverConnections++
 
     conn.on('close', () => {
+      const err = getStreamError(conn)
+      if (shouldBan(err)) {
+        peerInfo.ban(true)
+      }
+
       this.connections.delete(conn)
       this._allConnections.delete(conn)
       this._serverConnections--
@@ -608,4 +619,8 @@ function shouldForceRelaying (code) {
   return (code === 'HOLEPUNCH_ABORTED') ||
     (code === 'HOLEPUNCH_DOUBLE_RANDOMIZED_NATS') ||
     (code === 'REMOTE_NOT_HOLEPUNCHABLE')
+}
+
+function shouldBan (err) {
+  return !!err && err.name === 'HypercoreError' && err.code === 'INVALID_OPERATION'
 }
