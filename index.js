@@ -39,10 +39,16 @@ module.exports = class Hyperswarm extends EventEmitter {
       nodes: opts.nodes,
       port: opts.port
     })
-    this.server = this.dht.createServer({
-      firewall: this._handleFirewall.bind(this),
-      relayThrough: this._maybeRelayConnection.bind(this)
-    }, this._handleServerConnection.bind(this))
+    this.server = this.dht.createServer(
+      {
+        firewall: this._handleFirewall.bind(this),
+        relayThrough: this._maybeRelayConnection.bind(this),
+        handshakeClearWait: opts.handshakeClearWait
+
+      },
+      this._handleServerConnection.bind(this),
+      this._handleServerFirewall.bind(this)
+    )
 
     this.destroyed = false
     this.suspended = false
@@ -70,7 +76,8 @@ module.exports = class Hyperswarm extends EventEmitter {
           opened: 0,
           closed: 0
         }
-      }
+      },
+      bannedPeers: 0
     }
 
     this._discovery = new Map()
@@ -177,7 +184,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     // TODO: Support async firewalling at some point.
     if (this._handleFirewall(peerInfo.publicKey, null)) {
-      peerInfo.ban(true)
+      this._banPeer(peerInfo, true, 'firewall')
       if (queued) this._flushMaybe(peerInfo)
       return
     }
@@ -227,7 +234,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
       const err = getStreamError(conn)
       if (shouldBan(err)) {
-        peerInfo.ban(true)
+        this._banPeer(peerInfo, true, err.code)
       }
 
       this.connections.delete(conn)
@@ -306,6 +313,11 @@ module.exports = class Hyperswarm extends EventEmitter {
     }
   }
 
+  _handleServerFirewall (remotePublicKey) {
+    const peerInfo = this._upsertPeer(remotePublicKey, null)
+    this._banPeer(peerInfo, true, 'server firewall')
+  }
+
   // Called when the DHT receives a new server connection.
   _handleServerConnection (conn) {
     if (this.destroyed || this.suspended) {
@@ -350,7 +362,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     conn.on('close', () => {
       const err = getStreamError(conn)
       if (shouldBan(err)) {
-        peerInfo.ban(true)
+        this._banPeer(peerInfo, true, err.code)
       }
 
       this.connections.delete(conn)
@@ -434,6 +446,12 @@ module.exports = class Hyperswarm extends EventEmitter {
     }
 
     await Promise.allSettled(refreshes)
+  }
+
+  _banPeer (peerInfo, banned, reason) {
+    peerInfo.ban(banned)
+    this.emit('ban', peerInfo, reason)
+    this.stats.bannedPeers++
   }
 
   status (key) {
