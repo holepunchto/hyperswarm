@@ -817,7 +817,6 @@ test('ban stat and event', async (t) => {
   const swarm1 = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: 0 })
   const swarm2 = new Hyperswarm({ firewall, bootstrap, backoffs: BACKOFFS, jitter: 0 })
   swarm2.on('ban', (peerInfo, reason) => {
-    console.log(peerInfo)
     t.alike(peerInfo.publicKey, swarm1.keyPair.publicKey)
     t.alike(reason, 'firewall')
   })
