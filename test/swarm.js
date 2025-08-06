@@ -759,25 +759,22 @@ test('firewall for server connections results in peer ban', async (t) => {
   let firewallRan = true
   let disableFirewall = false
   function myFirewall (...args) { // allow none
-    console.log('running firewall', args)
     firewallRan = true
     return !disableFirewall
   }
 
   // We pass handshakeClearWait to test that a peer is banned
   // (the default of 10s means we early-return for all new connection
-  // attempts for 10s because of the initial attempt, so we're not testing the ban logic)
+  // attempts during 10s because of the initial attempt, so we're not testing the ban logic)
   const swarm1 = new Hyperswarm({ firewall: myFirewall, handshakeClearWait: 100, bootstrap, backoffs: BACKOFFS, jitter: 0 })
   const swarm2 = new Hyperswarm({ bootstrap, handshakeClearWait: 100, backoffs: BACKOFFS, jitter: 0 })
   t.is(swarm1.server.handshakeClearWait < 500, true, 'sanity check')
 
   swarm2.on('connection', (conn) => {
     t.fail('should not connect due to firewall')
-    conn.on('error', noop)
   })
   swarm1.on('connection', (conn) => {
     t.fail('should not connect due to firewall')
-    conn.on('error', noop)
   })
 
   const topic = Buffer.alloc(32).fill('hello world')
