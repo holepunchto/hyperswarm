@@ -184,7 +184,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     // TODO: Support async firewalling at some point.
     if (this._handleFirewall(peerInfo.publicKey, null)) {
-      this._banPeer(peerInfo, true, 'firewall')
+      this._banPeer(peerInfo, true, 'client firewall')
       if (queued) this._flushMaybe(peerInfo)
       return
     }
