@@ -789,19 +789,22 @@ test('firewall for server connections results in peer ban', async (t) => {
   t.is(swarm1.stats.bannedPeers, 1)
 
   // Firewall ran at server side, so we should have banned the peer
-  // To verify, let's disable the firewall
+  // To verify, let's disable the firewall and see if a connection event triggers
   disableFirewall = true
+
+  // We need to wait a while because both sides need to detect the connection closed
+  await timeout(2000)
 
   // Try joining as client
   const topic2 = Buffer.alloc(32).fill('topic2')
   await swarm2.join(topic2, { client: false, server: true }).flushed()
   swarm1.join(topic2, { client: true, server: false })
-  await timeout(500)
 
   // Try joining as server
   const topic3 = Buffer.alloc(32).fill('topic3')
   await swarm1.join(topic3, { client: false, server: true }).flushed()
   swarm2.join(topic3, { client: true, server: false })
+
   await timeout(500)
 
   await swarm1.destroy()
