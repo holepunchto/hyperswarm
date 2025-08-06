@@ -39,16 +39,11 @@ module.exports = class Hyperswarm extends EventEmitter {
       nodes: opts.nodes,
       port: opts.port
     })
-    this.server = this.dht.createServer(
-      {
-        firewall: this._handleFirewall.bind(this),
-        relayThrough: this._maybeRelayConnection.bind(this),
-        handshakeClearWait: opts.handshakeClearWait
-
-      },
-      this._handleServerConnection.bind(this),
-      this._handleServerFirewall.bind(this)
-    )
+    this.server = this.dht.createServer({
+      firewall: this._handleFirewall.bind(this),
+      relayThrough: this._maybeRelayConnection.bind(this),
+      handshakeClearWait: opts.handshakeClearWait
+    }, this._handleServerConnection.bind(this))
 
     this.destroyed = false
     this.suspended = false
@@ -184,7 +179,6 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     // TODO: Support async firewalling at some point.
     if (this._handleFirewall(peerInfo.publicKey, null)) {
-      this._banPeer(peerInfo, true, 'client firewall')
       if (queued) this._flushMaybe(peerInfo)
       return
     }
@@ -287,10 +281,16 @@ module.exports = class Hyperswarm extends EventEmitter {
     if (this.suspended) return true
     if (b4a.equals(remotePublicKey, this.keyPair.publicKey)) return true
 
-    const peerInfo = this.peers.get(b4a.toString(remotePublicKey, 'hex'))
+    let peerInfo = this.peers.get(b4a.toString(remotePublicKey, 'hex'))
     if (peerInfo && peerInfo.banned) return true
 
-    return this._firewall(remotePublicKey, payload)
+    const firewalled = this._firewall(remotePublicKey, payload)
+    if (firewalled) {
+      if (!peerInfo) peerInfo = this._upsertPeer(remotePublicKey)
+      this._banPeer(peerInfo, true, 'firewall')
+    }
+
+    return firewalled
   }
 
   _handleServerConnectionSwap (existing, conn) {
@@ -311,11 +311,6 @@ module.exports = class Hyperswarm extends EventEmitter {
     function onclose () {
       closed = true
     }
-  }
-
-  _handleServerFirewall (remotePublicKey) {
-    const peerInfo = this._upsertPeer(remotePublicKey, null)
-    this._banPeer(peerInfo, true, 'server firewall')
   }
 
   // Called when the DHT receives a new server connection.
