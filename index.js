@@ -1,4 +1,5 @@
 const { EventEmitter } = require('events')
+const { getStreamError } = require('streamx')
 const DHT = require('hyperdht')
 const spq = require('shuffled-priority-queue')
 const b4a = require('b4a')
@@ -17,6 +18,7 @@ const MAX_SERVER_CONNECTIONS = Infinity
 const ERR_MISSING_TOPIC = 'Topic is required and must be a 32-byte buffer'
 const ERR_DESTROYED = 'Swarm has been destroyed'
 const ERR_DUPLICATE = 'Duplicate connection'
+const ERR_FIREWALL = 'Peer is firewalled'
 
 module.exports = class Hyperswarm extends EventEmitter {
   constructor (opts = {}) {
@@ -40,7 +42,8 @@ module.exports = class Hyperswarm extends EventEmitter {
     })
     this.server = this.dht.createServer({
       firewall: this._handleFirewall.bind(this),
-      relayThrough: this._maybeRelayConnection.bind(this)
+      relayThrough: this._maybeRelayConnection.bind(this),
+      handshakeClearWait: opts.handshakeClearWait
     }, this._handleServerConnection.bind(this))
 
     this.destroyed = false
@@ -69,7 +72,8 @@ module.exports = class Hyperswarm extends EventEmitter {
           opened: 0,
           closed: 0
         }
-      }
+      },
+      bannedPeers: 0
     }
 
     this._discovery = new Map()
@@ -176,7 +180,6 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     // TODO: Support async firewalling at some point.
     if (this._handleFirewall(peerInfo.publicKey, null)) {
-      peerInfo.ban(true)
       if (queued) this._flushMaybe(peerInfo)
       return
     }
@@ -223,6 +226,11 @@ module.exports = class Hyperswarm extends EventEmitter {
     conn.on('close', () => {
       if (!opened) this._connectDone()
       this.stats.connects.client.closed++
+
+      const err = getStreamError(conn)
+      if (shouldBan(err)) {
+        this._banPeer(peerInfo, true, err)
+      }
 
       this.connections.delete(conn)
       this._allConnections.delete(conn)
@@ -273,10 +281,16 @@ module.exports = class Hyperswarm extends EventEmitter {
   _handleFirewall (remotePublicKey, payload) {
     if (b4a.equals(remotePublicKey, this.keyPair.publicKey)) return true
 
-    const peerInfo = this.peers.get(b4a.toString(remotePublicKey, 'hex'))
+    let peerInfo = this.peers.get(b4a.toString(remotePublicKey, 'hex'))
     if (peerInfo && peerInfo.banned) return true
 
-    return this._firewall(remotePublicKey, payload)
+    const firewalled = this._firewall(remotePublicKey, payload)
+    if (firewalled) {
+      if (!peerInfo) peerInfo = this._upsertPeer(remotePublicKey)
+      this._banPeer(peerInfo, true, new Error(ERR_FIREWALL))
+    }
+
+    return firewalled
   }
 
   _handleServerConnectionSwap (existing, conn) {
@@ -341,6 +355,11 @@ module.exports = class Hyperswarm extends EventEmitter {
     this._serverConnections++
 
     conn.on('close', () => {
+      const err = getStreamError(conn)
+      if (shouldBan(err)) {
+        this._banPeer(peerInfo, true, err)
+      }
+
       this.connections.delete(conn)
       this._allConnections.delete(conn)
       this._serverConnections--
@@ -422,6 +441,12 @@ module.exports = class Hyperswarm extends EventEmitter {
     }
 
     await Promise.allSettled(refreshes)
+  }
+
+  _banPeer (peerInfo, banned, err) {
+    peerInfo.ban(banned)
+    this.stats.bannedPeers++
+    this.emit('ban', peerInfo, err)
   }
 
   status (key) {
@@ -607,4 +632,8 @@ function shouldForceRelaying (code) {
   return (code === 'HOLEPUNCH_ABORTED') ||
     (code === 'HOLEPUNCH_DOUBLE_RANDOMIZED_NATS') ||
     (code === 'REMOTE_NOT_HOLEPUNCHABLE')
+}
+
+function shouldBan (err) {
+  return !!err && err.name === 'HypercoreError' && err.code === 'INVALID_OPERATION'
 }

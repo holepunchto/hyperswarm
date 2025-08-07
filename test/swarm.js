@@ -753,4 +753,91 @@ test('port opt gets passed on to hyperdht', async (t) => {
   await swarm1.destroy()
 })
 
+test('firewall for server connections results in peer ban', async (t) => {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
+  let firewallRan = true
+  let disableFirewall = false
+  function myFirewall (...args) { // allow none
+    firewallRan = true
+    return !disableFirewall
+  }
+
+  // We pass handshakeClearWait to test that a peer is banned
+  // (the default of 10s means we early-return for all new connection
+  // attempts during 10s because of the initial attempt, so we're not testing the ban logic)
+  const swarm1 = new Hyperswarm({ firewall: myFirewall, handshakeClearWait: 100, bootstrap, backoffs: BACKOFFS, jitter: 0 })
+  const swarm2 = new Hyperswarm({ bootstrap, handshakeClearWait: 100, backoffs: BACKOFFS, jitter: 0 })
+  t.is(swarm1.server.handshakeClearWait < 500, true, 'sanity check')
+
+  swarm2.on('connection', (conn) => {
+    t.fail('should not connect due to firewall and ban')
+  })
+  swarm1.on('connection', (conn) => {
+    t.fail('should not connect due to firewall and ban')
+  })
+
+  const topic = Buffer.alloc(32).fill('hello world')
+  await swarm1.join(topic, { client: false, server: true }).flushed()
+  swarm2.join(topic, { client: true, server: false })
+  await timeout(500)
+
+  t.is(firewallRan, true, 'sanity check')
+  t.is(swarm1.stats.bannedPeers, 1)
+
+  // Firewall ran at server side, so we should have banned the peer
+  // To verify, let's disable the firewall and see if a connection event triggers
+  disableFirewall = true
+
+  // We need to wait a while because both sides need to detect the connection closed
+  await timeout(2000)
+
+  // Try joining as client
+  const topic2 = Buffer.alloc(32).fill('topic2')
+  await swarm2.join(topic2, { client: false, server: true }).flushed()
+  swarm1.join(topic2, { client: true, server: false })
+
+  // Try joining as server
+  const topic3 = Buffer.alloc(32).fill('topic3')
+  await swarm1.join(topic3, { client: false, server: true }).flushed()
+  swarm2.join(topic3, { client: true, server: false })
+
+  await timeout(500)
+
+  await swarm1.destroy()
+  await swarm2.destroy()
+})
+
+test('ban stat and event', async (t) => {
+  t.plan(3)
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
+  const firewall = () => true // allow none
+
+  const swarm1 = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: 0 })
+  const swarm2 = new Hyperswarm({ firewall, bootstrap, backoffs: BACKOFFS, jitter: 0 })
+  swarm2.on('ban', (peerInfo, err) => {
+    t.alike(peerInfo.publicKey, swarm1.keyPair.publicKey)
+    t.alike(err.message, 'Peer is firewalled')
+  })
+
+  swarm2.on('connection', (conn) => {
+    conn.on('error', noop)
+  })
+  swarm1.on('connection', (conn) => {
+    conn.on('error', noop)
+  })
+
+  const topic = Buffer.alloc(32).fill('hello world')
+  await swarm1.join(topic, { client: false, server: true }).flushed()
+  swarm2.join(topic, { client: true, server: false })
+
+  await timeout(500)
+
+  t.is(swarm2.stats.bannedPeers, 1)
+
+  await swarm1.destroy()
+  await swarm2.destroy()
+})
+
 function noop () {}
