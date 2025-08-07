@@ -771,10 +771,10 @@ test('firewall for server connections results in peer ban', async (t) => {
   t.is(swarm1.server.handshakeClearWait < 500, true, 'sanity check')
 
   swarm2.on('connection', (conn) => {
-    t.fail('should not connect due to firewall')
+    t.fail('should not connect due to firewall and ban')
   })
   swarm1.on('connection', (conn) => {
-    t.fail('should not connect due to firewall')
+    t.fail('should not connect due to firewall and ban')
   })
 
   const topic = Buffer.alloc(32).fill('hello world')
