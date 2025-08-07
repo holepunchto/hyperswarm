@@ -139,9 +139,9 @@ Resume a suspended swarm refreshing discovery of new peers and servers. Useful f
 
 `log` is a logging function, which defaults to a noop function.
 
-#### `swarm.on('ban', peerInfo, reason)`
+#### `swarm.on('ban', peerInfo, err)`
 
-Emitted when a peer gets banned. `reason` is a string describing the reason for the ban.
+Emitted when a peer gets banned. `err` is an error object describing the reason for the ban (e.g. firewalled).
 
 ## PeerDiscovery API
 

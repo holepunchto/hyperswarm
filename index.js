@@ -18,6 +18,7 @@ const MAX_SERVER_CONNECTIONS = Infinity
 const ERR_MISSING_TOPIC = 'Topic is required and must be a 32-byte buffer'
 const ERR_DESTROYED = 'Swarm has been destroyed'
 const ERR_DUPLICATE = 'Duplicate connection'
+const ERR_FIREWALL = 'Peer is firewalled'
 
 module.exports = class Hyperswarm extends EventEmitter {
   constructor (opts = {}) {
@@ -228,7 +229,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
       const err = getStreamError(conn)
       if (shouldBan(err)) {
-        this._banPeer(peerInfo, true, err.code)
+        this._banPeer(peerInfo, true, err)
       }
 
       this.connections.delete(conn)
@@ -287,7 +288,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     const firewalled = this._firewall(remotePublicKey, payload)
     if (firewalled) {
       if (!peerInfo) peerInfo = this._upsertPeer(remotePublicKey)
-      this._banPeer(peerInfo, true, 'firewall')
+      this._banPeer(peerInfo, true, new Error(ERR_FIREWALL))
     }
 
     return firewalled
@@ -357,7 +358,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     conn.on('close', () => {
       const err = getStreamError(conn)
       if (shouldBan(err)) {
-        this._banPeer(peerInfo, true, err.code)
+        this._banPeer(peerInfo, true, err)
       }
 
       this.connections.delete(conn)
@@ -443,10 +444,10 @@ module.exports = class Hyperswarm extends EventEmitter {
     await Promise.allSettled(refreshes)
   }
 
-  _banPeer (peerInfo, banned, reason) {
+  _banPeer (peerInfo, banned, err) {
     peerInfo.ban(banned)
     this.stats.bannedPeers++
-    this.emit('ban', peerInfo, reason)
+    this.emit('ban', peerInfo, err)
   }
 
   status (key) {
