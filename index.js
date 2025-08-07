@@ -445,8 +445,8 @@ module.exports = class Hyperswarm extends EventEmitter {
 
   _banPeer (peerInfo, banned, reason) {
     peerInfo.ban(banned)
-    this.emit('ban', peerInfo, reason)
     this.stats.bannedPeers++
+    this.emit('ban', peerInfo, reason)
   }
 
   status (key) {
