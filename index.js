@@ -634,7 +634,7 @@ function shouldForceRelaying (code) {
     (code === 'REMOTE_NOT_HOLEPUNCHABLE')
 }
 
-function shouldBan (err) {
+function shouldBan () {
   // return !!err && err.name === 'HypercoreError' && err.code === 'INVALID_OPERATION'
   return false
 }
