@@ -635,5 +635,6 @@ function shouldForceRelaying (code) {
 }
 
 function shouldBan (err) {
-  return !!err && err.name === 'HypercoreError' && err.code === 'INVALID_OPERATION'
+  // return !!err && err.name === 'HypercoreError' && err.code === 'INVALID_OPERATION'
+  return false
 }
