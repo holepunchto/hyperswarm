@@ -38,7 +38,9 @@ module.exports = class Hyperswarm extends EventEmitter {
     this.dht = opts.dht || new DHT({
       bootstrap: opts.bootstrap,
       nodes: opts.nodes,
-      port: opts.port
+      port: opts.port,
+      deferRandomPunch: opts.deferRandomPunch,
+      randomPunchInterval: opts.randomPunchInterval
     })
     this.server = this.dht.createServer({
       firewall: this._handleFirewall.bind(this),
