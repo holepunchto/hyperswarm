@@ -54,6 +54,60 @@ test('join peer - can establish direct connections to public keys', async (t) =>
   await swarm2.destroy()
 })
 
+test('join peer - flush immediately after joinPeer', async (t) => {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
+  const swarm1 = new Hyperswarm({ bootstrap })
+  const swarm2 = new Hyperswarm({ bootstrap })
+
+  await swarm2.listen() // Ensure that swarm2's public key is being announced
+
+  const firstConnection = t.test('first connection')
+  firstConnection.plan(2)
+
+  const connections = t.test('connections')
+  connections.plan(4)
+
+  let s2Connected = false
+  let s1Connected = false
+
+  swarm2.on('connection', conn => {
+    conn.on('error', noop)
+    if (!s2Connected) {
+      firstConnection.pass('swarm2 got its first connection')
+      s2Connected = true
+    }
+    connections.pass('swarm2 got a connection')
+  })
+  swarm1.on('connection', conn => {
+    conn.on('error', noop)
+    if (!s1Connected) {
+      firstConnection.pass('swarm1 got its first connection')
+      s1Connected = true
+    }
+    connections.pass('swarm1 got a connection')
+  })
+
+  swarm1.joinPeer(swarm2.keyPair.publicKey)
+  // should not hang
+  await swarm1.flush()
+
+  await firstConnection
+
+  for (const conn of swarm1.connections) {
+    conn.end()
+  }
+  for (const conn of swarm2.connections) {
+    conn.end()
+  }
+  await swarm1.flush() // Should reconnect
+
+  await connections
+
+  await swarm1.destroy()
+  await swarm2.destroy()
+})
+
 test('join peer - attempt to connect to self is a no-op', async (t) => {
   const { bootstrap } = await createTestnet(3, t.teardown)
 
