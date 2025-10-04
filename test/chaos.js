@@ -34,7 +34,7 @@ test('chaos - recovers after random disconnections (takes ~60s)', async (t) => {
     const swarm = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: 0 })
     swarms.push(swarm)
     peersBySwarm.set(swarm, new Set())
-    swarm.on('connection', conn => {
+    swarm.on('connection', (conn) => {
       connections.push(conn)
 
       conn.on('error', noop)
@@ -76,13 +76,21 @@ test('chaos - recovers after random disconnections (takes ~60s)', async (t) => {
   await timeout(STARTUP_DURATION)
 
   for (const [swarm, expectedPeers] of peersBySwarm) {
-    t.alike(swarm.connections.size, expectedPeers.size, 'swarm has the correct number of connections after startup')
+    t.alike(
+      swarm.connections.size,
+      expectedPeers.size,
+      'swarm has the correct number of connections after startup'
+    )
     const missingKeys = []
     for (const conn of swarm.connections) {
       const key = conn.remotePublicKey.toString('hex')
       if (!expectedPeers.has(key)) missingKeys.push(key)
     }
-    t.alike(missingKeys.length, 0, 'swarm is not missing any expected peers after startup')
+    t.alike(
+      missingKeys.length,
+      0,
+      'swarm is not missing any expected peers after startup'
+    )
   }
 
   // Randomly destroy connections during the chaos period.
@@ -99,7 +107,11 @@ test('chaos - recovers after random disconnections (takes ~60s)', async (t) => {
   await timeout(TEST_DURATION) // Wait for the chaos to resolve
 
   for (const [swarm, expectedPeers] of peersBySwarm) {
-    t.alike(swarm.connections.size, expectedPeers.size, 'swarm has the correct number of connections')
+    t.alike(
+      swarm.connections.size,
+      expectedPeers.size,
+      'swarm has the correct number of connections'
+    )
     const missingKeys = []
     for (const conn of swarm.connections) {
       const key = conn.remotePublicKey.toString('hex')
@@ -111,4 +123,4 @@ test('chaos - recovers after random disconnections (takes ~60s)', async (t) => {
   for (const swarm of swarms) await swarm.destroy()
 })
 
-function noop () {}
+function noop() {}

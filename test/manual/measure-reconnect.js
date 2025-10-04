@@ -6,20 +6,24 @@
  * npm install --no-save hypertrace hypercore-id-encoding @holepunchto/keet-default-config
  */
 
-function customLogger (data) {
-  console.log(`   ... ${data.id} ${Object.keys(data.caller.props || []).join(',')} ${data.caller.filename}:${data.caller.line}:${data.caller.column}`)
+function customLogger(data) {
+  console.log(
+    `   ... ${data.id} ${Object.keys(data.caller.props || []).join(',')} ${data.caller.filename}:${data.caller.line}:${data.caller.column}`
+  )
 }
 require('hypertrace').setTraceFunction(customLogger)
 
 const { DEV_BLIND_RELAY_KEYS } = require('@holepunchto/keet-default-config')
 const HypercoreId = require('hypercore-id-encoding')
 const DEV_RELAY_KEYS = DEV_BLIND_RELAY_KEYS.map(HypercoreId.decode)
-const relayThrough = (force) => force ? DEV_RELAY_KEYS : null
+const relayThrough = (force) => (force ? DEV_RELAY_KEYS : null)
 
 const Hyperswarm = require('../..')
 
 const topic = Buffer.alloc(32).fill('measure-reconnect')
-const seed = Buffer.alloc(32).fill('measure-reconnect' + require('os').hostname())
+const seed = Buffer.alloc(32).fill(
+  'measure-reconnect' + require('os').hostname()
+)
 
 const swarm = new Hyperswarm({ seed, relayThrough })
 
