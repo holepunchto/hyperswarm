@@ -21,9 +21,7 @@ const relayThrough = (force) => (force ? DEV_RELAY_KEYS : null)
 const Hyperswarm = require('../..')
 
 const topic = Buffer.alloc(32).fill('measure-reconnect')
-const seed = Buffer.alloc(32).fill(
-  'measure-reconnect' + require('os').hostname()
-)
+const seed = Buffer.alloc(32).fill('measure-reconnect' + require('os').hostname())
 
 const swarm = new Hyperswarm({ seed, relayThrough })
 

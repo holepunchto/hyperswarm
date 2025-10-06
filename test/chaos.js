@@ -86,11 +86,7 @@ test('chaos - recovers after random disconnections (takes ~60s)', async (t) => {
       const key = conn.remotePublicKey.toString('hex')
       if (!expectedPeers.has(key)) missingKeys.push(key)
     }
-    t.alike(
-      missingKeys.length,
-      0,
-      'swarm is not missing any expected peers after startup'
-    )
+    t.alike(missingKeys.length, 0, 'swarm is not missing any expected peers after startup')
   }
 
   // Randomly destroy connections during the chaos period.

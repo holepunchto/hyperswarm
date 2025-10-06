@@ -110,9 +110,7 @@ test('one server, one client - single reconnect', async (t) => {
       // before we destroy it
       await flushConnections(swarm2)
       if (!hasClientConnected)
-        t.fail(
-          'Logical error in the test: the client should be connected by now'
-        )
+        t.fail('Logical error in the test: the client should be connected by now')
 
       conn.destroy()
       return

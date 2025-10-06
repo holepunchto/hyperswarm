@@ -92,11 +92,7 @@ test('firewalled server - rejection does not trigger retry cascade', async (t) =
   await timeout(BACKOFFS[2] * 5) // Wait for many retries -- there should only be 3
 
   t.alike(serverConnections, 0, 'server did not receive an incoming connection')
-  t.alike(
-    firewallCalls,
-    1,
-    'client retried mulitple times but server cached it'
-  )
+  t.alike(firewallCalls, 1, 'client retried mulitple times but server cached it')
 
   await swarm1.destroy()
   await swarm2.destroy()

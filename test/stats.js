@@ -22,24 +22,12 @@ test('connectionsOpened and connectionsClosed stats', async (t) => {
   swarm2.on('connection', (conn) => {
     conn.on('error', noop)
 
-    tOpen.is(
-      swarm2.stats.connects.client.opened,
-      1,
-      'opened connection is in stats'
-    )
-    tOpen.is(
-      swarm2.stats.connects.client.attempted,
-      1,
-      'attemped connection is in stats'
-    )
+    tOpen.is(swarm2.stats.connects.client.opened, 1, 'opened connection is in stats')
+    tOpen.is(swarm2.stats.connects.client.attempted, 1, 'attemped connection is in stats')
     tClose.is(swarm2.stats.connects.client.closed, 0, 'sanity check')
 
     conn.on('close', () => {
-      tClose.is(
-        swarm2.stats.connects.client.closed,
-        1,
-        'closed connection is in stats'
-      )
+      tClose.is(swarm2.stats.connects.client.closed, 1, 'closed connection is in stats')
     })
 
     conn.end()
@@ -49,20 +37,12 @@ test('connectionsOpened and connectionsClosed stats', async (t) => {
     conn.on('error', () => noop)
 
     conn.on('open', () => {
-      tOpen.is(
-        swarm1.stats.connects.server.opened,
-        1,
-        'opened server connection is in stats'
-      )
+      tOpen.is(swarm1.stats.connects.server.opened, 1, 'opened server connection is in stats')
       tClose.is(swarm1.stats.connects.server.closed, 0, 'Sanity check')
     })
 
     conn.on('close', () => {
-      tClose.is(
-        swarm1.stats.connects.server.closed,
-        1,
-        'closed connections is in stats'
-      )
+      tClose.is(swarm1.stats.connects.server.closed, 1, 'closed connections is in stats')
     })
 
     conn.end()

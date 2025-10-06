@@ -164,9 +164,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   _shouldConnectExplicit() {
-    return (
-      !this.destroyed && !this.suspended && this.connecting < this.maxParallel
-    )
+    return !this.destroyed && !this.suspended && this.connecting < this.maxParallel
   }
 
   _shouldConnect() {
@@ -255,8 +253,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       this._clientConnections--
       peerInfo._disconnected()
 
-      peerInfo.waiting =
-        this._shouldRequeue(peerInfo) && this._timer.add(peerInfo)
+      peerInfo.waiting = this._shouldRequeue(peerInfo) && this._timer.add(peerInfo)
       this._maybeDeletePeer(peerInfo)
 
       if (!opened && queued) this._flushMaybe(peerInfo)
@@ -351,12 +348,9 @@ module.exports = class Hyperswarm extends EventEmitter {
       // - pick the new one if the existing stream is already established (has sent and received bytes),
       //   because the other client must have lost that connection and be reconnecting
       // - otherwise, pick the one thats expected to initiate in a tie break
-      const existingIsOutdated =
-        existing.rawBytesRead > 0 && existing.rawBytesWritten > 0
-      const expectedInitiator =
-        b4a.compare(conn.publicKey, conn.remotePublicKey) > 0
-      const keepNew =
-        existingIsOutdated || expectedInitiator === conn.isInitiator
+      const existingIsOutdated = existing.rawBytesRead > 0 && existing.rawBytesWritten > 0
+      const expectedInitiator = b4a.compare(conn.publicKey, conn.remotePublicKey) > 0
+      const keepNew = existingIsOutdated || expectedInitiator === conn.isInitiator
 
       if (keepNew === false) {
         existing.sendKeepAlive()
@@ -567,9 +561,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   async clear() {
-    const cleared = Promise.allSettled(
-      [...this._discovery.values()].map((d) => d.destroy())
-    )
+    const cleared = Promise.allSettled([...this._discovery.values()].map((d) => d.destroy()))
     this._discovery.clear()
     return cleared
   }
