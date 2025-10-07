@@ -4,12 +4,7 @@ const { timeout, flushConnections } = require('./helpers')
 
 const Hyperswarm = require('..')
 
-const BACKOFFS = [
-  100,
-  200,
-  300,
-  400
-]
+const BACKOFFS = [100, 200, 300, 400]
 
 test('firewalled server - bad client is rejected', async (t) => {
   const { bootstrap } = await createTestnet(3, t.teardown)
@@ -19,7 +14,7 @@ test('firewalled server - bad client is rejected', async (t) => {
     bootstrap,
     backoffs: BACKOFFS,
     jitter: 0,
-    firewall: remotePublicKey => {
+    firewall: (remotePublicKey) => {
       return remotePublicKey.equals(swarm1.keyPair.publicKey)
     }
   })
@@ -48,7 +43,7 @@ test('firewalled client - bad server is rejected', async (t) => {
     bootstrap,
     backoffs: BACKOFFS,
     jitter: 0,
-    firewall: remotePublicKey => {
+    firewall: (remotePublicKey) => {
       const firewalled = remotePublicKey.equals(swarm1.keyPair.publicKey)
       t.ok(firewalled, 'The peer got firewalled')
       return firewalled
@@ -80,7 +75,7 @@ test('firewalled server - rejection does not trigger retry cascade', async (t) =
     bootstrap,
     backoffs: BACKOFFS,
     jitter: 0,
-    firewall: remotePublicKey => {
+    firewall: (remotePublicKey) => {
       firewallCalls++
       return remotePublicKey.equals(swarm1.keyPair.publicKey)
     }

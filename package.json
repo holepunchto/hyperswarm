@@ -24,10 +24,13 @@
   "devDependencies": {
     "brittle": "^3.0.2",
     "hypercore-crypto": "^3.4.0",
-    "standard": "^17.0.0"
+    "prettier": "^3.6.2",
+    "prettier-config-holepunch": "^2.0.0"
   },
   "scripts": {
-    "test": "standard && node test/all.js",
+    "format": "prettier --write .",
+    "lint": "prettier --check .",
+    "test": "npm run lint && node test/all.js",
     "test:generate": "brittle -r test/all.js test/*.js"
   },
   "repository": {

@@ -5,12 +5,7 @@ const b4a = require('b4a')
 
 const Hyperswarm = require('..')
 
-const BACKOFFS = [
-  100,
-  200,
-  300,
-  400
-]
+const BACKOFFS = [100, 200, 300, 400]
 
 test('one server, one client - first connection', async (t) => {
   const { bootstrap } = await createTestnet(3, t.teardown)
@@ -114,7 +109,8 @@ test('one server, one client - single reconnect', async (t) => {
       // Ensure connection is setup for client too
       // before we destroy it
       await flushConnections(swarm2)
-      if (!hasClientConnected) t.fail('Logical error in the test: the client should be connected by now')
+      if (!hasClientConnected)
+        t.fail('Logical error in the test: the client should be connected by now')
 
       conn.destroy()
       return
@@ -284,11 +280,17 @@ test('one server, two clients - first connection', async (t) => {
     conn.on('error', noop)
   })
   swarm2.on('connection', (conn, info) => {
-    connection2Test.ok(b4a.equals(info.publicKey, swarm1.keyPair.publicKey), 'swarm2 connected with swarm1')
+    connection2Test.ok(
+      b4a.equals(info.publicKey, swarm1.keyPair.publicKey),
+      'swarm2 connected with swarm1'
+    )
     conn.on('error', noop)
   })
   swarm3.on('connection', (conn, info) => {
-    connection3Test.ok(b4a.equals(info.publicKey, swarm1.keyPair.publicKey), 'swarm3 connected with swarm1')
+    connection3Test.ok(
+      b4a.equals(info.publicKey, swarm1.keyPair.publicKey),
+      'swarm3 connected with swarm1'
+    )
     conn.on('error', noop)
   })
 
@@ -529,7 +531,7 @@ test('multiple discovery sessions with different opts', async (t) => {
   await discovery1.destroy() // should not prevent server connections
 })
 
-test('closing all discovery sessions clears all peer-discovery objects', async t => {
+test('closing all discovery sessions clears all peer-discovery objects', async (t) => {
   const { bootstrap } = await createTestnet(3, t.teardown)
 
   const swarm = new Hyperswarm({ bootstrap })
@@ -549,7 +551,7 @@ test('closing all discovery sessions clears all peer-discovery objects', async t
   await swarm.destroy()
 })
 
-test('peer-discovery object deleted when corresponding connection closes (server)', async t => {
+test('peer-discovery object deleted when corresponding connection closes (server)', async (t) => {
   const { bootstrap } = await createTestnet(3, t.teardown)
 
   const swarm1 = new Hyperswarm({ bootstrap })
@@ -567,7 +569,7 @@ test('peer-discovery object deleted when corresponding connection closes (server
   })
 
   let resolveConnClosed = null
-  const connClosed = new Promise(resolve => {
+  const connClosed = new Promise((resolve) => {
     resolveConnClosed = resolve
   })
   swarm1.on('connection', (conn) => {
@@ -596,15 +598,23 @@ test('peer-discovery object deleted when corresponding connection closes (server
   await swarm1.destroy()
 })
 
-test('peer-discovery object deleted when corresponding connection closes (client)', async t => {
+test('peer-discovery object deleted when corresponding connection closes (client)', async (t) => {
   const { bootstrap } = await createTestnet(3, t.teardown)
 
   t.plan(3)
   // We want to test it eventually gets gc'd after all the retries
   // so we don't care about waiting between retries
   const instaBackoffs = [0, 0, 0, 0]
-  const swarm1 = new Hyperswarm({ bootstrap, backoffs: instaBackoffs, jitter: 0 })
-  const swarm2 = new Hyperswarm({ bootstrap, backoffs: instaBackoffs, jitter: 0 })
+  const swarm1 = new Hyperswarm({
+    bootstrap,
+    backoffs: instaBackoffs,
+    jitter: 0
+  })
+  const swarm2 = new Hyperswarm({
+    bootstrap,
+    backoffs: instaBackoffs,
+    jitter: 0
+  })
 
   let hasBeen1 = false
   swarm2.on('update', async () => {
@@ -695,10 +705,10 @@ test('peerDiscovery has unslabbed closestNodes', async (t) => {
   await tConnect
 
   const closestNodes = [...swarm1._discovery.values()][0]._closestNodes
-  const bufferSizes = closestNodes.map(n => n.id.buffer.byteLength)
+  const bufferSizes = closestNodes.map((n) => n.id.buffer.byteLength)
   t.is(bufferSizes[0], 32, 'unslabbed clostestNodes entry')
 
-  const hasUnslabbeds = bufferSizes.filter(s => s !== 32).length !== 0
+  const hasUnslabbeds = bufferSizes.filter((s) => s !== 32).length !== 0
   t.is(hasUnslabbeds, false, 'sanity check: all are unslabbed')
 })
 
@@ -721,7 +731,8 @@ test('topic and peer get unslabbed in PeerInfo', async (t) => {
       32,
       'unslabbed publicKey in peerInfo'
     )
-    t.is([...swarm2.peers.values()][0].topics[0].buffer.byteLength,
+    t.is(
+      [...swarm2.peers.values()][0].topics[0].buffer.byteLength,
       32,
       'unslabbed topic in peerInfo'
     )
@@ -758,7 +769,8 @@ test('firewall for server connections results in peer ban', async (t) => {
 
   let firewallRan = true
   let disableFirewall = false
-  function myFirewall (...args) { // allow none
+  function myFirewall(...args) {
+    // allow none
     firewallRan = true
     return !disableFirewall
   }
@@ -766,8 +778,19 @@ test('firewall for server connections results in peer ban', async (t) => {
   // We pass handshakeClearWait to test that a peer is banned
   // (the default of 10s means we early-return for all new connection
   // attempts during 10s because of the initial attempt, so we're not testing the ban logic)
-  const swarm1 = new Hyperswarm({ firewall: myFirewall, handshakeClearWait: 100, bootstrap, backoffs: BACKOFFS, jitter: 0 })
-  const swarm2 = new Hyperswarm({ bootstrap, handshakeClearWait: 100, backoffs: BACKOFFS, jitter: 0 })
+  const swarm1 = new Hyperswarm({
+    firewall: myFirewall,
+    handshakeClearWait: 100,
+    bootstrap,
+    backoffs: BACKOFFS,
+    jitter: 0
+  })
+  const swarm2 = new Hyperswarm({
+    bootstrap,
+    handshakeClearWait: 100,
+    backoffs: BACKOFFS,
+    jitter: 0
+  })
   t.is(swarm1.server.handshakeClearWait < 500, true, 'sanity check')
 
   swarm2.on('connection', (conn) => {
@@ -815,7 +838,12 @@ test('ban stat and event', async (t) => {
   const firewall = () => true // allow none
 
   const swarm1 = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: 0 })
-  const swarm2 = new Hyperswarm({ firewall, bootstrap, backoffs: BACKOFFS, jitter: 0 })
+  const swarm2 = new Hyperswarm({
+    firewall,
+    bootstrap,
+    backoffs: BACKOFFS,
+    jitter: 0
+  })
   swarm2.on('ban', (peerInfo, err) => {
     t.alike(peerInfo.publicKey, swarm1.keyPair.publicKey)
     t.alike(err.message, 'Peer is firewalled')
@@ -840,4 +868,4 @@ test('ban stat and event', async (t) => {
   await swarm2.destroy()
 })
 
-function noop () {}
+function noop() {}

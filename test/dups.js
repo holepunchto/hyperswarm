@@ -2,7 +2,7 @@ const test = require('brittle')
 const createTestnet = require('hyperdht/testnet')
 const Hyperswarm = require('../')
 
-test('many servers', async t => {
+test('many servers', async (t) => {
   const { bootstrap } = await createTestnet(3, t.teardown)
   const topic = Buffer.alloc(32).fill('hello')
 
@@ -20,7 +20,7 @@ test('many servers', async t => {
     const missing = new Set()
     let done = false
 
-    swarm.on('connection', conn => {
+    swarm.on('connection', (conn) => {
       missing.add(conn.remotePublicKey.toString('hex'))
 
       conn.on('error', noop)
@@ -40,7 +40,7 @@ test('many servers', async t => {
 
   for (const swarm of swarms) swarm.join(topic, { client: false, server: true })
 
-  await Promise.all(swarms.map(s => s.flush()))
+  await Promise.all(swarms.map((s) => s.flush()))
 
   for (const swarm of swarms) swarm.join(topic)
 
@@ -52,4 +52,4 @@ test('many servers', async t => {
   for (const swarm of swarms) await swarm.destroy()
 })
 
-function noop () {}
+function noop() {}

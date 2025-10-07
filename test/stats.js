@@ -55,4 +55,4 @@ test('connectionsOpened and connectionsClosed stats', async (t) => {
   await tClose
 })
 
-function noop () {}
+function noop() {}
