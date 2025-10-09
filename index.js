@@ -474,13 +474,17 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   listen() {
-    if (!this.listening) this.listening = this.server.listen(this.keyPair)
+    if (!this.listening) {
+      if (this.destroyed) throw new Error('Swarm destroyed')
+      this.listening = this.server.listen(this.keyPair)
+    }
     return this.listening
   }
 
   // Object that exposes a cancellation method (destroy)
   // TODO: When you rejoin, it should reannounce + bump lookup priority
   join(topic, opts = {}) {
+    if (this.destroyed) throw new Error('Swarm destroyed')
     if (!topic) throw new Error(ERR_MISSING_TOPIC)
     topic = unslab(topic)
 
