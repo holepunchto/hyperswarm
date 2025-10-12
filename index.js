@@ -60,6 +60,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     this.maxServerConnections = maxServerConnections
     this.maxParallel = maxParallel
     this.relayThrough = relayThrough || null
+    this.deduplicate = opts.deduplicate !== false
 
     this.connecting = 0
     this.connections = new Set()
@@ -343,7 +344,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     const existing = this._allConnections.get(conn.remotePublicKey)
 
-    if (existing) {
+    if (existing && this.deduplicate) {
       // If both connections are from the same peer,
       // - pick the new one if the existing stream is already established (has sent and received bytes),
       //   because the other client must have lost that connection and be reconnecting
@@ -600,7 +601,8 @@ module.exports = class Hyperswarm extends EventEmitter {
     }
 
     const pending = []
-    for (const connection of this._allConnections) {
+    const connections = this.deduplicate ? this._allConnections : this.connections
+    for (const connection of connections) {
       connection.destroy()
       pending.push(new Promise((resolve) => connection.on('close', resolve)))
     }
