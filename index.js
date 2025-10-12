@@ -235,7 +235,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       peerInfo._connected()
       peerInfo.client = true
       this.emit('connection', conn, peerInfo)
-      if (queued) this._flushMaybe(peerInfo)
+      this._flushMaybe(peerInfo)
 
       this.emit('update')
     })
@@ -256,7 +256,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       peerInfo.waiting = this._shouldRequeue(peerInfo) && this._timer.add(peerInfo)
       this._maybeDeletePeer(peerInfo)
 
-      if (!opened && queued) this._flushMaybe(peerInfo)
+      if (!opened) this._flushMaybe(peerInfo)
 
       this._attemptClientConnections()
 
