@@ -59,7 +59,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     this.maxClientConnections = maxClientConnections
     this.maxServerConnections = maxServerConnections
     this.maxParallel = maxParallel
-    this.relayThrough = relayThrough ? toFunction(relayThrough) : null
+    this.relayThrough = relayThrough ? toRelayFunction(relayThrough) : null
 
     this.connecting = 0
     this.connections = new Set()
@@ -665,8 +665,8 @@ function shouldBan() {
   return false
 }
 
-function toFunction(fn) {
-  return typeof fn === 'function'
-    ? fn
-    : (force, swarm) => (force || swarm.dht.randomized ? this._relayKeys : null)
+function toRelayFunction(relayThrough) {
+  return typeof relayThrough === 'function'
+    ? relayThrough
+    : (force, swarm) => (force || swarm.dht.randomized ? relayThrough : null)
 }
