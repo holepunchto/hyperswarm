@@ -59,7 +59,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     this.maxClientConnections = maxClientConnections
     this.maxServerConnections = maxServerConnections
     this.maxParallel = maxParallel
-    this.relayThrough = relayThrough || null
+    this.relayThrough = relayThrough ? toFunction(relayThrough) : null
 
     this.connecting = 0
     this.connections = new Set()
@@ -105,7 +105,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
   _maybeRelayConnection(force) {
     if (!this.relayThrough) return null
-    return this.relayThrough(force)
+    return this.relayThrough(force, this)
   }
 
   _enqueue(peerInfo) {
@@ -663,4 +663,10 @@ function shouldForceRelaying(code) {
 function shouldBan() {
   // return !!err && err.name === 'HypercoreError' && err.code === 'INVALID_OPERATION'
   return false
+}
+
+function toFunction(fn) {
+  return typeof fn === 'function'
+    ? fn
+    : (force, swarm) => (force || swarm.dht.randomized ? this._relayKeys : null)
 }
