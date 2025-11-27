@@ -1,6 +1,6 @@
 # hyperswarm
 
-### [See the full API docs at docs.holepunch.to](https://docs.holepunch.to/building-blocks/hyperswarm)
+### [See the full API docs at docs.pears.com](https://docs.pears.com/building-blocks/hyperswarm)
 
 A high-level API for finding and connecting to peers who are interested in a "topic."
 
