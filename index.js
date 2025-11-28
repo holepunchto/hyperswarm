@@ -449,6 +449,8 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   async _handleNetworkChange() {
+    if (this.suspended) return
+
     // prioritize figuring out if existing connections are dead
     for (const conn of this._allConnections) {
       conn.sendKeepAlive()
