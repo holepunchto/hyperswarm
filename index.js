@@ -100,6 +100,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     this._firewall = firewall
 
     this.dht.on('network-change', this._handleNetworkChange.bind(this))
+    this.dht.on('network-update', this._handleNetworkUpdate.bind(this))
     this.on('update', this._handleUpdate)
   }
 
@@ -446,6 +447,11 @@ module.exports = class Hyperswarm extends EventEmitter {
     if (peerInfo._updatePriority()) {
       this._enqueue(peerInfo)
     }
+  }
+
+  async _handleNetworkUpdate() {
+    if (!this.online) return
+    this._handleNetworkChange()
   }
 
   async _handleNetworkChange() {
