@@ -127,8 +127,9 @@ module.exports = class Hyperswarm extends EventEmitter {
         peerInfo._updatePriority() === false ||
         this._allConnections.has(peerInfo.publicKey) ||
         peerInfo.queued
-      )
+      ) {
         continue
+      }
       peerInfo.queued = true
       peerInfo._flushTick = this._flushTick
       this._queue.add(peerInfo)
@@ -285,8 +286,9 @@ module.exports = class Hyperswarm extends EventEmitter {
       if (
         peerInfo.attempts >= 5 ||
         Date.now() - peerInfo.disconnectedTime < peerInfo.attempts * 1000
-      )
+      ) {
         continue
+      }
       this._connect(peerInfo, false)
     }
 
