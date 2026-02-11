@@ -132,6 +132,7 @@ Stop attempting direct connections to a known peer.
 If a direct connection is already established, that connection will **not** be destroyed by `leavePeer`.
 
 #### `const discovery = swarm.status(topic)`
+
 Get the [`PeerDiscovery`](#peerdiscovery-api) object associated with the topic, if it exists.
 
 #### `await swarm.listen()`
