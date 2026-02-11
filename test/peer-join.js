@@ -20,7 +20,7 @@ test('join peer - can establish direct connections to public keys', async (t) =>
   let s2Connected = false
   let s1Connected = false
 
-  swarm2.on('connection', conn => {
+  swarm2.on('connection', (conn) => {
     conn.on('error', noop)
     if (!s2Connected) {
       firstConnection.pass('swarm2 got its first connection')
@@ -28,7 +28,7 @@ test('join peer - can establish direct connections to public keys', async (t) =>
     }
     connections.pass('swarm2 got a connection')
   })
-  swarm1.on('connection', conn => {
+  swarm1.on('connection', (conn) => {
     conn.on('error', noop)
     if (!s1Connected) {
       firstConnection.pass('swarm1 got its first connection')
@@ -80,12 +80,12 @@ test('leave peer - will stop reconnecting to previously joined peers', async (t)
   const close = t.test('close')
   close.plan(2)
 
-  swarm2.on('connection', conn => {
+  swarm2.on('connection', (conn) => {
     conn.once('close', () => close.pass('swarm2 connection closed'))
     open.pass('swarm2 got a connection')
   })
-  swarm1.on('connection', conn => {
-    conn.once('close', conn => close.pass('swarm1 connection closed'))
+  swarm1.on('connection', (conn) => {
+    conn.once('close', (conn) => close.pass('swarm1 connection closed'))
     open.pass('swarm1 got a connection')
   })
 
@@ -101,10 +101,10 @@ test('leave peer - will stop reconnecting to previously joined peers', async (t)
   t.alike(swarm1.connections.size, 1)
   t.alike(swarm2.connections.size, 1)
 
-  swarm2.on('connection', conn => {
+  swarm2.on('connection', (conn) => {
     t.fail('swarm2 got a connection after leave')
   })
-  swarm1.on('connection', conn => {
+  swarm1.on('connection', (conn) => {
     t.fail('swarm1 got a connection after leave')
   })
 
@@ -131,7 +131,11 @@ test('leave peer - no memory leak if other side closed connection first', async 
   // No need to wait between retries, we just want to test
   // that it cleans up after the failed retry
   const instaBackoffs = [0, 0, 0, 0]
-  const swarm1 = new Hyperswarm({ bootstrap, backoffs: instaBackoffs, jitter: 0 })
+  const swarm1 = new Hyperswarm({
+    bootstrap,
+    backoffs: instaBackoffs,
+    jitter: 0
+  })
   const swarm2 = new Hyperswarm({ bootstrap })
 
   let hasBeen1 = false
@@ -154,12 +158,12 @@ test('leave peer - no memory leak if other side closed connection first', async 
   const close = t.test('close')
   close.plan(2)
 
-  swarm2.on('connection', conn => {
+  swarm2.on('connection', (conn) => {
     conn.once('close', () => close.pass('swarm2 connection closed'))
     open.pass('swarm2 got a connection')
     conn.on('error', noop)
   })
-  swarm1.on('connection', conn => {
+  swarm1.on('connection', (conn) => {
     conn.once('close', () => close.pass('swarm1 connection closed'))
     open.pass('swarm1 got a connection')
     conn.on('error', noop)
@@ -184,4 +188,4 @@ test('leave peer - no memory leak if other side closed connection first', async 
   swarm1.leavePeer(swarm2.keyPair.publicKey)
 })
 
-function noop () {}
+function noop() {}

@@ -1,15 +1,17 @@
 # hyperswarm
 
-### [See the full API docs at docs.holepunch.to](https://docs.holepunch.to/building-blocks/hyperswarm)
+### [See the full API docs at docs.pears.com](https://docs.pears.com/building-blocks/hyperswarm)
 
 A high-level API for finding and connecting to peers who are interested in a "topic."
 
 ## Installation
+
 ```
 npm install hyperswarm
 ```
 
 ## Usage
+
 ```js
 const Hyperswarm = require('hyperswarm')
 
@@ -23,7 +25,7 @@ swarm1.on('connection', (conn, info) => {
 })
 
 swarm2.on('connection', (conn, info) => {
-  conn.on('data', data => console.log('client got message:', data.toString()))
+  conn.on('data', (data) => console.log('client got message:', data.toString()))
 })
 
 const topic = Buffer.alloc(32).fill('hello world') // A topic must be 32 bytes
@@ -39,30 +41,37 @@ await swarm2.flush() // Waits for the swarm to connect to pending peers.
 ## Hyperswarm API
 
 #### `const swarm = new Hyperswarm(opts = {})`
+
 Construct a new Hyperswarm instance.
 
 `opts` can include:
-* `keyPair`: A Noise keypair that will be used to listen/connect on the DHT. Defaults to a new key pair.
-* `seed`: A unique, 32-byte, random seed that can be used to deterministically generate the key pair.
-* `maxPeers`: The maximum number of peer connections to allow.
-* `firewall`: A sync function of the form `remotePublicKey => (true|false)`. If true, the connection will be rejected. Defaults to allowing all connections.
-* `dht`: A DHT instance. Defaults to a new instance.
+
+- `keyPair`: A Noise keypair that will be used to listen/connect on the DHT. Defaults to a new key pair.
+- `seed`: A unique, 32-byte, random seed that can be used to deterministically generate the key pair.
+- `maxPeers`: The maximum number of peer connections to allow.
+- `firewall`: A sync function of the form `remotePublicKey => (true|false)`. If true, the connection will be rejected. Defaults to allowing all connections.
+- `dht`: A DHT instance. Defaults to a new instance.
 
 #### `swarm.connecting`
+
 Number that indicates connections in progress.
 
 #### `swarm.connections`
+
 A set of all active client/server connections.
 
 #### `swarm.peers`
+
 A Map containing all connected peers, of the form: `(Noise public key hex string) -> PeerInfo object`
 
 See the [`PeerInfo`](#peerinfo-api) API for more details.
 
 #### `swarm.dht`
+
 A [`hyperdht`](https://github.com/holepunchto/hyperdht) instance. Useful if you want lower-level control over Hyperswarm's networking.
 
 #### `swarm.on('connection', (socket, peerInfo) => {})`
+
 Emitted whenever the swarm connects to a new peer.
 
 `socket` is an end-to-end (Noise) encrypted Duplex stream
@@ -70,38 +79,44 @@ Emitted whenever the swarm connects to a new peer.
 `peerInfo` is a [`PeerInfo`](#peerinfo-api) instance
 
 #### `swarm.on('update', () => {})`
+
 Emitted when internal values are changed, useful for user interfaces.
 
 For example: emitted when `swarm.connecting` or `swarm.connections` changes.
 
 #### `const discovery = swarm.join(topic, opts = {})`
+
 Start discovering and connecting to peers sharing a common topic. As new peers are connected to, they will be emitted from the swarm as `connection` events.
 
 `topic` must be a 32-byte Buffer
 `opts` can include:
-* `server`: Accept server connections for this topic by announcing yourself to the DHT. Defaults to `true`.
-* `client`: Actively search for and connect to discovered servers. Defaults to `true`.
-* `limit`: Set the max number of peers to connect to when joining the topic. Defaults to `Infinity`.
+
+- `server`: Accept server connections for this topic by announcing yourself to the DHT. Defaults to `true`.
+- `client`: Actively search for and connect to discovered servers. Defaults to `true`.
+- `limit`: Set the max number of peers to connect to when joining the topic. Defaults to `Infinity`.
 
 Returns a [`PeerDiscovery`](#peerdiscovery-api) object.
 
 #### Clients and Servers
+
 In Hyperswarm, there are two ways for peers to join the swarm: client mode and server mode. If you've previously used Hyperswarm v2, these were called "lookup" and "announce", but we now think "client" and "server" are more descriptive.
 
 When you join a topic as a server, the swarm will start accepting incoming connections from clients (peers that have joined the same topic in client mode). Server mode will announce your keypair to the DHT, so that other peers can discover your server. When server connections are emitted, they are not associated with a specific topic -- the server only knows it received an incoming connection.
 
-When you join a topic as a client, the swarm will do a query to discover available servers, and will eagerly connect to them. As with server mode, these connections will be emitted as `connection` events, but in client mode they __will__ be associated with the topic (`info.topics` will be set in the `connection` event).
+When you join a topic as a client, the swarm will do a query to discover available servers, and will eagerly connect to them. As with server mode, these connections will be emitted as `connection` events, but in client mode they **will** be associated with the topic (`info.topics` will be set in the `connection` event).
 
 #### `await swarm.leave(topic)`
+
 Stop discovering peers for the given topic.
 
 `topic` must be a 32-byte Buffer
 
 If a topic was previously joined in server mode, `leave` will stop announcing the topic on the DHT. If a topic was previously joined in client mode, `leave` will stop searching for servers announcing the topic.
 
-`leave` will __not__ close any existing connections.
+`leave` will **not** close any existing connections.
 
 #### `swarm.joinPeer(noisePublicKey)`
+
 Establish a direct connection to a known peer.
 
 `noisePublicKey` must be a 32-byte Buffer
@@ -109,37 +124,59 @@ Establish a direct connection to a known peer.
 As with the standard `join` method, `joinPeer` will ensure that peer connections are reestablished in the event of failures.
 
 #### `swarm.leavePeer(noisePublicKey)`
+
 Stop attempting direct connections to a known peer.
 
 `noisePublicKey` must be a 32-byte Buffer
 
-If a direct connection is already established, that connection will __not__ be destroyed by `leavePeer`.
+If a direct connection is already established, that connection will **not** be destroyed by `leavePeer`.
 
 #### `const discovery = swarm.status(topic)`
 Get the [`PeerDiscovery`](#peerdiscovery-api) object associated with the topic, if it exists.
 
 #### `await swarm.listen()`
+
 Explicitly start listening for incoming connections. This will be called internally after the first `join`, so it rarely needs to be called manually.
 
 #### `await swarm.flush()`
+
 Wait for any pending DHT announces, and for the swarm to connect to any pending peers (peers that have been discovered, but are still in the queue awaiting processing).
 
 Once a `flush()` has completed, the swarm will have connected to every peer it can discover from the current set of topics it's managing.
 
-`flush()` is not topic-specific, so it will wait for every pending DHT operation and connection to be processed -- it's quite heavyweight, so it could take a while. In most cases, it's not necessary, as connections are emitted by `swarm.on('connection')` immediately after they're opened.  
+`flush()` is not topic-specific, so it will wait for every pending DHT operation and connection to be processed -- it's quite heavyweight, so it could take a while. In most cases, it's not necessary, as connections are emitted by `swarm.on('connection')` immediately after they're opened.
+
+#### `await swarm.suspend({ log: () => {} })`
+
+Suspend the swarm disconnecting all peers, suspends server listening and stops discovery of new peers. Useful for suspending when the runtime suspends to pause networking.
+
+`log` is a logging function, which defaults to a noop function.
+
+#### `await swarm.resume({ log: () => {} })`
+
+Resume a suspended swarm refreshing discovery of new peers and servers. Useful for reannouncing to the DHT and reconnecting to peers when the runtime resumes.
+
+`log` is a logging function, which defaults to a noop function.
+
+#### `swarm.on('ban', peerInfo, err)`
+
+Emitted when a peer gets banned. `err` is an error object describing the reason for the ban (e.g. firewalled).
 
 ## PeerDiscovery API
 
 `swarm.join` returns a `PeerDiscovery` instance which allows you to both control discovery behavior, and respond to lifecycle changes during discovery.
 
 #### `await discovery.flushed()`
+
 Wait until the topic has been fully announced to the DHT. This method is only relevant in server mode. When `flushed()` has completed, the server will be available to the network.
 
 #### `await discovery.refresh({ client, server })`
+
 Update the `PeerDiscovery` configuration, optionally toggling client and server modes. This will also trigger an immediate re-announce of the topic, when the `PeerDiscovery` is in server mode.
 
 #### `await discovery.destroy()`
-Stop discovering peers for the given topic. 
+
+Stop discovering peers for the given topic.
 
 If a topic was previously joined in server mode, `leave` will stop announcing the topic on the DHT. If a topic was previously joined in client mode, `leave` will stop searching for servers announcing the topic.
 
@@ -150,16 +187,21 @@ If a topic was previously joined in server mode, `leave` will stop announcing th
 There is a one-to-one relationship between connections and `PeerInfo` objects -- if a single peer announces multiple topics, those topics will be multiplexed over a single connection.
 
 #### `peerInfo.publicKey`
+
 The peer's Noise public key.
 
 #### `peerInfo.topics`
+
 An Array of topics that this Peer is associated with -- `topics` will only be updated when the Peer is in client mode.
 
 #### `peerInfo.prioritized`
+
 If true, the swarm will rapidly attempt to reconnect to this peer.
 
 #### `peerInfo.ban(banStatus = false)`
-Ban or unban the peer. Banning will prevent any future reconnection attempts, but it will __not__ close any existing connections.
+
+Ban or unban the peer. Banning will prevent any future reconnection attempts, but it will **not** close any existing connections.
 
 ## License
+
 MIT

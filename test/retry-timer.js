@@ -1,3 +1,4 @@
+const process = require('process')
 const test = require('brittle')
 const crypto = require('hypercore-crypto')
 const { timeout } = require('./helpers')
@@ -5,12 +6,7 @@ const { timeout } = require('./helpers')
 const RetryTimer = require('../lib/retry-timer')
 const PeerInfo = require('../lib/peer-info')
 
-const BACKOFFS = [
-  50,
-  150,
-  250,
-  350
-]
+const BACKOFFS = [50, 150, 250, 350]
 const MAX_JITTER = 20
 
 const isLinux = process.platform === 'linux'
@@ -86,19 +82,19 @@ test('retry timer - does not retry banned peers', async (t) => {
   rt.destroy()
 })
 
-function randomPeerInfo () {
+function randomPeerInfo() {
   return new PeerInfo({
     publicKey: crypto.randomBytes(32)
   })
 }
 
-function setQuickRetry (peerInfo) {
+function setQuickRetry(peerInfo) {
   peerInfo.proven = true
   peerInfo.reconnect(true)
   peerInfo.attempts = 1
 }
 
-function setUnresponsive (peerInfo) {
+function setUnresponsive(peerInfo) {
   peerInfo.proven = false
   peerInfo.reconnect(true)
   peerInfo.attempts = 4
