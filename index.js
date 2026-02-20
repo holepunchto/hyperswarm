@@ -151,7 +151,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   _withinMaxPeers() {
     const e = this.explicitPeers.size
     const factor = e === 0 ? 1 : e < 2 ? 2 : e < 4 ? 3 : 4
-    return (factor * this._allConnections.size) < this.maxPeers
+    return factor * this._allConnections.size < this.maxPeers
   }
 
   _flushAllMaybe() {
