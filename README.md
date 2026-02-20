@@ -64,7 +64,7 @@ A set of all active client/server connections.
 
 A Map containing all connected peers, of the form: `(Noise public key hex string) -> PeerInfo object`
 
-See the [`PeerInfo`](https://github.com/holepunchto/hyperswarm/blob/v3/README.md#peerinfo-api) API for more details.
+See the [`PeerInfo`](#peerinfo-api) API for more details.
 
 #### `swarm.dht`
 
@@ -76,7 +76,7 @@ Emitted whenever the swarm connects to a new peer.
 
 `socket` is an end-to-end (Noise) encrypted Duplex stream
 
-`peerInfo` is a [`PeerInfo`](https://github.com/holepunchto/hyperswarm/blob/v3/README.md#peerinfo-api) instance
+`peerInfo` is a [`PeerInfo`](#peerinfo-api) instance
 
 #### `swarm.on('update', () => {})`
 
@@ -93,8 +93,9 @@ Start discovering and connecting to peers sharing a common topic. As new peers a
 
 - `server`: Accept server connections for this topic by announcing yourself to the DHT. Defaults to `true`.
 - `client`: Actively search for and connect to discovered servers. Defaults to `true`.
+- `limit`: Set the max number of peers to connect to when joining the topic. Defaults to `Infinity`.
 
-Returns a [`PeerDiscovery`](https://github.com/holepunchto/hyperswarm/blob/v3/README.md#peerdiscovery-api) object.
+Returns a [`PeerDiscovery`](#peerdiscovery-api) object.
 
 #### Clients and Servers
 
@@ -132,7 +133,7 @@ If a direct connection is already established, that connection will **not** be d
 
 #### `const discovery = swarm.status(topic)`
 
-Get the [`PeerDiscovery`](https://github.com/holepunchto/hyperswarm/blob/v3/README.md#peerdiscovery-api) object associated with the topic, if it exists.
+Get the [`PeerDiscovery`](#peerdiscovery-api) object associated with the topic, if it exists.
 
 #### `await swarm.listen()`
 
