@@ -869,7 +869,7 @@ test('ban stat and event', async (t) => {
   await swarm2.destroy()
 })
 
-test.solo('one server, one client - server announces after client joins', async (t) => {
+test('one server, one client - server announces after client joins', async (t) => {
   const { bootstrap } = await createTestnet(3, t.teardown)
 
   const swarm1 = new Hyperswarm({ bootstrap })
