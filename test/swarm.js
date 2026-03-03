@@ -869,4 +869,36 @@ test('ban stat and event', async (t) => {
   await swarm2.destroy()
 })
 
+test.solo('one server, one client - server announces after client joins', async (t) => {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
+  const swarm1 = new Hyperswarm({ bootstrap })
+  const swarm2 = new Hyperswarm({ bootstrap })
+
+  t.plan(1)
+
+  t.teardown(async () => {
+    await swarm1.destroy()
+    await swarm2.destroy()
+  })
+
+  swarm2.on('connection', (conn) => {
+    t.pass('client connected to server')
+    conn.on('error', noop)
+    conn.end()
+  })
+  swarm1.on('connection', (conn) => {
+    conn.on('error', noop)
+    conn.end()
+  })
+
+  const topic = Buffer.alloc(32).fill('hello world')
+
+  // Client joins first
+  swarm2.join(topic, { client: true, server: false })
+
+  // Server announces after client is waiting
+  await swarm1.join(topic, { server: true, client: false }).flushed()
+})
+
 function noop() {}
