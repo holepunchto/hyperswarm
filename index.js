@@ -411,7 +411,11 @@ module.exports = class Hyperswarm extends EventEmitter {
     let peerInfo = this.peers.get(keyString)
 
     if (peerInfo) {
-      peerInfo.relayAddresses = relayAddresses // new is always better
+      // Some public paths update the peer without any new relay data. Preserve the
+      // previously discovered relay addresses unless a caller provides a real update.
+      if (relayAddresses !== null && relayAddresses !== undefined) {
+        peerInfo.relayAddresses = relayAddresses
+      }
       return peerInfo
     }
 
