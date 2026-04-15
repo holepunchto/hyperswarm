@@ -2,7 +2,7 @@ const { EventEmitter } = require('events')
 const test = require('brittle')
 const createTestnet = require('hyperdht/testnet')
 const DHT = require('hyperdht')
-const { timeout } = require('./helpers')
+const { waitFor } = require('./helpers')
 
 const Hyperswarm = require('..')
 
@@ -24,7 +24,7 @@ test('relay fallback policy matches relay-eligible holepunch errors', async (t) 
     const { swarm, peerInfo, relayAttempts, relayKey } = createForceRelayingHarness(bootstrap, code)
 
     swarm._connect(peerInfo, false)
-    await timeout(25)
+    await waitFor(() => peerInfo.disconnectedTime > 0 && swarm._allConnections.size === 0)
 
     lc.is(
       peerInfo.forceRelaying,
@@ -36,7 +36,7 @@ test('relay fallback policy matches relay-eligible holepunch errors', async (t) 
     )
 
     swarm._connect(peerInfo, false)
-    await timeout(25)
+    await waitFor(() => relayAttempts.length === 2 && swarm._allConnections.size === 0)
 
     lc.alike(
       relayAttempts,
