@@ -68,10 +68,8 @@ function createForceRelayingHarness(bootstrap, code) {
     const err = Object.assign(new Error(code), { code })
 
     conn.remotePublicKey = publicKey
-    conn._readableState = { error: null }
 
     setTimeout(() => {
-      conn._readableState.error = err
       conn.emit('error', err)
       conn.emit('close')
     }, 0)
