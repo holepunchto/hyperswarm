@@ -510,7 +510,7 @@ test(
     const inboundOnSwarm1 = nextConnectionFromPeer(swarm1, swarm2.keyPair.publicKey)
 
     // Then use a second topic to make swarm1 dial swarm2, so swarm2 reaches the real
-    // _handleServerConnection(...) path that used to overwrite relayAddresses with null.
+    // _handleServerConnection(...) path that touches an existing peer without new relay data.
     await swarm2.join(inboundTopic, { client: false, server: true }).flushed()
     swarm1.join(inboundTopic, { client: true, server: false })
 
@@ -534,6 +534,28 @@ test(
     clientConn.destroy()
   }
 )
+
+test('_upsertPeer preserves relay addresses on touch and clears on explicit null', async (t) => {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+  const swarm = new Hyperswarm({ bootstrap })
+
+  t.teardown(async () => {
+    await swarm.destroy()
+  })
+
+  const publicKey = Buffer.alloc(32).fill('relay address contract')
+  const relayAddresses = [{ host: '1.2.3.4', port: 1234 }]
+
+  const peerInfo = swarm._upsertPeer(publicKey, relayAddresses)
+
+  t.alike(peerInfo.relayAddresses, relayAddresses, 'explicit relay addresses are stored')
+
+  swarm._upsertPeer(publicKey)
+  t.alike(peerInfo.relayAddresses, relayAddresses, 'touching the peer preserves relay addresses')
+
+  swarm._upsertPeer(publicKey, null)
+  t.is(peerInfo.relayAddresses, null, 'explicit null clears relay addresses')
+})
 
 test('topics returns peer-discovery objects', async (t) => {
   const { bootstrap } = await createTestnet(3, t.teardown)

@@ -376,7 +376,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     // When reaching here, the connection will always be 'opened' next tick
     this.stats.connects.server.opened++
 
-    const peerInfo = this._upsertPeer(conn.remotePublicKey, null)
+    const peerInfo = this._upsertPeer(conn.remotePublicKey)
 
     this.connections.add(conn)
     this._allConnections.add(conn)
@@ -411,9 +411,9 @@ module.exports = class Hyperswarm extends EventEmitter {
     let peerInfo = this.peers.get(keyString)
 
     if (peerInfo) {
-      // Some public paths update the peer without any new relay data. Preserve the
-      // previously discovered relay addresses unless a caller provides a real update.
-      if (relayAddresses !== null && relayAddresses !== undefined) {
+      // One-arg calls only touch the peer. A provided second arg is authoritative:
+      // arrays update, [] clears to known-empty, and null can explicitly clear hints.
+      if (arguments.length >= 2) {
         peerInfo.relayAddresses = relayAddresses
       }
       return peerInfo
@@ -545,7 +545,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   joinPeer(publicKey) {
-    const peerInfo = this._upsertPeer(publicKey, null)
+    const peerInfo = this._upsertPeer(publicKey)
     if (!peerInfo) return
     if (!this.explicitPeers.has(peerInfo)) {
       peerInfo.explicit = true
