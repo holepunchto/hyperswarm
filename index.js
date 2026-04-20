@@ -411,9 +411,9 @@ module.exports = class Hyperswarm extends EventEmitter {
     let peerInfo = this.peers.get(keyString)
 
     if (peerInfo) {
-      // One-arg calls only touch the peer. A provided second arg is authoritative:
-      // arrays update, [] clears to known-empty, and null can explicitly clear hints.
-      if (arguments.length >= 2) {
+      // Unknown relay addresses preserve existing hints. Arrays update, [] records
+      // known-empty, and null explicitly clears.
+      if (relayAddresses !== undefined) {
         peerInfo.relayAddresses = relayAddresses
       }
       return peerInfo
