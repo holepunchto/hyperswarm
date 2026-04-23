@@ -536,8 +536,7 @@ test(
 )
 
 test('_upsertPeer preserves relay addresses on undefined and clears on null', async (t) => {
-  const { bootstrap } = await createTestnet(3, t.teardown)
-  const swarm = new Hyperswarm({ bootstrap })
+  const swarm = new Hyperswarm({ bootstrap: false })
 
   t.teardown(async () => {
     await swarm.destroy()
@@ -553,6 +552,23 @@ test('_upsertPeer preserves relay addresses on undefined and clears on null', as
 
   swarm._upsertPeer(publicKey, null)
   t.is(peerInfo.relayAddresses, null, 'null explicitly clears known hints')
+})
+
+test('joinPeer preserves existing relay addresses', async (t) => {
+  const swarm = new Hyperswarm({ bootstrap: false, maxParallel: 0 })
+
+  t.teardown(async () => {
+    await swarm.destroy()
+  })
+
+  const publicKey = Buffer.alloc(32).fill(8)
+  const relayAddresses = [{ host: '127.0.0.1', port: 4242 }]
+
+  const peerInfo = swarm._upsertPeer(publicKey, relayAddresses)
+
+  swarm.joinPeer(publicKey)
+
+  t.alike(peerInfo.relayAddresses, relayAddresses, 'joinPeer preserves known relay hints')
 })
 
 test('topics returns peer-discovery objects', async (t) => {
