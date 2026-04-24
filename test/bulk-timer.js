@@ -3,70 +3,84 @@ const test = require('brittle')
 const BulkTimer = require('../lib/bulk-timer')
 
 const TEST_INTERVAL = 500
+const TEST_TIMEOUT = TEST_INTERVAL * 5
 
-test('bulk timer queue', async (t) => {
-  t.plan(1)
-
+test('bulk timer queue', { timeout: TEST_TIMEOUT }, async (t) => {
+  const queued = nextBatch()
   const timer = new BulkTimer(TEST_INTERVAL, (batch) => {
-    t.alike(batch, [1, 2])
+    queued.resolve(batch)
   })
+
+  t.teardown(() => timer.destroy())
 
   timer.add(1)
   timer.add(2)
 
-  await waitForCalls(1)
-  timer.destroy()
+  t.alike(await queued.promise, [1, 2])
 })
 
-test('bulk timer queue (async)', async (t) => {
-  t.plan(1)
-
+test('bulk timer queue (async)', { timeout: TEST_TIMEOUT }, async (t) => {
+  const queued = nextBatch()
   const timer = new BulkTimer(TEST_INTERVAL, (batch) => {
-    t.alike(batch, [1, 2])
-    timer.destroy()
+    queued.resolve(batch)
   })
+
+  t.teardown(() => timer.destroy())
 
   timer.add(1)
   await new Promise((resolve) => setImmediate(resolve))
   timer.add(2)
 
-  await waitForCalls(1)
+  t.alike(await queued.promise, [1, 2])
 })
 
-test('bulk timer queue different batch', async (t) => {
-  t.plan(2)
-
+test('bulk timer queue different batch', { timeout: TEST_TIMEOUT }, async (t) => {
   let calls = 0
+  const first = nextBatch()
+  const second = nextBatch()
   const timer = new BulkTimer(TEST_INTERVAL, (batch) => {
     if (calls++ === 0) {
-      t.alike(batch, [1])
+      first.resolve(batch)
       return
     }
-    t.alike(batch, [2])
-    timer.destroy()
+    second.resolve(batch)
   })
 
+  t.teardown(() => timer.destroy())
+
   timer.add(1)
-  await waitForCalls(1)
+  t.alike(await first.promise, [1])
 
   timer.add(2)
-  await waitForCalls(1)
+  t.alike(await second.promise, [2])
 })
 
-test('bulk timer - nothing pending', async (t) => {
+test('bulk timer - nothing pending', { timeout: TEST_TIMEOUT }, async (t) => {
+  const first = nextBatch()
   let calls = 0
-  const timer = new BulkTimer(TEST_INTERVAL, () => calls++)
+  const timer = new BulkTimer(TEST_INTERVAL, () => {
+    if (++calls === 1) first.resolve()
+  })
+
+  t.teardown(() => timer.destroy())
 
   timer.add(1)
-  await waitForCalls(1) // nothing should be pending after this
-  t.alike(calls, 1)
+  await first.promise
+  t.is(calls, 1)
 
-  await waitForCalls(1)
-  t.alike(calls, 1)
-
-  timer.destroy()
+  await timeout(TEST_INTERVAL * 2)
+  t.is(calls, 1)
 })
 
-function waitForCalls(n) {
-  return new Promise((resolve) => setTimeout(resolve, n * (TEST_INTERVAL * 1.5)))
+function nextBatch() {
+  let resolve = null
+  const promise = new Promise((res) => {
+    resolve = res
+  })
+
+  return { promise, resolve }
+}
+
+function timeout(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
