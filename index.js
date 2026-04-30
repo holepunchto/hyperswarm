@@ -314,7 +314,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     const firewalled = this._firewall(remotePublicKey, payload)
     if (firewalled) {
-      if (!peerInfo) peerInfo = this._upsertPeer(remotePublicKey)
+      if (!peerInfo) peerInfo = this._upsertPeer(remotePublicKey, null)
       this._banPeer(peerInfo, true, new Error(ERR_FIREWALL))
     }
 
@@ -376,7 +376,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     // When reaching here, the connection will always be 'opened' next tick
     this.stats.connects.server.opened++
 
-    const peerInfo = this._upsertPeer(conn.remotePublicKey)
+    const peerInfo = this._upsertPeer(conn.remotePublicKey, null)
 
     this.connections.add(conn)
     this._allConnections.add(conn)
@@ -411,9 +411,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     let peerInfo = this.peers.get(keyString)
 
     if (peerInfo) {
-      // Unknown relay addresses preserve existing hints. Arrays update, [] records
-      // known-empty, and null explicitly clears.
-      if (relayAddresses !== undefined) {
+      if (relayAddresses !== null) {
         peerInfo.relayAddresses = relayAddresses
       }
       return peerInfo
@@ -545,7 +543,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   joinPeer(publicKey) {
-    const peerInfo = this._upsertPeer(publicKey)
+    const peerInfo = this._upsertPeer(publicKey, null)
     if (!peerInfo) return
     if (!this.explicitPeers.has(peerInfo)) {
       peerInfo.explicit = true
