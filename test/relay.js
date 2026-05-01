@@ -1,8 +1,7 @@
-const { EventEmitter } = require('events')
+const { EventEmitter, once } = require('events')
 const test = require('brittle')
 const createTestnet = require('hyperdht/testnet')
 const DHT = require('hyperdht')
-const { waitFor } = require('./helpers')
 
 const Hyperswarm = require('..')
 
@@ -19,12 +18,17 @@ test('relay fallback policy matches relay-eligible holepunch errors', async (t) 
 
   for (const [code, expected] of cases) {
     const lc = t.test(code)
-    lc.plan(2)
+    lc.plan(4)
 
     const { swarm, peerInfo, relayAttempts, relayKey } = createForceRelayingHarness(bootstrap, code)
 
     swarm._connect(peerInfo, false)
-    await waitFor(() => peerInfo.disconnectedTime > 0 && swarm._allConnections.size === 0)
+    await once(swarm, 'update')
+
+    lc.ok(
+      peerInfo.disconnectedTime > 0 && swarm._allConnections.size === 0,
+      code + ' should close the direct attempt'
+    )
 
     lc.is(
       peerInfo.forceRelaying,
@@ -36,7 +40,12 @@ test('relay fallback policy matches relay-eligible holepunch errors', async (t) 
     )
 
     swarm._connect(peerInfo, false)
-    await waitFor(() => relayAttempts.length === 2 && swarm._allConnections.size === 0)
+    await once(swarm, 'update')
+
+    lc.ok(
+      relayAttempts.length === 2 && swarm._allConnections.size === 0,
+      code + ' should close the retry attempt'
+    )
 
     lc.alike(
       relayAttempts,
