@@ -671,6 +671,7 @@ function shouldForceRelaying(code) {
   return (
     code === 'HOLEPUNCH_ABORTED' ||
     code === 'HOLEPUNCH_DOUBLE_RANDOMIZED_NATS' ||
+    code === 'CANNOT_HOLEPUNCH' ||
     code === 'REMOTE_NOT_HOLEPUNCHABLE'
   )
 }
