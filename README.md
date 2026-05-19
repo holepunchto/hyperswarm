@@ -30,10 +30,10 @@ swarm2.on('connection', (conn, info) => {
 
 const topic = Buffer.alloc(32).fill('hello world') // A topic must be 32 bytes
 const discovery = swarm1.join(topic, { server: true, client: false })
-await discovery.flushed() // Waits for the topic to be fully announced on the DHT
+await discovery.flushed() // Optional: wait for the server announce to reach the DHT
 
 swarm2.join(topic, { server: false, client: true })
-await swarm2.flush() // Waits for the swarm to connect to pending peers.
+await swarm2.flush() // Optional: wait for pending peer connections in this example.
 
 // After this point, both client and server should have connections
 ```
@@ -170,6 +170,8 @@ Emitted when a peer gets banned. `err` is an error object describing the reason 
 #### `await discovery.flushed()`
 
 Wait until the topic has been fully announced to the DHT. This method is only relevant in server mode. When `flushed()` has completed, the server will be available to the network.
+
+`swarm.join()` starts discovery immediately, so `flushed()` is not required to begin discovering or connecting to peers. It is mostly useful for examples, tests, and setup flows that need to prove a server announce reached the DHT before continuing. Normal applications can usually react to `connection` and `update` events as peers appear instead of treating `flushed()` or `swarm.flush()` as a runtime readiness gate.
 
 #### `await discovery.refresh({ client, server })`
 
