@@ -50,7 +50,7 @@ test('connecting', async (t) => {
   await swarm2.flush()
 })
 
-test('dht online state does network update', async (t) => {
+test('dht online state calls for network update', async (t) => {
   t.plan(1)
   t.timeout(5_000)
 
