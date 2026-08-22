@@ -49,3 +49,13 @@ test('connecting', async (t) => {
   swarm2.join(topic, { client: true, server: false })
   await swarm2.flush()
 })
+
+test('dht online state does network update', async (t) => {
+  t.plan(1)
+  t.timeout(5_000)
+
+  const swarm = new Hyperswarm({ bootstrap: [] })
+  t.teardown(() => swarm.destroy())
+  swarm._handleNetworkChange = () => t.pass()
+  await swarm._handleNetworkUpdate()
+})
