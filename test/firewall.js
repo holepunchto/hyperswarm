@@ -1,6 +1,6 @@
 const test = require('brittle')
 const createTestnet = require('hyperdht/testnet')
-const { timeout, flushConnections } = require('./helpers')
+const { timeout, flushConnections, createDHT } = require('./helpers')
 
 const Hyperswarm = require('..')
 
@@ -9,9 +9,9 @@ const BACKOFFS = [100, 200, 300, 400]
 test('firewalled server - bad client is rejected', async (t) => {
   const { bootstrap } = await createTestnet(3, t.teardown)
 
-  const swarm1 = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: 0 })
+  const swarm1 = new Hyperswarm({ dht: createDHT(bootstrap), backoffs: BACKOFFS, jitter: 0 })
   const swarm2 = new Hyperswarm({
-    bootstrap,
+    dht: createDHT(bootstrap),
     backoffs: BACKOFFS,
     jitter: 0,
     firewall: (remotePublicKey) => {
@@ -38,9 +38,9 @@ test('firewalled client - bad server is rejected', async (t) => {
   const { bootstrap } = await createTestnet(3, t.teardown)
   t.plan(2)
 
-  const swarm1 = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: 0 })
+  const swarm1 = new Hyperswarm({ dht: createDHT(bootstrap), backoffs: BACKOFFS, jitter: 0 })
   const swarm2 = new Hyperswarm({
-    bootstrap,
+    dht: createDHT(bootstrap),
     backoffs: BACKOFFS,
     jitter: 0,
     firewall: (remotePublicKey) => {
@@ -68,11 +68,11 @@ test('firewalled client - bad server is rejected', async (t) => {
 test('firewalled server - rejection does not trigger retry cascade', async (t) => {
   const { bootstrap } = await createTestnet(3, t.teardown)
 
-  const swarm1 = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: 0 })
+  const swarm1 = new Hyperswarm({ dht: createDHT(bootstrap), backoffs: BACKOFFS, jitter: 0 })
 
   let firewallCalls = 0
   const swarm2 = new Hyperswarm({
-    bootstrap,
+    dht: createDHT(bootstrap),
     backoffs: BACKOFFS,
     jitter: 0,
     firewall: (remotePublicKey) => {
