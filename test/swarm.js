@@ -770,7 +770,7 @@ test('firewall for server connections results in peer ban', async (t) => {
 
   let firewallRan = true
   let disableFirewall = false
-  function myFirewall() {
+  function myFirewall(...args) {
     // allow none
     firewallRan = true
     return !disableFirewall
