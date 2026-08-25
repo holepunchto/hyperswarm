@@ -1,6 +1,7 @@
 const test = require('brittle')
 const DHT = require('hyperdht')
 const createTestnet = require('hyperdht/testnet')
+const { createDHT } = require('./helpers')
 
 const Hyperswarm = require('..')
 
@@ -9,8 +10,8 @@ test('suspend + resume', async (t) => {
 
   const { bootstrap } = await createTestnet(3, t.teardown)
 
-  const swarm1 = new Hyperswarm({ bootstrap })
-  const swarm2 = new Hyperswarm({ bootstrap })
+  const swarm1 = new Hyperswarm({ dht: createDHT(bootstrap) })
+  const swarm2 = new Hyperswarm({ dht: createDHT(bootstrap) })
 
   t.teardown(async () => {
     await swarm1.destroy()
@@ -47,7 +48,7 @@ test('suspend + resume', async (t) => {
 test('suspend + resume - a server re-announces on resume', async (t) => {
   const { bootstrap } = await createTestnet(3, t.teardown)
 
-  const server = new Hyperswarm({ bootstrap })
+  const server = new Hyperswarm({ dht: createDHT(bootstrap) })
   t.teardown(() => server.destroy())
 
   const probe = new DHT({ bootstrap })
@@ -75,8 +76,8 @@ test('suspend + resume - a server re-announces on resume', async (t) => {
 test('suspend + resume - 2 peers both server and client', async (t) => {
   const { bootstrap } = await createTestnet(3, t.teardown)
 
-  const a = new Hyperswarm({ bootstrap })
-  const b = new Hyperswarm({ bootstrap })
+  const a = new Hyperswarm({ dht: createDHT(bootstrap) })
+  const b = new Hyperswarm({ dht: createDHT(bootstrap) })
 
   t.teardown(async () => {
     await a.destroy()

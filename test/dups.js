@@ -1,6 +1,7 @@
 const test = require('brittle')
 const createTestnet = require('hyperdht/testnet')
 const Hyperswarm = require('../')
+const { createDHT } = require('./helpers')
 
 test('many servers', async (t) => {
   const { bootstrap } = await createTestnet(3, t.teardown)
@@ -13,7 +14,7 @@ test('many servers', async (t) => {
 
   const swarms = []
   for (let i = 0; i < cnt; i++) {
-    swarms.push(new Hyperswarm({ bootstrap }))
+    swarms.push(new Hyperswarm({ dht: createDHT(bootstrap) }))
   }
 
   for (const swarm of swarms) {
