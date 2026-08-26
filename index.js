@@ -457,7 +457,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   async _handleNetworkUpdate() {
-    if (!this.online) return
+    if (!this.dht.online) return
     this._handleNetworkChange()
   }
 
