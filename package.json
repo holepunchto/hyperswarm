@@ -2,9 +2,11 @@
   "name": "hyperswarm",
   "version": "4.17.0",
   "description": "A distributed networking stack for connecting peers",
+  "types": "index.d.ts",
   "files": [
     "index.js",
-    "lib/**.js"
+    "lib/**.js",
+    "index.d.ts"
   ],
   "imports": {
     "events": {
