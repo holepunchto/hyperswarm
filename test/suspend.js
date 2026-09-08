@@ -1,8 +1,8 @@
 const test = require('brittle')
+const DHT = require('hyperdht')
 const createTestnet = require('hyperdht/testnet')
 
 const Hyperswarm = require('..')
-const DHT = require('hyperdht')
 
 test('suspend + resume', async (t) => {
   t.plan(4)
