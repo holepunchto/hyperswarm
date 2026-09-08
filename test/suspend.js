@@ -107,11 +107,8 @@ test('suspend + resume - 2 peers both server and client', async (t) => {
   await a.resume()
 
   // discovery.refresh() is not awaitable by resume()
-  await new Promise(function (resolve, reject) {
-    setTimeout(function () {
-      b.resume().then(resolve).catch(reject)
-    }, 100)
-  })
+  await new Promise((resolve) => setTimeout(resolve, 100))
+  await b.resume()
 
   t.comment('resumed')
 
@@ -122,11 +119,12 @@ test('suspend + resume - 2 peers both server and client', async (t) => {
   t.is(b.connections.size, 1, 'B connection')
 
   function nextConnection(swarm) {
-    return new Promise(function (resolve) {
-      swarm.once('connection', function (connection) {
-        connection.once('error', function (err) {
+    return new Promise((resolve) => {
+      swarm.once('connection', (connection) => {
+        connection.once('error', (err) => {
           if (err.code !== 'ECONNRESET') throw err
         })
+
         resolve()
       })
     })
