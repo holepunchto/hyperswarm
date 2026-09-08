@@ -85,10 +85,7 @@ test('suspend + resume - 2 peers both server and client', async (t) => {
 
   const topic = Buffer.alloc(32).fill('symmetric roles')
 
-  const connected = Promise.all([
-    nextConnection(a),
-    nextConnection(b)
-  ])
+  const connected = Promise.all([nextConnection(a), nextConnection(b)])
 
   await a.join(topic, { server: true, client: true }).flushed()
   await b.join(topic, { server: true, client: true }).flushed()
@@ -110,8 +107,8 @@ test('suspend + resume - 2 peers both server and client', async (t) => {
   await a.resume()
 
   // discovery.refresh() is not awaitable by resume()
-  await new Promise(function(resolve, reject) {
-    setTimeout(function() {
+  await new Promise(function (resolve, reject) {
+    setTimeout(function () {
       b.resume().then(resolve).catch(reject)
     }, 1)
   })
@@ -126,8 +123,8 @@ test('suspend + resume - 2 peers both server and client', async (t) => {
 
   function nextConnection(swarm) {
     return new Promise(function (resolve) {
-      swarm.once('connection', function(connection) {
-        connection.once('error', function(err) {
+      swarm.once('connection', function (connection) {
+        connection.once('error', function (err) {
           if (err.code !== 'ECONNRESET') throw err
         })
         resolve()
