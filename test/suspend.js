@@ -110,7 +110,7 @@ test('suspend + resume - 2 peers both server and client', async (t) => {
   await new Promise(function (resolve, reject) {
     setTimeout(function () {
       b.resume().then(resolve).catch(reject)
-    }, 1)
+    }, 100)
   })
 
   t.comment('resumed')
