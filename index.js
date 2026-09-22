@@ -98,6 +98,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     this._clientConnections = 0
     this._serverConnections = 0
     this._firewall = firewall
+    this._online = true
 
     this.dht.on('network-change', this._handleNetworkChange.bind(this))
     this.dht.on('network-update', this._handleNetworkUpdate.bind(this))
@@ -457,7 +458,10 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   async _handleNetworkUpdate() {
-    if (!this.dht.online) return
+    // Rising edge for being online
+    const networkCameOnline = this.dht.online && !this._online
+    this._online = this.dht.online
+    if (!networkCameOnline) return
     this._handleNetworkChange()
   }
 
