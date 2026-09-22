@@ -56,6 +56,13 @@ test('dht online state calls for network update', async (t) => {
 
   const swarm = new Hyperswarm({ bootstrap: [] })
   t.teardown(() => swarm.destroy())
+
+  swarm.dht.online = false
+  swarm.dht.emit('network-update')
+
+  // Now online
+  swarm.dht.online = true
+
   swarm._handleNetworkChange = () => t.pass()
-  await swarm._handleNetworkUpdate()
+  swarm.dht.emit('network-update')
 })
