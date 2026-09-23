@@ -17,8 +17,8 @@ const Hyperswarm = require('hyperswarm')
 
 const swarm = new Hyperswarm()
 
-swarm1.on('connection', (conn) => {
-  // swarm1 will receive server connections
+swarm.on('connection', (conn) => {
+  // Handle incoming connections.
   conn.write('this is a server connection')
   conn.end()
 })
@@ -26,7 +26,7 @@ swarm1.on('connection', (conn) => {
 const discoveryKey = Buffer.alloc(32).fill('hello world') // must be 32 bytes
 
 // join the swarm, others will find you
-swarm2.join(discoveryKey, { server: true, client: true })
+swarm.join(discoveryKey, { server: true, client: true })
 ```
 
 ## Hyperswarm API
@@ -122,6 +122,16 @@ Stop attempting direct connections to a known peer.
 
 If a direct connection is already established, that connection will **not** be destroyed by `leavePeer`.
 
+#### `await swarm.clear()`
+
+Stop discovering peers for all joined topics. Existing connections are not closed.
+
+#### `await swarm.destroy([options])`
+
+Shut down the swarm, including its server and DHT. This also clears all joined topics.
+
+Set `options.force` to `true` to skip graceful discovery cleanup.
+
 #### `const discovery = swarm.status(topic)`
 
 Get the [`PeerDiscovery`](#peerdiscovery-api) object associated with the topic, if it exists.
@@ -150,7 +160,7 @@ Resume a suspended swarm refreshing discovery of new peers and servers. Useful f
 
 `log` is a logging function, which defaults to a noop function.
 
-#### `swarm.on('ban', peerInfo, err)`
+#### `swarm.on('ban', (peerInfo, err) => {})`
 
 Emitted when a peer gets banned. `err` is an error object describing the reason for the ban (e.g. firewalled).
 
@@ -170,7 +180,7 @@ Update the `PeerDiscovery` configuration, optionally toggling client and server 
 
 Stop discovering peers for the given topic.
 
-If a topic was previously joined in server mode, `leave` will stop announcing the topic on the DHT. If a topic was previously joined in client mode, `leave` will stop searching for servers announcing the topic.
+If the topic was joined in server mode, `destroy()` stops announcing it on the DHT. If it was joined in client mode, `destroy()` stops searching for servers announcing it.
 
 ## PeerInfo API
 
