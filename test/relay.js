@@ -2,6 +2,7 @@ const { EventEmitter, once } = require('events')
 const test = require('brittle')
 const createTestnet = require('hyperdht/testnet')
 const DHT = require('hyperdht')
+const { createDHT } = require('./helpers')
 
 const Hyperswarm = require('..')
 
@@ -65,7 +66,7 @@ function createForceRelayingHarness(bootstrap, code) {
   const relayAttempts = []
 
   const swarm = new Hyperswarm({
-    bootstrap,
+    dht: createDHT(bootstrap),
     relayThrough(force) {
       relayAttempts.push(force ? relayKey : null)
       return force ? relayKey : null
