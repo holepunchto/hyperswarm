@@ -67,6 +67,33 @@ test('bulk timer - nothing pending', async (t) => {
   timer.destroy()
 })
 
+test('bulk timer - clears interval when idle and restarts on add', async (t) => {
+  let calls = 0
+  const batches = []
+  const timer = new BulkTimer(TEST_INTERVAL, (batch) => {
+    calls++
+    batches.push([...batch])
+  })
+
+  timer.add(1)
+  t.ok(timer._interval !== null, 'interval started')
+
+  await waitForCalls(1)
+  t.is(calls, 1)
+  t.alike(batches[0], [1])
+  t.is(timer._interval, null, 'interval cleared when idle')
+
+  timer.add(2)
+  t.ok(timer._interval !== null, 'interval restarted')
+
+  await waitForCalls(1)
+  t.is(calls, 2)
+  t.alike(batches[1], [2])
+  t.is(timer._interval, null, 'interval cleared again')
+
+  timer.destroy()
+})
+
 function waitForCalls(n) {
   return new Promise((resolve) => setTimeout(resolve, n * (TEST_INTERVAL * 1.5)))
 }
