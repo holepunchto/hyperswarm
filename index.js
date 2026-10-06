@@ -680,6 +680,12 @@ function shouldForceRelaying(code) {
   )
 }
 
+// Banning on stream errors is switched off for now (b7d8056, "disable banning until
+// hc change can propagate"). The intended rule, kept below, bans a peer whose stream
+// closes with a HypercoreError INVALID_OPERATION; it waits on a hypercore change
+// reaching deployed peers. Until it is re-enabled this always returns false, so the
+// ban checks in _connect() and _handleServerConnection() never fire, and 'ban' is
+// only emitted by _handleFirewall().
 function shouldBan() {
   // return !!err && err.name === 'HypercoreError' && err.code === 'INVALID_OPERATION'
   return false
