@@ -476,6 +476,119 @@ test('rejoining with different client/server opts refreshes', async (t) => {
   await swarm2.destroy()
 })
 
+test('peer keeps discovered relay addresses after a later inbound connection', async (t) => {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
+  const swarm1 = new Hyperswarm({ bootstrap })
+  // Prevent swarm2 from immediately consuming the discovered peer as an outbound client
+  // connection. That lets us observe the discovered relayAddresses before the later inbound
+  // server-connection path for the same peer runs.
+  const swarm2 = new Hyperswarm({ bootstrap, maxClientConnections: 0 })
+
+  t.teardown(async () => {
+    await swarm1.destroy()
+    await swarm2.destroy()
+  })
+
+  const discoveryTopic = Buffer.alloc(32).fill('relay addresses discovery')
+  const inboundTopic = Buffer.alloc(32).fill('relay addresses inbound')
+
+  await swarm1.join(discoveryTopic, { client: false, server: true }).flushed()
+  swarm2.join(discoveryTopic, { client: true, server: false })
+
+  // First hit the normal public discovery path and wait until swarm2 has cached the relay
+  // addresses announced for swarm1.
+  const discoveredPeer = await waitForPeerWithRelayAddresses(swarm2, swarm1.keyPair.publicKey)
+  const relayAddresses = discoveredPeer.relayAddresses.map(({ host, port }) => ({ host, port }))
+
+  t.ok(relayAddresses.length > 0, 'discovery stored relay addresses through the public path')
+
+  const inboundOnSwarm2 = nextConnectionFromPeer(swarm2, swarm1.keyPair.publicKey)
+  const inboundOnSwarm1 = nextConnectionFromPeer(swarm1, swarm2.keyPair.publicKey)
+
+  // Then use a second topic to make swarm1 dial swarm2, so swarm2 reaches the real
+  // _handleServerConnection(...) path that touches an existing peer without new relay data.
+  await swarm2.join(inboundTopic, { client: false, server: true }).flushed()
+  swarm1.join(inboundTopic, { client: true, server: false })
+
+  const [serverConn] = await inboundOnSwarm2
+  const [clientConn] = await inboundOnSwarm1
+
+  await flushConnections(swarm1)
+  await flushConnections(swarm2)
+
+  const updatedPeer = swarm2.peers.get(b4a.toString(swarm1.keyPair.publicKey, 'hex'))
+
+  t.alike(
+    updatedPeer.relayAddresses,
+    relayAddresses,
+    'the later inbound server connection should not erase discovered relay addresses'
+  )
+
+  serverConn.on('error', noop)
+  clientConn.on('error', noop)
+  serverConn.destroy()
+  clientConn.destroy()
+})
+
+test('_upsertPeer preserves relay addresses on null and updates on arrays', async (t) => {
+  const swarm = new Hyperswarm({ bootstrap: false })
+
+  t.teardown(async () => {
+    await swarm.destroy()
+  })
+
+  const publicKey = Buffer.alloc(32).fill(7)
+  const relayAddresses = [{ host: '127.0.0.1', port: 4242 }]
+
+  const peerInfo = swarm._upsertPeer(publicKey, relayAddresses)
+
+  swarm._upsertPeer(publicKey, null)
+  t.alike(peerInfo.relayAddresses, relayAddresses, 'null preserves known relay hints')
+
+  swarm._upsertPeer(publicKey, [])
+  t.alike(peerInfo.relayAddresses, [], 'empty array records known-empty relay hints')
+
+  const updatedRelayAddresses = [{ host: '127.0.0.1', port: 4243 }]
+  swarm._upsertPeer(publicKey, updatedRelayAddresses)
+  t.alike(peerInfo.relayAddresses, updatedRelayAddresses, 'array updates known relay hints')
+})
+
+test('joinPeer preserves existing relay addresses', async (t) => {
+  const swarm = new Hyperswarm({ bootstrap: false, maxParallel: 0 })
+
+  t.teardown(async () => {
+    await swarm.destroy()
+  })
+
+  const publicKey = Buffer.alloc(32).fill(8)
+  const relayAddresses = [{ host: '127.0.0.1', port: 4242 }]
+
+  const peerInfo = swarm._upsertPeer(publicKey, relayAddresses)
+
+  swarm.joinPeer(publicKey)
+
+  t.alike(peerInfo.relayAddresses, relayAddresses, 'joinPeer preserves known relay hints')
+})
+
+test('_handleFirewall creates peers with null relay addresses', async (t) => {
+  const swarm = new Hyperswarm({
+    bootstrap: false,
+    firewall: () => true
+  })
+
+  t.teardown(async () => {
+    await swarm.destroy()
+  })
+
+  const publicKey = Buffer.alloc(32).fill(9)
+
+  t.is(swarm._handleFirewall(publicKey, null), true)
+
+  const peerInfo = swarm.peers.get(b4a.toString(publicKey, 'hex'))
+  t.is(peerInfo.relayAddresses, null)
+})
+
 test('topics returns peer-discovery objects', async (t) => {
   const { bootstrap } = await createTestnet(3, t.teardown)
 
@@ -870,3 +983,31 @@ test('ban stat and event', async (t) => {
 })
 
 function noop() {}
+
+function nextConnectionFromPeer(swarm, publicKey) {
+  return new Promise((resolve) => {
+    swarm.on('connection', onconnection)
+
+    function onconnection(conn, info) {
+      if (!b4a.equals(info.publicKey, publicKey)) return
+      swarm.removeListener('connection', onconnection)
+      resolve([conn, info])
+    }
+  })
+}
+
+async function waitForPeerWithRelayAddresses(swarm, publicKey) {
+  const started = Date.now()
+  const key = b4a.toString(publicKey, 'hex')
+
+  while (Date.now() - started < 10000) {
+    const peerInfo = swarm.peers.get(key)
+    if (peerInfo && peerInfo.relayAddresses && peerInfo.relayAddresses.length > 0) {
+      return peerInfo
+    }
+
+    await timeout(20)
+  }
+
+  throw new Error('Timed out waiting for discovered relay addresses')
+}

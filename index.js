@@ -315,7 +315,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     const firewalled = this._firewall(remotePublicKey, payload)
     if (firewalled) {
-      if (!peerInfo) peerInfo = this._upsertPeer(remotePublicKey)
+      if (!peerInfo) peerInfo = this._upsertPeer(remotePublicKey, null)
       this._banPeer(peerInfo, true, new Error(ERR_FIREWALL))
     }
 
@@ -412,7 +412,9 @@ module.exports = class Hyperswarm extends EventEmitter {
     let peerInfo = this.peers.get(keyString)
 
     if (peerInfo) {
-      peerInfo.relayAddresses = relayAddresses // new is always better
+      if (relayAddresses !== null) {
+        peerInfo.relayAddresses = relayAddresses
+      }
       return peerInfo
     }
 
