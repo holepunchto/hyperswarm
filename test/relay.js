@@ -93,3 +93,38 @@ function createForceRelayingHarness(bootstrap, code) {
     relayKey
   }
 }
+
+test('relayThrough is given the peerInfo of the peer being dialled', async (t) => {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+  t.plan(2)
+
+  const relayKey = DHT.keyPair(Buffer.alloc(32, 'relay')).publicKey
+  const peerKey = DHT.keyPair(Buffer.alloc(32, 'peer')).publicKey
+
+  let seen
+  const swarm = new Hyperswarm({
+    bootstrap,
+    relayThrough (force, swarm, peerInfo) {
+      seen = peerInfo
+      return relayKey
+    }
+  })
+
+  swarm.dht.connect = function (publicKey) {
+    const conn = new EventEmitter()
+    conn.remotePublicKey = publicKey
+    setTimeout(() => {
+      conn.emit('error', new Error('nope'))
+      conn.emit('close')
+    }, 0)
+    return conn
+  }
+
+  swarm._connect(swarm._upsertPeer(peerKey), false)
+  await once(swarm, 'update')
+
+  t.ok(seen, 'the callback was given a peerInfo')
+  t.alike(seen && seen.publicKey, peerKey, 'it is the peer being dialled')
+
+  await swarm.destroy()
+})
