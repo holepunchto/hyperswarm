@@ -11,6 +11,7 @@ async function runTests() {
   await import('./chaos.js')
   await import('./dups.js')
   await import('./firewall.js')
+  await import('./key-index.js')
   await import('./peer-join.js')
   await import('./relay.js')
   await import('./retry-timer.js')
