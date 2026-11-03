@@ -421,6 +421,21 @@ test('one server, one client - correct deduplication when a client connection is
   swarm2.join(topic, { server: false, client: true })
 })
 
+test('flush after destroy resolves while peers are still queued', async (t) => {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
+  const swarm = new Hyperswarm({ bootstrap, maxParallel: 1 })
+
+  // Unreachable peers: with maxParallel 1, one dials and the other stays queued
+  swarm.joinPeer(b4a.alloc(32, 1))
+  swarm.joinPeer(b4a.alloc(32, 2))
+
+  await swarm.destroy()
+
+  const flushed = await Promise.race([swarm.flush(), timeout(2000).then(() => 'timeout')])
+  t.is(flushed, false)
+})
+
 test('flush when max connections reached', async (t) => {
   const { bootstrap } = await createTestnet(3, t.teardown)
 
