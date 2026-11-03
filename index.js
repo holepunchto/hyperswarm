@@ -571,6 +571,8 @@ module.exports = class Hyperswarm extends EventEmitter {
   async flush() {
     const allFlushed = [...this._discovery.values()].map((v) => v.flushed())
     await Promise.all(allFlushed)
+    // destroy() has settled or is settling every pending flush, so nothing would settle this one
+    if (this.destroyed) return false
     if (this._flushAllMaybe()) return true
     const pendingSize = this._allConnections.size - this.connections.size
     if (!this._queue.length && !pendingSize) return true

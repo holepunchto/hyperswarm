@@ -421,6 +421,43 @@ test('one server, one client - correct deduplication when a client connection is
   swarm2.join(topic, { server: false, client: true })
 })
 
+test('flush after destroy resolves while peers are still queued', async (t) => {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
+  const swarm = new Hyperswarm({ bootstrap, maxParallel: 1 })
+
+  // Unreachable peers: with maxParallel 1, one dials and the other stays queued
+  swarm.joinPeer(b4a.alloc(32, 1))
+  swarm.joinPeer(b4a.alloc(32, 2))
+
+  await swarm.destroy()
+
+  const flushed = await Promise.race([swarm.flush(), timeout(2000).then(() => 'timeout')])
+  t.is(flushed, false)
+})
+
+test('flush waiting on discovery resolves when the swarm is destroyed meanwhile', async (t) => {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
+  const swarm = new Hyperswarm({ bootstrap, maxParallel: 1 })
+  const topic = Buffer.alloc(32).fill('flush during destroy')
+
+  swarm.join(topic, { client: true, server: false })
+  swarm.joinPeer(b4a.alloc(32, 1))
+  swarm.joinPeer(b4a.alloc(32, 2))
+
+  // Hold the discovery flush until destroy() has drained its pending flushes
+  let release = null
+  swarm.status(topic).flushed = () => new Promise((resolve) => (release = resolve))
+
+  const flushing = swarm.flush()
+  await swarm.destroy()
+  release(true)
+
+  const flushed = await Promise.race([flushing, timeout(2000).then(() => 'timeout')])
+  t.is(flushed, false)
+})
+
 test('flush when max connections reached', async (t) => {
   const { bootstrap } = await createTestnet(3, t.teardown)
 
