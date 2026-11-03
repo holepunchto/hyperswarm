@@ -374,6 +374,41 @@ test('two servers, one client - refreshing a peer discovery instance discovers n
   await swarm3.destroy()
 })
 
+test('limit counts peers that are still connected after a refresh', async (t) => {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
+  const swarm1 = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: 0 })
+  const swarm2 = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: 0 })
+  const swarm3 = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: 0 })
+
+  swarm1.on('connection', (conn) => conn.on('error', noop))
+  swarm2.on('connection', (conn) => conn.on('error', noop))
+  swarm3.on('connection', (conn) => conn.on('error', noop))
+
+  const topic = Buffer.alloc(32).fill('hello world')
+  await swarm1.join(topic).flushed()
+  const discovery = swarm3.join(topic, { client: true, server: false, limit: 1 })
+
+  await flushConnections(swarm3)
+  t.is(swarm3.connections.size, 1)
+
+  // swarm1 stays connected but is no longer returned by lookups
+  await swarm1.leave(topic)
+  await swarm2.join(topic).flushed()
+
+  await discovery.refresh({ client: true, server: false, limit: 1 })
+  await flushConnections(swarm3)
+  t.is(swarm3.connections.size, 1, 'still within limit')
+
+  await discovery.refresh({ client: true, server: false, limit: 1 })
+  await flushConnections(swarm3)
+  t.is(swarm3.connections.size, 1, 'still within limit after another refresh')
+
+  await swarm1.destroy()
+  await swarm2.destroy()
+  await swarm3.destroy()
+})
+
 test('one server, one client - correct deduplication when a client connection is destroyed', async (t) => {
   t.plan(4)
   const { bootstrap } = await createTestnet(3, t.teardown)
