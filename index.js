@@ -84,6 +84,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     }
 
     this._discovery = new Map()
+    this._topicIds = new Map()
     this._timer = new RetryTimer(this._requeue.bind(this), {
       backoffs: opts.backoffs,
       jitter: opts.jitter
@@ -447,9 +448,9 @@ module.exports = class Hyperswarm extends EventEmitter {
    *  2. A known peer with normal priority -- do nothing
    *  3. A known peer with low priority -- bump priority, because it's been rediscovered
    */
-  _handlePeer(peer, topic) {
+  _handlePeer(peer, topic, topicId) {
     const peerInfo = this._upsertPeer(peer.publicKey, peer.relayAddresses)
-    if (peerInfo) peerInfo._topic(topic)
+    if (peerInfo) peerInfo._topic(topic, topicId)
     if (!peerInfo || this._allConnections.has(peer.publicKey)) return
     if (!peerInfo.prioritized || peerInfo.server) peerInfo._reset()
     if (peerInfo._updatePriority()) {
@@ -515,11 +516,18 @@ module.exports = class Hyperswarm extends EventEmitter {
       return discovery.session(opts)
     }
 
+    // Ids are never reused, since peers remember every topic they were seen on
+    let topicId = this._topicIds.get(topicString)
+    if (topicId === undefined) {
+      topicId = this._topicIds.size
+      this._topicIds.set(topicString, topicId)
+    }
+
     discovery = new PeerDiscovery(this, topic, {
       limit: opts.limit,
       wait: discovery ? discovery.destroy() : null,
       suspended: this.suspended,
-      onpeer: (peer) => this._handlePeer(peer, topic)
+      onpeer: (peer) => this._handlePeer(peer, topic, topicId)
     })
     this._discovery.set(topicString, discovery)
     return discovery.session(opts)
