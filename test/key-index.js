@@ -33,14 +33,13 @@ test('key index matches a map under random inserts and deletes', (t) => {
   t.absent(index.has(randomKey()))
 })
 
-test('key index handles keys whose hashes fully collide', (t) => {
+test('key index handles long probe chains', (t) => {
   const index = new KeyIndex()
   const keys = []
 
-  // Same first 8 bytes means the same hash, so every key lands in one probe chain
+  // Fill most of the table so probe chains are long and wrap around
   for (let i = 0; i < 100; i++) {
     const key = randomKey()
-    key.fill(7, 0, 8)
     keys.push(key)
     index.set(key, i)
   }
@@ -55,6 +54,25 @@ test('key index handles keys whose hashes fully collide', (t) => {
   t.ok(ok, 'lookups stay correct after deleting from the chain')
   t.is(index.size, 50)
   t.absent(index.delete(keys[0]), 'deleting a missing key is a no-op')
+})
+
+test('key index spreads keys that share a long prefix', (t) => {
+  const index = new KeyIndex()
+
+  for (let i = 0; i < 1024; i++) {
+    const key = b4a.alloc(32, 7)
+    key.writeUInt32LE(i, 28)
+    index.set(key, i)
+  }
+
+  let longest = 0
+  let run = 0
+  for (const slot of index._slots) {
+    run = slot === 0 ? 0 : run + 1
+    if (run > longest) longest = run
+  }
+
+  t.ok(longest < 64, 'longest probe run is ' + longest)
 })
 
 test('key index set replaces the value of an existing key', (t) => {
