@@ -10,6 +10,7 @@ async function runTests() {
   await import('./bulk-timer.js')
   await import('./chaos.js')
   await import('./dups.js')
+  await import('./explicit-peers.js')
   await import('./firewall.js')
   await import('./peer-join.js')
   await import('./relay.js')
