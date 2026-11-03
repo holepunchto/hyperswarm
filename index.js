@@ -65,6 +65,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     this.connections = new Set()
     this.peers = new Map()
     this.explicitPeers = new Set()
+    this._explicitIdle = []
     this.listening = null
     this.stats = {
       updates: 0,
@@ -215,6 +216,7 @@ module.exports = class Hyperswarm extends EventEmitter {
       relayThrough
     })
     this._allConnections.add(conn)
+    this._removeExplicitIdle(peerInfo)
 
     this.stats.connects.client.attempted++
 
@@ -258,6 +260,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
       this.connections.delete(conn)
       this._allConnections.delete(conn)
+      this._maybeExplicitIdle(peerInfo)
       this._clientConnections--
       peerInfo._disconnected()
 
@@ -287,8 +290,10 @@ module.exports = class Hyperswarm extends EventEmitter {
     if (this._drainingQueue || this.suspended) return
     this._drainingQueue = true
 
-    for (const peerInfo of this.explicitPeers) {
+    const idle = this._explicitIdle
+    for (let i = 0; i < idle.length; i++) {
       if (!this._shouldConnectExplicit()) break
+      const peerInfo = idle[i]
       if (
         peerInfo.attempts >= 5 ||
         Date.now() - peerInfo.disconnectedTime < peerInfo.attempts * 1000
@@ -296,6 +301,8 @@ module.exports = class Hyperswarm extends EventEmitter {
         continue
       }
       this._connect(peerInfo, false)
+      // Connecting swaps the last idle peer into this slot, so check it again
+      if (idle[i] !== peerInfo) i--
     }
 
     while (this._queue.length && this._shouldConnect()) {
@@ -305,6 +312,23 @@ module.exports = class Hyperswarm extends EventEmitter {
     }
     this._drainingQueue = false
     if (this.connecting === 0) this._flushAllMaybe()
+  }
+
+  _maybeExplicitIdle(peerInfo) {
+    if (!peerInfo.explicit || peerInfo._explicitIdx !== -1) return
+    if (this._allConnections.has(peerInfo.publicKey)) return
+    peerInfo._explicitIdx = this._explicitIdle.push(peerInfo) - 1
+  }
+
+  _removeExplicitIdle(peerInfo) {
+    const i = peerInfo._explicitIdx
+    if (i === -1) return
+    const last = this._explicitIdle.pop()
+    if (last !== peerInfo) {
+      this._explicitIdle[i] = last
+      last._explicitIdx = i
+    }
+    peerInfo._explicitIdx = -1
   }
 
   _handleFirewall(remotePublicKey, payload) {
@@ -381,6 +405,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
     this.connections.add(conn)
     this._allConnections.add(conn)
+    this._removeExplicitIdle(peerInfo)
     this._serverConnections++
 
     conn.on('close', () => {
@@ -391,6 +416,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
       this.connections.delete(conn)
       this._allConnections.delete(conn)
+      this._maybeExplicitIdle(peerInfo)
       this._serverConnections--
       this.stats.connects.server.closed++
 
@@ -550,6 +576,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     if (!this.explicitPeers.has(peerInfo)) {
       peerInfo.explicit = true
       this.explicitPeers.add(peerInfo)
+      this._maybeExplicitIdle(peerInfo)
     }
     if (this._allConnections.has(publicKey)) return
     if (peerInfo._updatePriority()) {
@@ -564,6 +591,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     const peerInfo = this.peers.get(keyString)
     peerInfo.explicit = false
     this.explicitPeers.delete(peerInfo)
+    this._removeExplicitIdle(peerInfo)
     this._maybeDeletePeer(peerInfo)
   }
 
