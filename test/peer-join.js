@@ -1,7 +1,11 @@
 const test = require('brittle')
 const createTestnet = require('hyperdht/testnet')
+const b4a = require('b4a')
+const { timeout } = require('./helpers')
 
 const Hyperswarm = require('..')
+
+const BACKOFFS = [100, 200, 300, 400]
 
 test('join peer - can establish direct connections to public keys', async (t) => {
   const { bootstrap } = await createTestnet(3, t.teardown)
@@ -121,6 +125,42 @@ test('leave peer - will stop reconnecting to previously joined peers', async (t)
 
   await swarm1.destroy()
   await swarm2.destroy()
+})
+
+test('leave peer - will not reconnect to a peer waiting to retry', async (t) => {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
+  const swarm1 = new Hyperswarm({ bootstrap, backoffs: BACKOFFS, jitter: 0 })
+  const swarm2 = new Hyperswarm({ bootstrap })
+
+  t.teardown(async () => {
+    await swarm1.destroy()
+    await swarm2.destroy()
+  })
+
+  await swarm2.listen()
+
+  const connected = new Promise((resolve) => swarm1.once('connection', resolve))
+  swarm1.on('connection', (conn) => conn.on('error', noop))
+  swarm2.on('connection', (conn) => conn.on('error', noop))
+
+  swarm1.joinPeer(swarm2.keyPair.publicKey)
+  const conn = await connected
+
+  conn.destroy()
+  await new Promise((resolve) => conn.once('close', resolve))
+
+  const peerInfo = swarm1.peers.get(b4a.toString(swarm2.keyPair.publicKey, 'hex'))
+  t.ok(peerInfo.waiting, 'peer is waiting to retry')
+
+  swarm1.leavePeer(swarm2.keyPair.publicKey)
+
+  swarm1.on('connection', () => t.fail('swarm1 reconnected after leavePeer'))
+
+  await timeout(BACKOFFS[3] * 2)
+
+  t.is(swarm1.connections.size, 0)
+  t.is(swarm1.peers.size, 0, 'peer info is cleaned up')
 })
 
 test('leave peer - no memory leak if other side closed connection first', async (t) => {
