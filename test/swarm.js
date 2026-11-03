@@ -476,6 +476,20 @@ test('rejoining with different client/server opts refreshes', async (t) => {
   await swarm2.destroy()
 })
 
+test('refreshing a discovery without a limit keeps its limit', async (t) => {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
+  const swarm = new Hyperswarm({ bootstrap })
+  const topic = Buffer.alloc(32).fill('hello world')
+
+  const discovery = swarm.join(topic, { client: true, server: false, limit: 1 })
+  await discovery.refresh({ client: true, server: false })
+
+  t.is(swarm.status(topic).limit, 1)
+
+  await swarm.destroy()
+})
+
 test('topics returns peer-discovery objects', async (t) => {
   const { bootstrap } = await createTestnet(3, t.teardown)
 
