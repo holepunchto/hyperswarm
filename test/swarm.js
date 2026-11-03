@@ -400,6 +400,10 @@ test('limit counts peers that are still connected after a refresh', async (t) =>
   await flushConnections(swarm3)
   t.is(swarm3.connections.size, 1, 'still within limit')
 
+  await discovery.refresh({ client: true, server: false, limit: 1 })
+  await flushConnections(swarm3)
+  t.is(swarm3.connections.size, 1, 'still within limit after another refresh')
+
   await swarm1.destroy()
   await swarm2.destroy()
   await swarm3.destroy()
