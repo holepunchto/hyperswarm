@@ -8,6 +8,7 @@ const unslab = require('unslab')
 const PeerInfo = require('./lib/peer-info')
 const RetryTimer = require('./lib/retry-timer')
 const ConnectionSet = require('./lib/connection-set')
+const KeyIndex = require('./lib/key-index')
 const PeerDiscovery = require('./lib/peer-discovery')
 
 const MAX_PEERS = 64
@@ -91,6 +92,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     this._queue = spq()
 
     this._allConnections = new ConnectionSet()
+    this._peersByKey = new KeyIndex()
     this._pendingFlushes = []
     this._flushTick = 0
 
@@ -310,7 +312,7 @@ module.exports = class Hyperswarm extends EventEmitter {
   _handleFirewall(remotePublicKey, payload) {
     if (b4a.equals(remotePublicKey, this.keyPair.publicKey)) return true
 
-    let peerInfo = this.peers.get(b4a.toString(remotePublicKey, 'hex'))
+    let peerInfo = this._peersByKey.get(remotePublicKey)
     if (peerInfo && peerInfo.banned) return true
 
     const firewalled = this._firewall(remotePublicKey, payload)
@@ -408,8 +410,7 @@ module.exports = class Hyperswarm extends EventEmitter {
 
   _upsertPeer(publicKey, relayAddresses) {
     if (b4a.equals(publicKey, this.keyPair.publicKey)) return null
-    const keyString = b4a.toString(publicKey, 'hex')
-    let peerInfo = this.peers.get(keyString)
+    let peerInfo = this._peersByKey.get(publicKey)
 
     if (peerInfo) {
       peerInfo.relayAddresses = relayAddresses // new is always better
@@ -421,7 +422,8 @@ module.exports = class Hyperswarm extends EventEmitter {
       relayAddresses
     })
 
-    this.peers.set(keyString, peerInfo)
+    this._peersByKey.set(peerInfo.publicKey, peerInfo)
+    this.peers.set(b4a.toString(peerInfo.publicKey, 'hex'), peerInfo)
     return peerInfo
   }
 
@@ -435,8 +437,8 @@ module.exports = class Hyperswarm extends EventEmitter {
     const hasActiveConn = this._allConnections.has(peerInfo.publicKey)
     if (hasActiveConn) return
 
-    const keyString = b4a.toString(peerInfo.publicKey, 'hex')
-    this.peers.delete(keyString)
+    this._peersByKey.delete(peerInfo.publicKey)
+    this.peers.delete(b4a.toString(peerInfo.publicKey, 'hex'))
   }
 
   /*
@@ -558,10 +560,9 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   leavePeer(publicKey) {
-    const keyString = b4a.toString(publicKey, 'hex')
-    if (!this.peers.has(keyString)) return
+    const peerInfo = this._peersByKey.get(publicKey)
+    if (!peerInfo) return
 
-    const peerInfo = this.peers.get(keyString)
     peerInfo.explicit = false
     this.explicitPeers.delete(peerInfo)
     this._maybeDeletePeer(peerInfo)
