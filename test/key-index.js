@@ -56,6 +56,36 @@ test('key index handles long probe chains', (t) => {
   t.absent(index.delete(keys[0]), 'deleting a missing key is a no-op')
 })
 
+test('key index deletes from a probe chain that wraps around', (t) => {
+  // A fresh index has 16 slots, so a key's slot in it is its home slot
+  const last = keyWithHome(15)
+  const keys = [last(), last(), last(), keyWithHome(0)(), keyWithHome(1)()]
+
+  // Chain: slots 15, 0, 1 hold the home-15 keys, slots 2 and 3 the others
+  let ok = true
+  for (let i = 0; i < keys.length; i++) {
+    const index = new KeyIndex()
+    keys.forEach((key, j) => index.set(key, j))
+    index.delete(keys[i])
+
+    for (let j = 0; j < keys.length; j++) {
+      if (index.get(keys[j]) !== (j === i ? undefined : j)) ok = false
+    }
+  }
+  t.ok(ok, 'every other key is still found after deleting any one')
+
+  const index = new KeyIndex()
+  keys.forEach((key, j) => index.set(key, j))
+  for (let i = 0; i < keys.length; i++) {
+    index.delete(keys[i])
+    for (let j = i + 1; j < keys.length; j++) {
+      if (index.get(keys[j]) !== j) ok = false
+    }
+  }
+  t.ok(ok, 'remaining keys are found while the chain is emptied')
+  t.is(index.size, 0)
+})
+
 test('key index spreads keys that share a long prefix', (t) => {
   const index = new KeyIndex()
 
@@ -85,6 +115,17 @@ test('key index set replaces the value of an existing key', (t) => {
   t.is(index.size, 1)
   t.is(index.get(key), 'b')
 })
+
+function keyWithHome(home) {
+  return function () {
+    while (true) {
+      const key = randomKey()
+      const index = new KeyIndex()
+      index.set(key, 0)
+      if (index._slots[home] !== 0) return key
+    }
+  }
+}
 
 function randomKey() {
   const key = b4a.alloc(32)
