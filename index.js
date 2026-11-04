@@ -121,14 +121,17 @@ module.exports = class Hyperswarm extends EventEmitter {
 
   _requeue(batch) {
     if (this.suspended) return
+    let deleted = false
     for (const peerInfo of batch) {
       peerInfo.waiting = false
 
       if (
+        !this._shouldRequeue(peerInfo) ||
         peerInfo._updatePriority() === false ||
         this._allConnections.has(peerInfo.publicKey) ||
         peerInfo.queued
       ) {
+        if (this._maybeDeletePeer(peerInfo)) deleted = true
         continue
       }
       peerInfo.queued = true
@@ -137,6 +140,7 @@ module.exports = class Hyperswarm extends EventEmitter {
     }
 
     this._attemptClientConnections()
+    if (deleted) this.emit('update')
   }
 
   _flushMaybe(peerInfo) {
@@ -430,13 +434,13 @@ module.exports = class Hyperswarm extends EventEmitter {
   }
 
   _maybeDeletePeer(peerInfo) {
-    if (!peerInfo.shouldGC()) return
+    if (!peerInfo.shouldGC()) return false
 
     const hasActiveConn = this._allConnections.has(peerInfo.publicKey)
-    if (hasActiveConn) return
+    if (hasActiveConn) return false
 
     const keyString = b4a.toString(peerInfo.publicKey, 'hex')
-    this.peers.delete(keyString)
+    return this.peers.delete(keyString)
   }
 
   /*
