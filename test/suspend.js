@@ -1,6 +1,7 @@
 const test = require('brittle')
 const DHT = require('hyperdht')
 const createTestnet = require('hyperdht/testnet')
+const b4a = require('b4a')
 
 const Hyperswarm = require('..')
 
@@ -130,3 +131,48 @@ test('suspend + resume - 2 peers both server and client', async (t) => {
     })
   }
 })
+
+test('suspend + resume - queued peers can still connect after resume', async (t) => {
+  const { bootstrap } = await createTestnet(3, t.teardown)
+
+  const topic = Buffer.alloc(32).fill('hello world')
+  const servers = []
+
+  for (let i = 0; i < 3; i++) {
+    const server = new Hyperswarm({ bootstrap })
+    server.on('connection', (conn) => conn.on('error', noop))
+    await server.join(topic, { server: true, client: false }).flushed()
+    servers.push(server)
+  }
+
+  // maxPeers 1 keeps all but one discovered peer in the queue
+  const client = new Hyperswarm({ bootstrap, maxPeers: 1 })
+  client.on('connection', (conn) => conn.on('error', noop))
+
+  t.teardown(async () => {
+    for (const server of servers) await server.destroy()
+    await client.destroy()
+  })
+
+  const discovery = client.join(topic, { client: true, server: false })
+  await client.flush()
+  t.is(client.connections.size, 1)
+
+  await client.suspend()
+  t.is(client.peers.size, 0, 'queued peers are released')
+
+  await client.resume()
+  await discovery.flushed()
+  await client.flush()
+
+  // the connected server goes away, the client should move on to a queued one
+  const [conn] = client.connections
+  const connected = servers.find((s) => b4a.equals(s.keyPair.publicKey, conn.remotePublicKey))
+  await connected.destroy()
+
+  await discovery.refresh()
+  await client.flush()
+  t.is(client.connections.size, 1, 'connected to another server')
+})
+
+function noop() {}

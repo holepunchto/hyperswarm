@@ -641,6 +641,12 @@ module.exports = class Hyperswarm extends EventEmitter {
       jitter: this._timer.jitter
     })
     this._queue = spq()
+
+    for (const peerInfo of this.peers.values()) {
+      peerInfo.queued = false
+      peerInfo.waiting = false
+      this._maybeDeletePeer(peerInfo)
+    }
   }
 
   async resume({ log = noop } = {}) {
