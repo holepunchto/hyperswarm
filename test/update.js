@@ -1,14 +1,15 @@
 const test = require('brittle')
 const Hyperswarm = require('..')
 const createTestnet = require('hyperdht/testnet')
+const { createDHT } = require('./helpers')
 
 test('connecting', async (t) => {
   t.plan(5)
 
   const { bootstrap } = await createTestnet(3, t.teardown)
 
-  const swarm1 = new Hyperswarm({ bootstrap })
-  const swarm2 = new Hyperswarm({ bootstrap })
+  const swarm1 = new Hyperswarm({ dht: createDHT(bootstrap) })
+  const swarm2 = new Hyperswarm({ dht: createDHT(bootstrap) })
   const topic = Buffer.alloc(32).fill('hello world')
 
   t.teardown(async () => {
