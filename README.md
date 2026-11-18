@@ -17,8 +17,8 @@ const Hyperswarm = require('hyperswarm')
 
 const swarm = new Hyperswarm()
 
-swarm1.on('connection', (conn) => {
-  // swarm1 will receive server connections
+swarm.on('connection', (conn) => {
+  // swarm will receive server connections
   conn.write('this is a server connection')
   conn.end()
 })
@@ -26,7 +26,7 @@ swarm1.on('connection', (conn) => {
 const discoveryKey = Buffer.alloc(32).fill('hello world') // must be 32 bytes
 
 // join the swarm, others will find you
-swarm2.join(discoveryKey, { server: true, client: true })
+swarm.join(discoveryKey, { server: true, client: true })
 ```
 
 ## Hyperswarm API
